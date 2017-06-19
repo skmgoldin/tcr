@@ -36,7 +36,7 @@ contract Registry {
 
 	function isVerified(string _domain) returns (bool) {
 		bytes32 domainHash = sha3(_domain);
-		if (domainMap[domainHash].time < now && domainMap[domainHash].status = 0) {
+		if (domainMap[domainHash].time < now && domainMap[domainHash].status != 0) {
 			return false;
 		}
 		else {
@@ -54,6 +54,7 @@ contract Registry {
 		// trigger an event
 	}
 
+	// save challenger somewhere
 	function challenge(string _domain) {
 		require(token.allowance(msg.sender, this) >= applyCost);
 		token.transferFrom(msg.sender, wallet, applyCost);
@@ -66,6 +67,15 @@ contract Registry {
 
 		}
 	}
+
+	function moveToRegistry(string _domain) {
+		bytes32 domainHash = sha3(_domain);
+		require(domainMap[domainHash].time > now);
+		require(domainMap[domainHash].status == 1);
+		add(domainHash);
+	}
+
+	// claim tokens function
 
 	function callVote(bytes32 _domainHash, uint _time) private returns (bool) {
 		// event that vote has started
