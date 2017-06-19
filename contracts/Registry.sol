@@ -63,7 +63,7 @@ contract Registry {
 		require(domainMap[domainHash].time < now);
 		domainMap[domainHash].status = 2;
 		if (callVote(domainHash, domainMap[domainHash].time) == true) {
-			addToRegistry(_domain);
+			add(_domain);
 		}
 		else {
 			token.transferFrom(mwallet, msg.sender, applyCost);
