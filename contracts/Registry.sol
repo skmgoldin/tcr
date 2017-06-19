@@ -63,9 +63,9 @@ contract Registry {
 		require(domainMap[domainHash].time < now);
 		// if success
 		domainMap[domainHash].status = 2;
-		if (callVote(domainHash, domainMap[domainHash].time) == true) {
+		// if (callVote(domainHash, domainMap[domainHash].time) == true) {
 
-		}
+		// }
 	}
 
 	function moveToRegistry(string _domain) {
