@@ -62,10 +62,13 @@ contract Registry {
 		bytes32 domainHash = sha3(_domain);
 		require(domainMap[domainHash].status != 2); // works for both unexpired whitelisted and new applicants
 		require(domainMap[domainHash].time < now);
-		// if success
 		domainMap[domainHash].status = 2;
 		if (callVote(domainHash, domainMap[domainHash].time) == true) {
-
+			add(_domain);
+		}
+		else {
+			token.transferFrom(mwallet, msg.sender, applyCost);
+			// trigger event to notify applicant?
 		}
 	}
 
