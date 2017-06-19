@@ -67,7 +67,7 @@ contract Registry {
 			add(_domain);
 		}
 		else {
-			token.transferFrom(mwallet, msg.sender, applyCost);
+			token.transferFrom(wallet, msg.sender, applyCost);
 			// trigger event to notify applicant?
 		}
 	}
