@@ -30,7 +30,8 @@ contract Registry {
 		token = StandardToken(_token);
 	}
 
-	function add(bytes32 _domainHash) private {
+	// make ownerOnly
+	function add(bytes32 _domainHash) {
 		domainMap[_domainHash].time = now + expTime;
 		domainMap[_domainHash].status = 0;
 	}
