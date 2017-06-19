@@ -1,13 +1,22 @@
-var MetaCoin = artifacts.require("./MetaCoin.sol");
+var Registry = artifacts.require("./Registry.sol");
 
-contract('MetaCoin', function(accounts) {
-  it("should put 10000 MetaCoin in the first account", function() {
-    return MetaCoin.deployed().then(function(instance) {
-      return instance.getBalance.call(accounts[0]);
-    }).then(function(balance) {
-      assert.equal(balance.valueOf(), 10000, "10000 wasn't in the first account");
+contract('Registry', function(accounts) {
+  it("should add a domain to the mapping", function() {
+    const domain = 'consensys.net';
+    let registry;
+    return Registry.deployed()
+    .then(function(_registry) {
+      registry = _registry;
+      return registry.add(domain);
+    })
+    .then(function(){
+      return registry.isVerified.call(domain);
+    })
+    .then(function(result) {
+      assert.equal(result, true , "Domain is not added.");
     });
   });
+/*
   it("should call a function that depends on a linked library", function() {
     var meta;
     var metaCoinBalance;
@@ -60,4 +69,5 @@ contract('MetaCoin', function(accounts) {
       assert.equal(account_two_ending_balance, account_two_starting_balance + amount, "Amount wasn't correctly sent to the receiver");
     });
   });
+  */
 });
