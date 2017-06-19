@@ -3,17 +3,18 @@ import "./StandardToken.sol";
 
 contract Registry {
 
-	public address wallet;
+	address public wallet;
 
 	// this will later be the parameters from the parametrizer
-	public uint expTime;
-	public uint applyCost;
-	public uint challengeTime;
+	uint public expTime;
+	uint public applyCost;
+	uint public challengeTime;
+	StandardToken public token;
 
 	struct Publisher {
 		address owner;
 		uint time;
-		uint2 status;  // is this publisher in the whitelist or applying or already challenged etc
+		uint status;  // is this publisher in the whitelist or applying or already challenged etc
 	}
 
 	// status description:
@@ -26,12 +27,12 @@ contract Registry {
 
 	function Registry(address _token) {
 		// set parameters somehow
-		StandardToken token = StandardToken(_token);
+		token = StandardToken(_token);
 	}
 
 	function add(bytes32 _domainHash) private {
-		domainMap[domainHash].time = now + expTime;
-		domainMap[domainHash].status = 0;
+		domainMap[_domainHash].time = now + expTime;
+		domainMap[_domainHash].status = 0;
 	}
 
 	function isVerified(string _domain) returns (bool) {
@@ -82,6 +83,6 @@ contract Registry {
 		// ??
 	}
 
-	// 
+	
 
 }
