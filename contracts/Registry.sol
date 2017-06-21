@@ -1,8 +1,12 @@
 pragma solidity 0.4.11;
 import "./StandardToken.sol";
 
-// need to think abotu events
-// update domain name functionality?
+// to do:
+// implement events
+// update domain name functionality (?)
+// save challenger based on output from voting system
+// distribute tokens based on output from voting system
+// add to whitelist based on output from voting system
 
 contract Registry {
 
@@ -39,7 +43,7 @@ contract Registry {
 		distributionScale = 0;
 	}
 
-	// make ownerOnly andor bytes32 later
+	// make ownerOnly or bytes32 later
 	function add(string _domain) {
 		bytes32 domainHash = sha3(_domain);
 		whitelist[domainHash].expTime = now + expDuration;
@@ -60,18 +64,16 @@ contract Registry {
 		require(token.allowance(msg.sender, this) >= applyCost);
 		token.transferFrom(msg.sender, wallet, applyCost);
 		bytes32 domainHash = sha3(_domain);
-		// if success
 		applicant[domainHash].challengeTime = now + challengeDuration;
 		applicant[domainHash].owner = msg.sender;	
 		// trigger an event
 	}
 
-	// save challenger somewhere
 	function challenge(string _domain) {
 		require(token.allowance(msg.sender, this) >= applyCost);
 		token.transferFrom(msg.sender, wallet, applyCost);
 		bytes32 domainHash = sha3(_domain);
-		require(applicant[domainHash].challenged == false); // works for both unexpired whitelisted and new applicants
+		require(applicant[domainHash].challenged == false);
 		require(applicant[domainHash].challengeTime > now);
 		applicant[domainHash].challenged = true;
 		// if (callVote(domainHash, domainMap[domainHash].time) == true) {
@@ -87,11 +89,11 @@ contract Registry {
 		bytes32 domainHash = sha3(_domain);
 		require(applicant[domainHash].challengeTime < now);
 		require(applicant[domainHash].challenged == false);
+		// prevents moving a domain to the registry without ever applying
 		require(applicant[domainHash].owner != 0);
 		add(_domain);
 	}
 
-	// claim tokens function
 
 	// function callVote(bytes32 _domainHash, uint _time) private returns (bool) {
 	// 	// event that vote has started

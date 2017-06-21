@@ -38,10 +38,26 @@ contract('Registry', function(accounts) {
     return Registry.deployed()
     .then(function(_registry) {
       registry = _registry;
-      return registry.apply.call(domain);
+      return registry.apply(domain);
     })
     .then(function(){
       return !(registry.domainMap[domainHash].status == 1);
+    })
+    .then(function(result) {
+      assert.equal(result, true , "Domain is not an applicant.");
+    });
+  });
+
+  it("should allow an unchallenged app to move to registry", function() {
+    const domain = 'consensys.net'
+    let registry;
+    return Registry.deployed()
+    .then(function(_registry) {
+      registry = _registry;
+      return registry.apply(domain);
+    })
+    .then(function(){
+      return moveToRegistry(domain);
     })
     .then(function(result) {
       assert.equal(result, true , "Domain is not an applicant.");
