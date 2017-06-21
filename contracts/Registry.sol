@@ -43,6 +43,7 @@ contract Registry {
 	// make ownerOnly
 	function add(bytes32 _domainHash) {
 		whitelist[_domainHash].expTime = now + expDuration;
+		whitelist[_domainHash].owner = applicant[_domainHash].owner;
 	}
 
 	function isVerified(string _domain) returns (bool) {
@@ -60,7 +61,8 @@ contract Registry {
 		token.transferFrom(msg.sender, wallet, applyCost);
 		bytes32 domainHash = sha3(_domain);
 		// if success
-		applicant[domainHash].challengeTime = now + challengeDuration;	
+		applicant[domainHash].challengeTime = now + challengeDuration;
+		applicant[domainHash].owner = msg.sender;	
 		// trigger an event
 	}
 
