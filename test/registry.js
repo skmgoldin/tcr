@@ -2,13 +2,12 @@ var Registry = artifacts.require("./Registry.sol");
 
 contract('Registry', function(accounts) {
   it("should add a domain to the mapping", function() {
-    const domainHash = 'd12b8fe8d34e88110b378dd90f522fe23b7b2b0afae9a7c6139a9347da5ce6808';
-    const domain = 'consensys.net'
+    const domain = "a";
     let registry;
     return Registry.deployed()
     .then(function(_registry) {
       registry = _registry;
-      return registry.add(domainHash);
+      return registry.add(domain);
     })
     .then(function(){
       return registry.isVerified.call(domain);
@@ -33,29 +32,7 @@ contract('Registry', function(accounts) {
     });
   });
 
-  it("should return 0 for status of a whitelisted address", function() {
-    const domainHash = 'd12b8fe8d34e88110b378dd90f522fe23b7b2b0afae9a7c6139a9347da5ce6808';
-    const domain = 'consensys.net'
-    let registry;
-    return Registry.deployed()
-    .then(function(_registry) {
-      registry = _registry;
-      return registry.add(domainHash);
-    })
-    .then(function(){
-      //return (registry.domainMap[domainHash].status == 0);
-      return registry.domainMap.call(domainHash)
-    })
-    .then(function(result) {
-      console.log(result[2].toString()s)
-    })
-    .then(function(result) {
-      assert.equal(result, true , "Domain has the wrong status.");
-    });
-  });
-
   it("should allow a domain to apply", function() {
-    const domainHash = 'd12b8fe8d34e88110b378dd90f522fe23b7b2b0afae9a7c6139a9347da5ce6808';
     const domain = 'consensys.net'
     let registry;
     return Registry.deployed()
@@ -72,7 +49,6 @@ contract('Registry', function(accounts) {
   });
 
   it("should allow an added domain to be challenged", function() {
-    const domainHash = 'd12b8fe8d34e88110b378dd90f522fe23b7b2b0afae9a7c6139a9347da5ce6808';
     const domain = 'consensys.net'
     let registry;
     return Registry.deployed()

@@ -2,7 +2,6 @@ pragma solidity 0.4.11;
 import "./StandardToken.sol";
 
 // need to think abotu events
-// save address
 // update domain name functionality?
 
 contract Registry {
@@ -34,25 +33,26 @@ contract Registry {
 		token = StandardToken(_token);
 		// wallet =
 		// placeholder values
-		expDuration = 200;
+		expDuration = 2000;
 		applyCost = 50;
 		challengeDuration = 200;
 		distributionScale = 0;
 	}
 
-	// make ownerOnly
-	function add(bytes32 _domainHash) {
-		whitelist[_domainHash].expTime = now + expDuration;
-		whitelist[_domainHash].owner = applicant[_domainHash].owner;
+	// make ownerOnly andor bytes32 later
+	function add(string _domain) {
+		bytes32 domainHash = sha3(_domain);
+		whitelist[domainHash].expTime = now + expDuration;
+		whitelist[domainHash].owner = applicant[domainHash].owner;
 	}
 
 	function isVerified(string _domain) returns (bool) {
 		bytes32 domainHash = sha3(_domain);
-		if (whitelist[domainHash].expTime < now) {
-			return false;
+		if (whitelist[domainHash].expTime > now) {
+			return true;
 		}
 		else {
-			return true;
+			return false;
 		}
 	}
 
@@ -72,7 +72,7 @@ contract Registry {
 		token.transferFrom(msg.sender, wallet, applyCost);
 		bytes32 domainHash = sha3(_domain);
 		require(applicant[domainHash].challenged == false); // works for both unexpired whitelisted and new applicants
-		require(applicant[domainHash].challengeTime < now);
+		require(applicant[domainHash].challengeTime > now);
 		applicant[domainHash].challenged = true;
 		// if (callVote(domainHash, domainMap[domainHash].time) == true) {
 		// 	add(domainHash);
@@ -85,9 +85,10 @@ contract Registry {
 
 	function moveToRegistry(string _domain) {
 		bytes32 domainHash = sha3(_domain);
-		require(applicant[domainHash].challengeTime > now);
+		require(applicant[domainHash].challengeTime < now);
 		require(applicant[domainHash].challenged == false);
-		add(domainHash);
+		require(applicant[domainHash].owner != 0);
+		add(_domain);
 	}
 
 	// claim tokens function
