@@ -10,6 +10,7 @@ import "./StandardToken.sol";
 // what happens if you fail and wanna go again
 // check on delete in solidity
 // keep deposit if never challenged
+// move losers out of appPool
 
 contract Registry {
 
