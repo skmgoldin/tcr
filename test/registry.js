@@ -47,7 +47,7 @@ contract('Registry', function(accounts) {
       return registry.domainMap.call(domainHash)
     })
     .then(function(result) {
-      console.log(result[2].toString())
+      console.log(result[2].toString()s)
     })
     .then(function(result) {
       assert.equal(result, true , "Domain has the wrong status.");

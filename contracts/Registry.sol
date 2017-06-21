@@ -13,6 +13,7 @@ contract Registry {
 	uint public expDuration;
 	uint public applyCost;
 	uint public challengeDuration;
+	uint public distributionScale;
 	StandardToken public token;
 
 	struct Publisher {
@@ -30,11 +31,13 @@ contract Registry {
 	mapping(bytes32 => Application) public applicant;
 
 	function Registry(address _token) {
-		// set parameters somehow
 		token = StandardToken(_token);
+		// wallet =
+		// placeholder values
 		expDuration = 200;
 		applyCost = 50;
 		challengeDuration = 200;
+		distributionScale = 0;
 	}
 
 	// make ownerOnly
