@@ -1,44 +1,50 @@
 pragma solidity 0.4.11;
 import "./StandardToken.sol";
 
+// need to think abotu events
+// save address
+// update domain name functionality?
+
 contract Registry {
 
 	address public wallet;
 
 	// this will later be the parameters from the parametrizer
-	uint public expTime;
+	uint public expDuration;
 	uint public applyCost;
-	uint public challengeTime;
+	uint public challengeDuration;
 	StandardToken public token;
 
 	struct Publisher {
 		address owner;
-		uint time;
-		uint status;  // is this publisher in the whitelist or applying or already challenged etc
+		uint expTime;
 	}
 
-	// status description:
-	// 0 = whitelisted, either expired or not based on time variable
-	// 1 = new applicant waiting to be challenged
-	// 2 = already been challenged
-	// this can possibly just be a bool later
+	struct Application {
+		address owner;
+		uint challengeTime;
+		bool challenged;
+	}
 	
-	mapping(bytes32 => Publisher) public domainMap;
+	mapping(bytes32 => Publisher) public whitelist;
+	mapping(bytes32 => Application) public applicant;
 
 	function Registry(address _token) {
 		// set parameters somehow
 		token = StandardToken(_token);
+		expDuration = 200;
+		applyCost = 50;
+		challengeDuration = 200;
 	}
 
 	// make ownerOnly
 	function add(bytes32 _domainHash) {
-		domainMap[_domainHash].time = now + expTime;
-		domainMap[_domainHash].status = 0;
+		whitelist[_domainHash].expTime = now + expDuration;
 	}
 
 	function isVerified(string _domain) returns (bool) {
 		bytes32 domainHash = sha3(_domain);
-		if (domainMap[domainHash].time < now && domainMap[domainHash].status != 0) {
+		if (whitelist[domainHash].expTime < now) {
 			return false;
 		}
 		else {
@@ -51,8 +57,7 @@ contract Registry {
 		token.transferFrom(msg.sender, wallet, applyCost);
 		bytes32 domainHash = sha3(_domain);
 		// if success
-		domainMap[domainHash].status = 1;
-		domainMap[domainHash].time = now + challengeTime;	
+		applicant[domainHash].challengeTime = now + challengeDuration;	
 		// trigger an event
 	}
 
@@ -61,31 +66,31 @@ contract Registry {
 		require(token.allowance(msg.sender, this) >= applyCost);
 		token.transferFrom(msg.sender, wallet, applyCost);
 		bytes32 domainHash = sha3(_domain);
-		require(domainMap[domainHash].status != 2); // works for both unexpired whitelisted and new applicants
-		require(domainMap[domainHash].time < now);
-		domainMap[domainHash].status = 2;
-		if (callVote(domainHash, domainMap[domainHash].time) == true) {
-			add(domainHash);
-		}
-		else {
-			token.transferFrom(wallet, msg.sender, applyCost);
-			// trigger event to notify applicant?
-		}
+		require(applicant[domainHash].challenged == false); // works for both unexpired whitelisted and new applicants
+		require(applicant[domainHash].challengeTime < now);
+		applicant[domainHash].challenged = true;
+		// if (callVote(domainHash, domainMap[domainHash].time) == true) {
+		// 	add(domainHash);
+		// }
+		// else {
+		// 	token.transferFrom(wallet, msg.sender, applyCost);
+		// 	// trigger event to notify applicant?
+		// }
 	}
 
 	function moveToRegistry(string _domain) {
 		bytes32 domainHash = sha3(_domain);
-		require(domainMap[domainHash].time > now);
-		require(domainMap[domainHash].status == 1);
+		require(applicant[domainHash].challengeTime > now);
+		require(applicant[domainHash].challenged == false);
 		add(domainHash);
 	}
 
 	// claim tokens function
 
-	function callVote(bytes32 _domainHash, uint _time) private returns (bool) {
-		// event that vote has started
-		// ??
-	}
+	// function callVote(bytes32 _domainHash, uint _time) private returns (bool) {
+	// 	// event that vote has started
+	// 	// ??
+	// }
 
 	
 

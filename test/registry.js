@@ -2,12 +2,13 @@ var Registry = artifacts.require("./Registry.sol");
 
 contract('Registry', function(accounts) {
   it("should add a domain to the mapping", function() {
-    const domain = 'consensys.net';
+    const domainHash = 'd12b8fe8d34e88110b378dd90f522fe23b7b2b0afae9a7c6139a9347da5ce6808';
+    const domain = 'consensys.net'
     let registry;
     return Registry.deployed()
     .then(function(_registry) {
       registry = _registry;
-      return registry.add(domain);
+      return registry.add(domainHash);
     })
     .then(function(){
       return registry.isVerified.call(domain);
@@ -17,57 +18,77 @@ contract('Registry', function(accounts) {
     });
   });
 
-  // it("should call a function that depends on a linked library", function() {
-  //   var meta;
-  //   var metaCoinBalance;
-  //   var metaCoinEthBalance;
+  it("should verify a domain is not in the whitelist", function() {
+    const domain = 'eth.net';
+    let registry;
+    return Registry.deployed()
+    .then(function(_registry) {
+      registry = _registry;
+    })
+    .then(function(){
+      return registry.isVerified.call(domain);
+    })
+    .then(function(result) {
+      assert.equal(result, false , "Domain is actually added.");
+    });
+  });
 
-  //   return MetaCoin.deployed().then(function(instance) {
-  //     meta = instance;
-  //     return meta.getBalance.call(accounts[0]);
-  //   }).then(function(outCoinBalance) {
-  //     metaCoinBalance = outCoinBalance.toNumber();
-  //     return meta.getBalanceInEth.call(accounts[0]);
-  //   }).then(function(outCoinBalanceEth) {
-  //     metaCoinEthBalance = outCoinBalanceEth.toNumber();
-  //   }).then(function() {
-  //     assert.equal(metaCoinEthBalance, 2 * metaCoinBalance, "Library function returned unexpected function, linkage may be broken");
-  //   });
-  // });
-  // it("should send coin correctly", function() {
-  //   var meta;
+  it("should return 0 for status of a whitelisted address", function() {
+    const domainHash = 'd12b8fe8d34e88110b378dd90f522fe23b7b2b0afae9a7c6139a9347da5ce6808';
+    const domain = 'consensys.net'
+    let registry;
+    return Registry.deployed()
+    .then(function(_registry) {
+      registry = _registry;
+      return registry.add(domainHash);
+    })
+    .then(function(){
+      //return (registry.domainMap[domainHash].status == 0);
+      return registry.domainMap.call(domainHash)
+    })
+    .then(function(result) {
+      console.log(result[2].toString())
+    })
+    .then(function(result) {
+      assert.equal(result, true , "Domain has the wrong status.");
+    });
+  });
 
-  //   // Get initial balances of first and second account.
-  //   var account_one = accounts[0];
-  //   var account_two = accounts[1];
+  it("should allow a domain to apply", function() {
+    const domainHash = 'd12b8fe8d34e88110b378dd90f522fe23b7b2b0afae9a7c6139a9347da5ce6808';
+    const domain = 'consensys.net'
+    let registry;
+    return Registry.deployed()
+    .then(function(_registry) {
+      registry = _registry;
+      return registry.apply.call(domain);
+    })
+    .then(function(){
+      return !(registry.domainMap[domainHash].status == 1);
+    })
+    .then(function(result) {
+      assert.equal(result, true , "Domain is not an applicant.");
+    });
+  });
 
-  //   var account_one_starting_balance;
-  //   var account_two_starting_balance;
-  //   var account_one_ending_balance;
-  //   var account_two_ending_balance;
+  it("should allow an added domain to be challenged", function() {
+    const domainHash = 'd12b8fe8d34e88110b378dd90f522fe23b7b2b0afae9a7c6139a9347da5ce6808';
+    const domain = 'consensys.net'
+    let registry;
+    return Registry.deployed()
+    .then(function(_registry) {
+      registry = _registry;
+      return registry.add.call(domainHash);
+    })
+    .then(function(){
+      return registry.domainMap[domainHash].status == 1;
+    })
+    .then(function(result) {
+      assert.equal(result, true , "Domain is not an applicant.");
+    });
+  });
 
-  //   var amount = 10;
 
-  //   return MetaCoin.deployed().then(function(instance) {
-  //     meta = instance;
-  //     return meta.getBalance.call(account_one);
-  //   }).then(function(balance) {
-  //     account_one_starting_balance = balance.toNumber();
-  //     return meta.getBalance.call(account_two);
-  //   }).then(function(balance) {
-  //     account_two_starting_balance = balance.toNumber();
-  //     return meta.sendCoin(account_two, amount, {from: account_one});
-  //   }).then(function() {
-  //     return meta.getBalance.call(account_one);
-  //   }).then(function(balance) {
-  //     account_one_ending_balance = balance.toNumber();
-  //     return meta.getBalance.call(account_two);
-  //   }).then(function(balance) {
-  //     account_two_ending_balance = balance.toNumber();
-
-  //     assert.equal(account_one_ending_balance, account_one_starting_balance - amount, "Amount wasn't correctly taken from the sender");
-  //     assert.equal(account_two_ending_balance, account_two_starting_balance + amount, "Amount wasn't correctly sent to the receiver");
-  //   });
-  // });
+ 
   
 });
