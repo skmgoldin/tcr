@@ -7,6 +7,9 @@ import "./StandardToken.sol";
 // save challenger based on output from voting system
 // distribute tokens based on output from voting system
 // add to whitelist based on output from voting system
+// what happens if you fail and wanna go again
+// check on delete in solidity
+// keep deposit if never challenged
 
 contract Registry {
 
@@ -28,10 +31,13 @@ contract Registry {
 		address owner;
 		uint challengeTime;
 		bool challenged;
+		address challenger;
 	}
-	
+
 	mapping(bytes32 => Publisher) public whitelist;
-	mapping(bytes32 => Application) public applicant;
+	mapping(bytes32 => Application) public appPool;
+	mapping(uint => bool) public voteProcessed;
+	mapping(address => mapping(uint => bool)) public voterInfo;
 
 	function Registry(address _token) {
 		token = StandardToken(_token);
@@ -43,11 +49,10 @@ contract Registry {
 		distributionScale = 0;
 	}
 
-	// make ownerOnly or bytes32 later
-	function add(string _domain) {
+	function add(string _domain) private {
 		bytes32 domainHash = sha3(_domain);
 		whitelist[domainHash].expTime = now + expDuration;
-		whitelist[domainHash].owner = applicant[domainHash].owner;
+		whitelist[domainHash].owner = appPool[domainHash].owner;
 	}
 
 	function isVerified(string _domain) returns (bool) {
@@ -64,8 +69,8 @@ contract Registry {
 		require(token.allowance(msg.sender, this) >= applyCost);
 		token.transferFrom(msg.sender, wallet, applyCost);
 		bytes32 domainHash = sha3(_domain);
-		applicant[domainHash].challengeTime = now + challengeDuration;
-		applicant[domainHash].owner = msg.sender;	
+		appPool[domainHash].challengeTime = now + challengeDuration;
+		appPool[domainHash].owner = msg.sender;	
 		// trigger an event
 	}
 
@@ -73,9 +78,10 @@ contract Registry {
 		require(token.allowance(msg.sender, this) >= applyCost);
 		token.transferFrom(msg.sender, wallet, applyCost);
 		bytes32 domainHash = sha3(_domain);
-		require(applicant[domainHash].challenged == false);
-		require(applicant[domainHash].challengeTime > now);
-		applicant[domainHash].challenged = true;
+		require(appPool[domainHash].challenged == false);
+		require(appPool[domainHash].challengeTime > now);
+		appPool[domainHash].challenged = true;
+		appPool[domainHash].challenger = msg.sender;
 		// if (callVote(domainHash, domainMap[domainHash].time) == true) {
 		// 	add(domainHash);
 		// }
@@ -87,15 +93,27 @@ contract Registry {
 
 	function moveToRegistry(string _domain) {
 		bytes32 domainHash = sha3(_domain);
-		require(applicant[domainHash].challengeTime < now);
-		require(applicant[domainHash].challenged == false);
+		require(appPool[domainHash].challengeTime < now);
+		require(appPool[domainHash].challenged == false);
 		// prevents moving a domain to the registry without ever applying
-		require(applicant[domainHash].owner != 0);
+		require(appPool[domainHash].owner != 0);
 		// prevent applicant from moving to registry multiple times
-		applicant[domainHash].owner = 0;
+		appPool[domainHash].owner = 0;
 		add(_domain);
 	}
 
+	// didProposalPass(id);
+	// need to access domain
+	function claimReward(uint _pollID) {
+		require(voterInfo[msg.sender][_pollID] == false);
+		if (voteProcessed[_pollID] == false) {
+			// if applicant won move to registry
+			// distribute to challenger here (?) if lost
+			voteProcessed[_pollID] == true;
+		}
+			// if winning vote transfer tokens based on distribution scale, else do nothing
+			voterInfo[msg.sender][_pollID] == true;
+	}
 
 	// function callVote(bytes32 _domainHash, uint _time) private returns (bool) {
 	// 	// event that vote has started

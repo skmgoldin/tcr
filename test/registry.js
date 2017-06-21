@@ -38,7 +38,7 @@ contract('Registry', function(accounts) {
     return Registry.deployed()
     .then(function(_registry) {
       registry = _registry;
-      return registry.apply(domain);
+      return registry.apply(domain, {from: accounts[0]});
     })
     .then(function(){
       return !(registry.domainMap[domainHash].status == 1);
