@@ -91,6 +91,8 @@ contract Registry {
 		require(applicant[domainHash].challenged == false);
 		// prevents moving a domain to the registry without ever applying
 		require(applicant[domainHash].owner != 0);
+		// prevent applicant from moving to registry multiple times
+		applicant[domainHash].owner = 0;
 		add(_domain);
 	}
 
