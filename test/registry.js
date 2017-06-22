@@ -1,3 +1,5 @@
+//import static org.junit.Assert.assertTrue;
+
 var Registry = artifacts.require("./Registry.sol");
 var Token = artifacts.require("./HumanStandardToken.sol")
 
@@ -72,12 +74,16 @@ contract('Registry', function(accounts) {
       return registry.appPool.call(hash);
     })
     .then(function(result) {
-      //right now just check if owner = applier 
-      assert.equal(result[0], accounts[1] , "Domain is not an applicant.");
+      //right now just check if owner = applier
+      console.log(result[1]) 
+      assert.equal(result[0], accounts[1] , "owner of application != address that applied");
+      //assertTrue(result[0]== accounts[1] , "Domain is not an applicant.");
     });
   });
 
-  //Test that 
+  //Test that challengeTime is updated  ie. > now
+  //before challenge, challenger is empty, challeged is false
+  //check deposit in the application struct = minimal deposit
 
 
 

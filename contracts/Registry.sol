@@ -11,6 +11,7 @@ import "./StandardToken.sol";
 // check on delete in solidity
 // keep deposit if never challenged
 // move losers out of appPool
+//check and grab new parameters during every function call!!
 
 contract Registry {
 
