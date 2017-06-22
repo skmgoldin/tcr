@@ -84,8 +84,8 @@ contract Registry {
 	}
 
 	function challenge(string _domain) {
-		//require(token.allowance(msg.sender, this) >= applyCost);
-		//token.transferFrom(msg.sender, wallet, applyCost);
+		require(token.allowance(msg.sender, this) >= applyCost);
+		token.transferFrom(msg.sender, wallet, applyCost);
 		bytes32 domainHash = sha3(_domain);
 		require(appPool[domainHash].owner != 0);
 		require(appPool[domainHash].challenged == false);

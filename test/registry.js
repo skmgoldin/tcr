@@ -25,25 +25,31 @@ contract('Registry', function(accounts) {
   });
 
 
- it("should add time to evm then make expiration period over", function() {
+ it.only("should add time to evm then make expiration period over", function(done) {
     const domain = "consensys.net";
     let registry;
-    ethRPC.sendAsync({
+
+    new Promise((resolve, reject) => { 
+      ethRPC.sendAsync({
         method: 'evm_increaseTime',
         params: [40000]
-      }, (err) => {});
+      }, (err, res) => {
+        if (err) reject(err)
+        resolve(res)
+      })
+    })
+    .then(() => {
       return Registry.deployed()
-      .then(function(_registry) {
-        registry = _registry;
-      })
-      .then(function(){
-        return registry.isVerified.call(domain);
-      })
-      .then(function(result) {
-        console.log(result);
-        assert.equal(result, false , "sadasdasasdas.");
-      });
-    //});
+    })
+    .then(function(_registry) {
+      registry = _registry;
+      return registry.isVerified.call(domain);
+    })
+    .then(function(result) {
+      console.log(result);
+      assert.equal(result, false , "sadasdasasdas.");
+      done();
+    });
   });
 
 
