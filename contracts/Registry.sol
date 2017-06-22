@@ -43,8 +43,9 @@ contract Registry {
 	mapping(uint => bool) public voteProcessed;
 	mapping(address => mapping(uint => bool)) public voterInfo;
 
-	function Registry(address _token) {
+	function Registry(address _token, address _wallet) {
 		token = StandardToken(_token);
+		wallet = _wallet;
 		// wallet =
 		// placeholder values
 		expDuration = 2000;
@@ -74,8 +75,8 @@ contract Registry {
 	}
 
 	function apply(string _domain) {
-		//require(token.allowance(msg.sender, this) >= applyCost);
-		//token.transferFrom(msg.sender, wallet, applyCost);
+		require(token.allowance(msg.sender, this) >= applyCost);
+		token.transferFrom(msg.sender, wallet, applyCost);
 		bytes32 domainHash = sha3(_domain);
 		appPool[domainHash].challengeTime = now + challengeDuration;
 		appPool[domainHash].owner = msg.sender;	

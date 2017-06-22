@@ -5,7 +5,7 @@ module.exports = function(deployer) {
   deployer.deploy(Token,10000,'adtoken', "3", "ATK").then(function(){
   	return Token.deployed();
   }).then(function(token){
-  	return deployer.deploy(Registry,token.address)
+  	return deployer.deploy(Registry,token.address, 0x123)
   });
 };
 // module.exports = function(deployer) {

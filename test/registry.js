@@ -63,6 +63,7 @@ contract('Registry', function(accounts) {
       //should log true
       console.log(boo);
       //apply with accounts[1]
+      token.approve(registry.address, 5000, {from: accounts[1]})
       return registry.apply(domain, {from: accounts[1]});
     })
     .then(function(){
@@ -108,17 +109,16 @@ contract('Registry', function(accounts) {
        return token.transfer.call(accounts[1], depositAmount);
      })
     .then(function(boo){
-       console.log(boo);
        return token.transfer.call(accounts[0], depositAmount);
      })
     .then(function(boo){
-      //should log true
-      console.log(boo);
       //apply with accounts[1]
+      token.approve(registry.address, 5000, {from: accounts[1]})
       return registry.apply(domain, {from: accounts[1]});
     })
     .then(function(){
       //challenge
+      token.approve(registry.address, 5000, {from: accounts[0]})
       return registry.challenge(domain, {from: accounts[0]});
     })
     .then(function(){
@@ -150,8 +150,8 @@ contract('Registry', function(accounts) {
   make sure we can succefully get new parameters
   test for the challenge frame work. 
   get another account to challenge, (consider the case if someone is challenging themself)
-  check that the challenger is changed
-  check that challenge changed to true
+  *check that the challenger is changed
+  *check that challenge changed to true
   try to challenge an already challenged applicant
   challenge an empty domain? a domain that is not an applicant
   check in wallet to see that the deposit is placed
