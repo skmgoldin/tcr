@@ -81,11 +81,25 @@ contract('Registry', function(accounts) {
     });
   });
 
-  //Test that challengeTime is updated  ie. > now
-  //before challenge, challenger is empty, challeged is false
-  //check deposit in the application struct = minimal deposit
+/*
+  Test that challengeTime is updated  ie. > now
+  before challenge, challenger is empty, challeged is false
+  check deposit in the application struct = minimal deposit
+  make sure we can succefully get new parameters
+  test for the challenge frame work. 
+  get another account to challenge, (consider the case if someone is challenging themself)
+  check that the challenger is changed
+  check that challenge changed to true
+  try to challenge an already challenged applicant
+  challenge an empty domain? a domain that is not an applicant
+  check in wallet to see that the deposit is placed
+  test the move to registry function- the owner = 0 logic
 
-
+  Try to make break each require statement
+  **check the whole allowence framework**
+  call vote
+  and distribute payout
+*/
 
 
   // it("should allow an unchallenged app to move to registry", function() {
