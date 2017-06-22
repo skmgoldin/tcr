@@ -18,143 +18,152 @@ contract('Registry', function(accounts) {
     .then(function(){
       return registry.isVerified.call(domain);
     })
-    .then(function(result){
-      console.log(result);
-    })
-    .then(function(){
-      ethRPC.sendAsync({
-        method: 'evm_increaseTime',
-        params: [400]
-      }) 
-    })
-     .then(function(){
-      return registry.isVerified.call(domain);
-    })
-
     .then(function(result) {
       console.log(result);
-      assert.equal(result, false , "Domain is not added.");
+      assert.equal(result, true , "Domain is not added.");
     });
   });
 
 
-  // it("should verify a domain is not in the whitelist", function() {
-  //   const domain = 'eth.eth';
-  //   let registry;
-  //   return Registry.deployed()
-  //   .then(function(_registry) {
-  //     registry = _registry;
-  //   })
-  //   .then(function(){
-  //     return registry.isVerified.call(domain);
-  //   })
-  //   .then(function(result) {
-  //     assert.equal(result, false , "Domain is actually added.");
-  //   });
-  // });
+ it("should add time to evm then make expiration period over", function() {
+    const domain = "consensys.net";
+    let registry;
+    ethRPC.sendAsync({
+        method: 'evm_increaseTime',
+        params: [40000]
+      }, (err) => {});
+      return Registry.deployed()
+      .then(function(_registry) {
+        registry = _registry;
+      })
+      .then(function(){
+        return registry.isVerified.call(domain);
+      })
+      .then(function(result) {
+        console.log(result);
+        assert.equal(result, false , "sadasdasasdas.");
+      });
+    //});
+  });
+
+
+  it("should verify a domain is not in the whitelist", function() {
+    const domain = 'eth.eth';
+    let registry;
+    return Registry.deployed()
+    .then(function(_registry) {
+      registry = _registry;
+    })
+    .then(function(){
+      return registry.isVerified.call(domain);
+    })
+    .then(function(result) {
+      assert.equal(result, false , "Domain is actually added.");
+    });
+  });
 
 
 
-  // it("should allow a domain to apply", function() {
-  //   const domain = 'consensys.net'
-  //   let registry;
-  //   let token;
-  //   let depositAmount = 5000;
-  //   return Registry.deployed() //get the deployed instance of registry
-  //   .then(function(_registry) {
-  //     registry = _registry;  
-  //   })
-  //   .then(function(){
-  //     //get the deployed instance, deployed in 2_deploy_contracts.js
-  //     //initialized with 10000
-  //     return Token.deployed(); 
-  //   })
-  //    .then(function(_token){
-  //      token = _token;
-  //      //transfer 5000 to accounts[1], return true if transfer success
-  //      return token.transfer.call(accounts[1], depositAmount);
-  //    })
-  //   .then(function(boo){
-  //     //should log true
-  //     console.log(boo);
-  //     //apply with accounts[1]
-  //     token.approve(registry.address, 5000, {from: accounts[1]})
-  //     return registry.apply(domain, {from: accounts[1]});
-  //   })
-  //   .then(function(){
+  it("should allow a domain to apply", function() {
+    const domain = 'consensys.net'
+    let registry;
+    let token;
+    let depositAmount = 5000;
+    return Registry.deployed() //get the deployed instance of registry
+    .then(function(_registry) {
+      registry = _registry;  
+    })
+    .then(function(){
+      //get the deployed instance, deployed in 2_deploy_contracts.js
+      //initialized with 10000
+      return Token.deployed(); 
+    })
+     .then(function(_token){
+       token = _token;
+       //transfer 5000 to accounts[1], return true if transfer success
+       return token.transfer.call(accounts[1], depositAmount);
+     })
+    .then(function(boo){
+      //should log true
+      console.log(boo);
+      //apply with accounts[1]
+      token.approve(registry.address, 5000, {from: accounts[1]})
+      return registry.apply(domain, {from: accounts[1]});
+    })
+    .then(function(){
 
-  //     //has the domain so we can identify in appPool
-  //     return registry.toHash.call(domain);
-  //   })
-  //   .then(function(hash){
-  //     //get the struct in the mapping
-  //     return registry.appPool.call(hash);
-  //   })
-  //   .then(function(result) {
-  //     //right now just check if owner = applier
-  //     console.log( result[2]);
-  //     // check if owner = applier
-  //     assert.equal(result[0], accounts[1] , "owner of application != address that applied");
-  //     assert.equal(result[1], depositAmount/100 , "deposit in the applicaiton = amount deposited");
-  //     assert.equal(result[2]*1000> Date.now(), true , "challenge time < now");
-  //     assert.equal(result[3], false , "challenged != false");
-  //     assert.equal(result[4]==0x0000000000000000000000000000000000000000, true , "challenger = zero address");
+      //has the domain so we can identify in appPool
+      return registry.toHash.call(domain);
+    })
+    .then(function(hash){
+      //get the struct in the mapping
+      return registry.appPool.call(hash);
+    })
+    .then(function(result) {
+      //right now just check if owner = applier
+      console.log( result[2]);
+      // check if owner = applier
+      assert.equal(result[0], accounts[1] , "owner of application != address that applied");
+      assert.equal(result[1], depositAmount/100 , "deposit in the applicaiton = amount deposited");
+      assert.equal(result[2]*1000> Date.now(), true , "challenge time < now");
+      assert.equal(result[3], false , "challenged != false");
+      assert.equal(result[4]==0x0000000000000000000000000000000000000000, true , "challenger = zero address");
 
-  //   });
-  // });
+    });
+  });
 
 
-  // it("should allow a address to challenge", function() {
-  //   const domain = 'consensys.net'
-  //   let registry;
-  //   let token;
-  //   let depositAmount = 5000;
-  //   return Registry.deployed() //get the deployed instance of registry
-  //   .then(function(_registry) {
-  //     registry = _registry;  
-  //   })
-  //   .then(function(){
-  //     //get the deployed instance, deployed in 2_deploy_contracts.js
-  //     //initialized with 10000
-  //     return Token.deployed(); 
-  //   })
-  //    .then(function(_token){
-  //      token = _token;
-  //      //transfer 5000 to accounts[1], return true if transfer success
-  //      return token.transfer.call(accounts[1], depositAmount);
-  //    })
-  //   .then(function(boo){
-  //      return token.transfer.call(accounts[0], depositAmount);
-  //    })
-  //   .then(function(boo){
-  //     //apply with accounts[1]
-  //     token.approve(registry.address, 5000, {from: accounts[1]})
-  //     return registry.apply(domain, {from: accounts[1]});
-  //   })
-  //   .then(function(){
-  //     //challenge
-  //     token.approve(registry.address, 5000, {from: accounts[0]})
-  //     return registry.challenge(domain, {from: accounts[0]});
-  //   })
-  //   .then(function(){
-  //     //has the domain so we can identify in appPool
-  //     return registry.toHash.call(domain);
-  //   })
-  //   .then(function(hash){
-  //     //get the struct in the mapping
-  //     return registry.appPool.call(hash);
-  //   })
-  //   .then(function(result) {
-  //     //right now just check if owner = applier
-  //     // check if owner = applier
-  //     assert.equal(result[0], accounts[1] , "owner of application != address that applied");
-  //     assert.equal(result[1], depositAmount/100 , "deposit in the applicaiton = amount deposited");
-  //     //assert.equal(result[2]> Date.now(), true , "challenge time < now");
-  //     assert.equal(result[3], true , "challenged != true");
-  //     assert.equal(result[4]==accounts[0], true , "challenger != challenger");
+  it("should allow a address to challenge", function() {
+    const domain = 'consensys.net'
+    let registry;
+    let token;
+    let depositAmount = 5000;
+    return Registry.deployed() //get the deployed instance of registry
+    .then(function(_registry) {
+      registry = _registry;  
+    })
+    .then(function(){
+      //get the deployed instance, deployed in 2_deploy_contracts.js
+      //initialized with 10000
+      return Token.deployed(); 
+    })
+     .then(function(_token){
+       token = _token;
+       //transfer 5000 to accounts[1], return true if transfer success
+       return token.transfer.call(accounts[1], depositAmount);
+     })
+    .then(function(boo){
+       return token.transfer.call(accounts[0], depositAmount);
+     })
+    .then(function(boo){
+      //apply with accounts[1]
+      token.approve(registry.address, 5000, {from: accounts[1]})
+      return registry.apply(domain, {from: accounts[1]});
+    })
+    .then(function(){
+      //challenge
+      token.approve(registry.address, 5000, {from: accounts[0]})
+      return registry.challenge(domain, {from: accounts[0]});
+    })
+    .then(function(){
+      //has the domain so we can identify in appPool
+      return registry.toHash.call(domain);
+    })
+    .then(function(hash){
+      //get the struct in the mapping
+      return registry.appPool.call(hash);
+    })
+    .then(function(result) {
+      //right now just check if owner = applier
+      // check if owner = applier
+      assert.equal(result[0], accounts[1] , "owner of application != address that applied");
+      assert.equal(result[1], depositAmount/100 , "deposit in the applicaiton = amount deposited");
+      //assert.equal(result[2]> Date.now(), true , "challenge time < now");
+      assert.equal(result[3], true , "challenged != true");
+      assert.equal(result[4]==accounts[0], true , "challenger != challenger");
 
-  //   });
-  // });
+    });
+  });
 
 /*
   Test that challengeTime is updated  ie. > now
