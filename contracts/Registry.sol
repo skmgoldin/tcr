@@ -11,7 +11,6 @@ import "./StandardToken.sol";
 // check on delete in solidity
 // keep deposit if never challenged
 // move losers out of appPool
-//check and grab new parameters during every function call!!
 
 
 contract Registry {
@@ -88,6 +87,7 @@ contract Registry {
 		//require(token.allowance(msg.sender, this) >= applyCost);
 		//token.transferFrom(msg.sender, wallet, applyCost);
 		bytes32 domainHash = sha3(_domain);
+		require(appPool[domainHash].owner != 0);
 		require(appPool[domainHash].challenged == false);
 		require(appPool[domainHash].challengeTime > now);
 		appPool[domainHash].challenged = true;
