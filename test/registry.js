@@ -7,7 +7,7 @@ contract('Registry', function(accounts) {
   it("should add a domain to the mapping", function() {
     const domain = "consensys.net";
     let registry;
-    return Registry.deployed(0x123)
+    return Registry.deployed()
     .then(function(_registry) {
       registry = _registry;
       return registry.add(domain);
@@ -42,36 +42,42 @@ contract('Registry', function(accounts) {
     const domain = 'consensys.net'
     let registry;
     let token;
-    return Registry.deployed(0xabc)
+    return Registry.deployed() //get the deployed instance of registry
     .then(function(_registry) {
-      registry = _registry;
-      return true
+      registry = _registry;  
     })
-    .then(function(boo){
-      return Token.deployed(10000, "adToken",1000,"whhat");
+    .then(function(){
+      //get the deployed instance, deployed in 2_deploy_contracts.js
+      //initialized with 10000
+      return Token.deployed(); 
     })
      .then(function(_token){
        token = _token;
-       return token.transfer.call(accounts[0], 5000);
+       //transfer 5000 to accounts[1], return true if transfer success
+       return token.transfer.call(accounts[1], 5000);
      })
     .then(function(boo){
+      //should log true
       console.log(boo);
-      console.log(accounts[0])
-      return registry.apply(domain, {from: accounts[0]});
+      //apply with accounts[1]
+      return registry.apply(domain, {from: accounts[1]});
     })
     .then(function(){
+
+      //has the domain so we can identify in appPool
       return registry.toHash.call(domain);
     })
     .then(function(hash){
+      //get the struct in the mapping
       return registry.appPool.call(hash);
     })
     .then(function(result) {
-      console.log(result);
-      assert.equal(result[0], accounts[0] , "Domain is not an applicant.");
+      //right now just check if owner = applier 
+      assert.equal(result[0], accounts[1] , "Domain is not an applicant.");
     });
   });
 
-
+  //Test that 
 
 
 

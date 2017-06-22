@@ -30,6 +30,7 @@ contract Registry {
 
 	struct Application {
 		address owner;
+		uint deposit;
 		uint challengeTime;
 		bool challenged;
 		address challenger;
@@ -50,10 +51,14 @@ contract Registry {
 		distributionScale = 0;
 	}
 
-	function add(string _domain) private {
+	function add(string _domain)  {
 		bytes32 domainHash = sha3(_domain);
 		whitelist[domainHash].expTime = now + expDuration;
 		whitelist[domainHash].owner = appPool[domainHash].owner;
+	}
+
+	function toHash(string _domain) returns (bytes32){
+		return sha3(_domain);
 	}
 
 	function isVerified(string _domain) returns (bool) {
@@ -67,8 +72,8 @@ contract Registry {
 	}
 
 	function apply(string _domain) {
-		require(token.allowance(msg.sender, this) >= applyCost);
-		token.transferFrom(msg.sender, wallet, applyCost);
+		//require(token.allowance(msg.sender, this) >= applyCost);
+		//token.transferFrom(msg.sender, wallet, applyCost);
 		bytes32 domainHash = sha3(_domain);
 		appPool[domainHash].challengeTime = now + challengeDuration;
 		appPool[domainHash].owner = msg.sender;	
@@ -105,16 +110,16 @@ contract Registry {
 
 	// didProposalPass(id);
 	// need to access domain
-	function claimReward(uint _pollID) {
-		require(voterInfo[msg.sender][_pollID] == false);
-		if (voteProcessed[_pollID] == false) {
-			// if applicant won move to registry
-			// distribute to challenger here (?) if lost
-			voteProcessed[_pollID] == true;
-		}
-			// if winning vote transfer tokens based on distribution scale, else do nothing
-			voterInfo[msg.sender][_pollID] == true;
-	}
+	// function claimReward(uint _pollID) {
+	// 	require(voterInfo[msg.sender][_pollID] == false);
+	// 	if (voteProcessed[_pollID] == false) {
+	// 		// if applicant won move to registry
+	// 		// distribute to challenger here (?) if lost
+	// 		voteProcessed[_pollID] == true;
+	// 	}
+	// 		// if winning vote transfer tokens based on distribution scale, else do nothing
+	// 		voterInfo[msg.sender][_pollID] == true;
+	// }
 
 	// function callVote(bytes32 _domainHash, uint _time) private returns (bool) {
 	// 	// event that vote has started
