@@ -13,6 +13,7 @@ import "./StandardToken.sol";
 // move losers out of appPool
 //check and grab new parameters during every function call!!
 
+
 contract Registry {
 
 	address public wallet;
@@ -78,24 +79,19 @@ contract Registry {
 		bytes32 domainHash = sha3(_domain);
 		appPool[domainHash].challengeTime = now + challengeDuration;
 		appPool[domainHash].owner = msg.sender;	
+		appPool[domainHash].deposit = applyCost;	
 		// trigger an event
 	}
 
 	function challenge(string _domain) {
-		require(token.allowance(msg.sender, this) >= applyCost);
-		token.transferFrom(msg.sender, wallet, applyCost);
+		//require(token.allowance(msg.sender, this) >= applyCost);
+		//token.transferFrom(msg.sender, wallet, applyCost);
 		bytes32 domainHash = sha3(_domain);
 		require(appPool[domainHash].challenged == false);
 		require(appPool[domainHash].challengeTime > now);
 		appPool[domainHash].challenged = true;
 		appPool[domainHash].challenger = msg.sender;
-		// if (callVote(domainHash, domainMap[domainHash].time) == true) {
-		// 	add(domainHash);
-		// }
-		// else {
-		// 	token.transferFrom(wallet, msg.sender, applyCost);
-		// 	// trigger event to notify applicant?
-		// }
+		//callVote()
 	}
 
 	function moveToRegistry(string _domain) {
@@ -109,8 +105,8 @@ contract Registry {
 		add(_domain);
 	}
 
-	// didProposalPass(id);
-	// need to access domain
+	//didProposalPass(id);
+	//need to access domain
 	// function claimReward(uint _pollID) {
 	// 	require(voterInfo[msg.sender][_pollID] == false);
 	// 	if (voteProcessed[_pollID] == false) {
@@ -122,7 +118,7 @@ contract Registry {
 	// 		voterInfo[msg.sender][_pollID] == true;
 	// }
 
-	// function callVote(bytes32 _domainHash, uint _time) private returns (bool) {
+	// function callVote(bytes32 _domainHash) private returns (bool) {
 	// 	// event that vote has started
 	// 	// ??
 	// }
