@@ -105,34 +105,36 @@ contract Registry {
 		add(_domain);
 	}
 
-	function claimReward(uint _pollID) {
-		require(voterInfo[msg.sender][_pollID] == false);
-		if (voteProcessed[_pollID] == false) {
-			// string domain = ??;
-			bytes32 domainHash = sha3(domain);
-			appPool[domainHash].challenged = false;
-			if (didProposalPass(_pollID)) {
-				moveToRegistry(domain);
-			}
-			else {
-				appPool[domainHash].owner = 0;
-				// give tokens to challenger based on dist and total tokens
-			}
-			voteProcessed[_pollID] == true;
-			giveTokens(_pollID, msg.sender);
-		}
-		else {
-			giveTokens(_pollID, msg.sender);
-		}
-			// if winning vote transfer tokens based on distribution scale, else do nothing
-			voterInfo[msg.sender][_pollID] == true;
-	}
+	// function claimReward(uint _pollID) {
+	// 	//check if the person claiming has alread claimed
+	// 	require(voterInfo[msg.sender][_pollID] == false);
+	// 	//check if poll has been processed. 
+	// 	if (voteProcessed[_pollID] == false) {
+	// 		// string domain = ??;
+	// 		bytes32 domainHash = sha3(domain);
+	// 		appPool[domainHash].challenged = false;
+	// 		if (didProposalPass(_pollID)) {
+	// 			moveToRegistry(domain);
+	// 		}
+	// 		else {
+	// 			appPool[domainHash].owner = 0;
+	// 			// give tokens to challenger based on dist and total tokens
+	// 		}
+	// 		voteProcessed[_pollID] == true;
+	// 		giveTokens(_pollID, msg.sender);
+	// 	}
+	// 	else {
+	// 		giveTokens(_pollID, msg.sender);
+	// 	}
+	// 		// if winning vote transfer tokens based on distribution scale, else do nothing
+	// 		voterInfo[msg.sender][_pollID] == true;
+	// }
 
-	function giveTokens(uint _pollID, address _voter) {
-		// number of tokens person used to vote / total number of tokens for winning side
-		// scale using distribution number
-		// give the tokens
-	}
+	// function giveTokens(uint _pollID, address _voter) {
+	// 	// number of tokens person used to vote / total number of tokens for winning side
+	// 	// scale using distribution number
+	// 	// give the tokens
+	// }
 
 	// function callVote(bytes32 _domainHash) private returns (bool) {
 	// 	// event that vote has started

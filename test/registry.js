@@ -1,6 +1,6 @@
-const HttpProvider = require('ethjs-provider-http');
-const EthRPC = require('ethjs-rpc');
-const ethRPC = new EthRPC(new HttpProvider ('http://localhost:8548'));
+// const HttpProvider = require('ethjs-provider-http');
+// const EthRPC = require('ethjs-rpc');
+// const ethRPC = new EthRPC(new HttpProvider ('http://localhost:8548'));
 var Registry = artifacts.require("./Registry.sol");
 var Token = artifacts.require("./HumanStandardToken.sol")
 
@@ -25,7 +25,7 @@ contract('Registry', function(accounts) {
   });
 
 
- it.only("should add time to evm then make expiration period over", function(done) {
+ it("should add time to evm then make expiration period over", function(done) {
     const domain = "consensys.net";
     let registry;
 
@@ -74,7 +74,7 @@ contract('Registry', function(accounts) {
     const domain = 'consensys.net'
     let registry;
     let token;
-    let depositAmount = 5000;
+    let depositAmount = 500;
     return Registry.deployed() //get the deployed instance of registry
     .then(function(_registry) {
       registry = _registry;  
@@ -87,13 +87,13 @@ contract('Registry', function(accounts) {
      .then(function(_token){
        token = _token;
        //transfer 5000 to accounts[1], return true if transfer success
-       return token.transfer.call(accounts[1], depositAmount);
+       return token.transfer(accounts[1], depositAmount, {from: accounts[0]});
      })
     .then(function(boo){
       //should log true
       console.log(boo);
       //apply with accounts[1]
-      token.approve(registry.address, 5000, {from: accounts[1]})
+      token.approve(registry.address, depositAmount, {from: accounts[1]})
       return registry.apply(domain, {from: accounts[1]});
     })
     .then(function(){
@@ -136,20 +136,20 @@ contract('Registry', function(accounts) {
      .then(function(_token){
        token = _token;
        //transfer 5000 to accounts[1], return true if transfer success
-       return token.transfer.call(accounts[1], depositAmount);
+       return token.transfer(accounts[1], depositAmount, {from: accounts[0]});
      })
     .then(function(boo){
-       return token.transfer.call(accounts[0], depositAmount);
+       return token.transfer(accounts[2], depositAmount, {from: accounts[0]});
      })
     .then(function(boo){
       //apply with accounts[1]
-      token.approve(registry.address, 5000, {from: accounts[1]})
+      token.approve(registry.address, depositAmount, {from: accounts[1]})
       return registry.apply(domain, {from: accounts[1]});
     })
     .then(function(){
       //challenge
-      token.approve(registry.address, 5000, {from: accounts[0]})
-      return registry.challenge(domain, {from: accounts[0]});
+      token.approve(registry.address, depositAmount, {from: accounts[2]})
+      return registry.challenge(domain, {from: accounts[2]});
     })
     .then(function(){
       //has the domain so we can identify in appPool
@@ -166,8 +166,36 @@ contract('Registry', function(accounts) {
       assert.equal(result[1], depositAmount/100 , "deposit in the applicaiton = amount deposited");
       //assert.equal(result[2]> Date.now(), true , "challenge time < now");
       assert.equal(result[3], true , "challenged != true");
-      assert.equal(result[4]==accounts[0], true , "challenger != challenger");
+      assert.equal(result[4]==accounts[2], true , "challenger != challenger");
 
+    });
+  });
+
+
+  it.only("check for appropriate amount of allowance", function() {
+    const domain = 'consensys.net'
+    let registry;
+    let token;
+    let allowance = 5000;
+    let balance
+    return Registry.deployed() //get the deployed instance of registry
+    .then(function(_registry) {
+      registry = _registry;  
+    })
+    .then(function(){
+      //get the deployed instance, deployed in 2_deploy_contracts.js
+      //initialized with 10000-
+      return Token.deployed(); 
+    })
+     .then(function(_token){
+       token = _token;
+       token.approve(registry.address, allowance, {from: accounts[1]})
+    })
+    .then(function(){
+      return token.allowance.call(accounts[1],registry.address);
+    })
+    .then(function(allow){
+      assert.equal(allow, true , "allowance amount is not right");
     });
   });
 

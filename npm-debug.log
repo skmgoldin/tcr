@@ -1,0 +1,335 @@
+0 info it worked if it ends with ok
+1 verbose cli [ '/usr/local/bin/node',
+1 verbose cli   '/usr/local/bin/npm',
+1 verbose cli   'install',
+1 verbose cli   '--save',
+1 verbose cli   'ethjs-provider-http' ]
+2 info using npm@3.10.10
+3 info using node@v6.11.0
+4 verbose config Skipping project config: /Users/Terry/.npmrc. (matches userconfig)
+5 silly loadCurrentTree Starting
+6 silly install loadCurrentTree
+7 silly install readLocalPackageData
+8 silly fetchPackageMetaData ethjs-provider-http
+9 silly fetchNamedPackageData ethjs-provider-http
+10 silly mapToRegistry name ethjs-provider-http
+11 silly mapToRegistry using default registry
+12 silly mapToRegistry registry https://registry.npmjs.org/
+13 silly mapToRegistry data Result {
+13 silly mapToRegistry   raw: 'ethjs-provider-http',
+13 silly mapToRegistry   scope: null,
+13 silly mapToRegistry   escapedName: 'ethjs-provider-http',
+13 silly mapToRegistry   name: 'ethjs-provider-http',
+13 silly mapToRegistry   rawSpec: '',
+13 silly mapToRegistry   spec: 'latest',
+13 silly mapToRegistry   type: 'tag' }
+14 silly mapToRegistry uri https://registry.npmjs.org/ethjs-provider-http
+15 verbose request uri https://registry.npmjs.org/ethjs-provider-http
+16 verbose request no auth needed
+17 info attempt registry request try #1 at 3:01:11 PM
+18 verbose request id 3ce6e6de1710f8f3
+19 verbose etag W/"58850c75-afc4"
+20 verbose lastModified Sun, 22 Jan 2017 19:48:05 GMT
+21 http request GET https://registry.npmjs.org/ethjs-provider-http
+22 http 304 https://registry.npmjs.org/ethjs-provider-http
+23 verbose headers { date: 'Thu, 22 Jun 2017 19:01:11 GMT',
+23 verbose headers   via: '1.1 varnish',
+23 verbose headers   'cache-control': 'max-age=300',
+23 verbose headers   etag: 'W/"58850c75-afc4"',
+23 verbose headers   age: '0',
+23 verbose headers   connection: 'keep-alive',
+23 verbose headers   'x-served-by': 'cache-jfk8142-JFK',
+23 verbose headers   'x-cache': 'HIT',
+23 verbose headers   'x-cache-hits': '1',
+23 verbose headers   'x-timer': 'S1498158071.440968,VS0,VE20',
+23 verbose headers   vary: 'Accept-Encoding' }
+24 silly get cb [ 304,
+24 silly get   { date: 'Thu, 22 Jun 2017 19:01:11 GMT',
+24 silly get     via: '1.1 varnish',
+24 silly get     'cache-control': 'max-age=300',
+24 silly get     etag: 'W/"58850c75-afc4"',
+24 silly get     age: '0',
+24 silly get     connection: 'keep-alive',
+24 silly get     'x-served-by': 'cache-jfk8142-JFK',
+24 silly get     'x-cache': 'HIT',
+24 silly get     'x-cache-hits': '1',
+24 silly get     'x-timer': 'S1498158071.440968,VS0,VE20',
+24 silly get     vary: 'Accept-Encoding' } ]
+25 verbose etag https://registry.npmjs.org/ethjs-provider-http from cache
+26 verbose get saving ethjs-provider-http to /Users/Terry/.npm/registry.npmjs.org/ethjs-provider-http/.cache.json
+27 verbose correctMkdir /Users/Terry/.npm correctMkdir not in flight; initializing
+28 silly install normalizeTree
+29 silly loadCurrentTree Finishing
+30 silly loadIdealTree Starting
+31 silly install loadIdealTree
+32 silly cloneCurrentTree Starting
+33 silly install cloneCurrentTreeToIdealTree
+34 silly cloneCurrentTree Finishing
+35 silly loadShrinkwrap Starting
+36 silly install loadShrinkwrap
+37 silly loadShrinkwrap Finishing
+38 silly loadAllDepsIntoIdealTree Starting
+39 silly install loadAllDepsIntoIdealTree
+40 silly resolveWithNewModule ethjs-provider-http@0.1.6 checking installable status
+41 silly cache add args [ 'ethjs-provider-http', null ]
+42 verbose cache add spec ethjs-provider-http
+43 silly cache add parsed spec Result {
+43 silly cache add   raw: 'ethjs-provider-http',
+43 silly cache add   scope: null,
+43 silly cache add   escapedName: 'ethjs-provider-http',
+43 silly cache add   name: 'ethjs-provider-http',
+43 silly cache add   rawSpec: '',
+43 silly cache add   spec: 'latest',
+43 silly cache add   type: 'tag' }
+44 silly addNamed ethjs-provider-http@latest
+45 verbose addNamed "latest" is being treated as a dist-tag for ethjs-provider-http
+46 info addNameTag [ 'ethjs-provider-http', 'latest' ]
+47 silly mapToRegistry name ethjs-provider-http
+48 silly mapToRegistry using default registry
+49 silly mapToRegistry registry https://registry.npmjs.org/
+50 silly mapToRegistry data Result {
+50 silly mapToRegistry   raw: 'ethjs-provider-http',
+50 silly mapToRegistry   scope: null,
+50 silly mapToRegistry   escapedName: 'ethjs-provider-http',
+50 silly mapToRegistry   name: 'ethjs-provider-http',
+50 silly mapToRegistry   rawSpec: '',
+50 silly mapToRegistry   spec: 'latest',
+50 silly mapToRegistry   type: 'tag' }
+51 silly mapToRegistry uri https://registry.npmjs.org/ethjs-provider-http
+52 verbose addNameTag registry:https://registry.npmjs.org/ethjs-provider-http not in flight; fetching
+53 verbose get https://registry.npmjs.org/ethjs-provider-http not expired, no request
+54 silly addNameTag next cb for ethjs-provider-http with tag latest
+55 silly addNamed ethjs-provider-http@0.1.6
+56 verbose addNamed "0.1.6" is a plain semver version for ethjs-provider-http
+57 silly cache afterAdd ethjs-provider-http@0.1.6
+58 verbose afterAdd /Users/Terry/.npm/ethjs-provider-http/0.1.6/package/package.json not in flight; writing
+59 verbose correctMkdir /Users/Terry/.npm correctMkdir not in flight; initializing
+60 verbose afterAdd /Users/Terry/.npm/ethjs-provider-http/0.1.6/package/package.json written
+61 silly fetchNamedPackageData xhr2
+62 silly mapToRegistry name xhr2
+63 silly mapToRegistry using default registry
+64 silly mapToRegistry registry https://registry.npmjs.org/
+65 silly mapToRegistry data Result {
+65 silly mapToRegistry   raw: 'xhr2',
+65 silly mapToRegistry   scope: null,
+65 silly mapToRegistry   escapedName: 'xhr2',
+65 silly mapToRegistry   name: 'xhr2',
+65 silly mapToRegistry   rawSpec: '',
+65 silly mapToRegistry   spec: 'latest',
+65 silly mapToRegistry   type: 'tag' }
+66 silly mapToRegistry uri https://registry.npmjs.org/xhr2
+67 verbose request uri https://registry.npmjs.org/xhr2
+68 verbose request no auth needed
+69 info attempt registry request try #1 at 3:01:11 PM
+70 verbose etag W/"594a32d4-53c1"
+71 verbose lastModified Wed, 21 Jun 2017 08:48:20 GMT
+72 http request GET https://registry.npmjs.org/xhr2
+73 http 304 https://registry.npmjs.org/xhr2
+74 verbose headers { date: 'Thu, 22 Jun 2017 19:01:11 GMT',
+74 verbose headers   via: '1.1 varnish',
+74 verbose headers   'cache-control': 'max-age=300',
+74 verbose headers   etag: 'W/"594a32d4-53c1"',
+74 verbose headers   age: '0',
+74 verbose headers   connection: 'keep-alive',
+74 verbose headers   'x-served-by': 'cache-jfk8142-JFK',
+74 verbose headers   'x-cache': 'HIT',
+74 verbose headers   'x-cache-hits': '1',
+74 verbose headers   'x-timer': 'S1498158072.633826,VS0,VE7',
+74 verbose headers   vary: 'Accept-Encoding' }
+75 silly get cb [ 304,
+75 silly get   { date: 'Thu, 22 Jun 2017 19:01:11 GMT',
+75 silly get     via: '1.1 varnish',
+75 silly get     'cache-control': 'max-age=300',
+75 silly get     etag: 'W/"594a32d4-53c1"',
+75 silly get     age: '0',
+75 silly get     connection: 'keep-alive',
+75 silly get     'x-served-by': 'cache-jfk8142-JFK',
+75 silly get     'x-cache': 'HIT',
+75 silly get     'x-cache-hits': '1',
+75 silly get     'x-timer': 'S1498158072.633826,VS0,VE7',
+75 silly get     vary: 'Accept-Encoding' } ]
+76 verbose etag https://registry.npmjs.org/xhr2 from cache
+77 verbose get saving xhr2 to /Users/Terry/.npm/registry.npmjs.org/xhr2/.cache.json
+78 verbose correctMkdir /Users/Terry/.npm correctMkdir not in flight; initializing
+79 silly resolveWithNewModule xhr2@0.1.3 checking installable status
+80 silly cache add args [ 'xhr2@0.1.3', null ]
+81 verbose cache add spec xhr2@0.1.3
+82 silly cache add parsed spec Result {
+82 silly cache add   raw: 'xhr2@0.1.3',
+82 silly cache add   scope: null,
+82 silly cache add   escapedName: 'xhr2',
+82 silly cache add   name: 'xhr2',
+82 silly cache add   rawSpec: '0.1.3',
+82 silly cache add   spec: '0.1.3',
+82 silly cache add   type: 'version' }
+83 silly addNamed xhr2@0.1.3
+84 verbose addNamed "0.1.3" is a plain semver version for xhr2
+85 silly mapToRegistry name xhr2
+86 silly mapToRegistry using default registry
+87 silly mapToRegistry registry https://registry.npmjs.org/
+88 silly mapToRegistry data Result {
+88 silly mapToRegistry   raw: 'xhr2',
+88 silly mapToRegistry   scope: null,
+88 silly mapToRegistry   escapedName: 'xhr2',
+88 silly mapToRegistry   name: 'xhr2',
+88 silly mapToRegistry   rawSpec: '',
+88 silly mapToRegistry   spec: 'latest',
+88 silly mapToRegistry   type: 'tag' }
+89 silly mapToRegistry uri https://registry.npmjs.org/xhr2
+90 verbose addNameVersion registry:https://registry.npmjs.org/xhr2 not in flight; fetching
+91 verbose get https://registry.npmjs.org/xhr2 not expired, no request
+92 silly cache afterAdd xhr2@0.1.3
+93 verbose afterAdd /Users/Terry/.npm/xhr2/0.1.3/package/package.json not in flight; writing
+94 verbose correctMkdir /Users/Terry/.npm correctMkdir not in flight; initializing
+95 verbose afterAdd /Users/Terry/.npm/xhr2/0.1.3/package/package.json written
+96 silly loadAllDepsIntoIdealTree Finishing
+97 silly loadIdealTree Finishing
+98 silly currentTree Terry
+98 silly currentTree ├── bn.js
+98 silly currentTree ├── ethjs
+98 silly currentTree ├── ethjs-abi
+98 silly currentTree ├── ethjs-contract
+98 silly currentTree ├── ethjs-filter
+98 silly currentTree ├── ethjs-format
+98 silly currentTree ├── ethjs-provider-http
+98 silly currentTree ├── ethjs-query
+98 silly currentTree ├── ethjs-rpc
+98 silly currentTree ├── ethjs-schema
+98 silly currentTree ├── ethjs-unit
+98 silly currentTree ├── ethjs-util
+98 silly currentTree ├── is-hex-prefixed
+98 silly currentTree ├── js-sha3
+98 silly currentTree ├── nan@2.6.2
+98 silly currentTree ├── number-to-bn
+98 silly currentTree ├── scrypt@6.0.3
+98 silly currentTree ├── strip-hex-prefix
+98 silly currentTree └── xhr2
+99 silly idealTree Terry
+99 silly idealTree ├── bn.js
+99 silly idealTree ├── ethjs
+99 silly idealTree ├── ethjs-abi
+99 silly idealTree ├── ethjs-contract
+99 silly idealTree ├── ethjs-filter
+99 silly idealTree ├── ethjs-format
+99 silly idealTree ├─┬ ethjs-provider-http@0.1.6
+99 silly idealTree │ └── xhr2@0.1.3
+99 silly idealTree ├── ethjs-query
+99 silly idealTree ├── ethjs-rpc
+99 silly idealTree ├── ethjs-schema
+99 silly idealTree ├── ethjs-unit
+99 silly idealTree ├── ethjs-util
+99 silly idealTree ├── is-hex-prefixed
+99 silly idealTree ├── js-sha3
+99 silly idealTree ├── nan@2.6.2
+99 silly idealTree ├── number-to-bn
+99 silly idealTree ├── scrypt@6.0.3
+99 silly idealTree ├── strip-hex-prefix
+99 silly idealTree └── xhr2
+100 silly generateActionsToTake Starting
+101 silly install generateActionsToTake
+102 warn checkPermissions Missing write access to /Users/Terry/node_modules
+103 silly rollbackFailedOptional Starting
+104 silly rollbackFailedOptional Finishing
+105 silly runTopLevelLifecycles Finishing
+106 silly install printInstalled
+107 warn enoent ENOENT: no such file or directory, open '/Users/Terry/package.json'
+108 verbose enoent ENOENT: no such file or directory, open '/Users/Terry/package.json'
+108 verbose enoent This is most likely not a problem with npm itself
+108 verbose enoent and is related to npm not being able to find a file.
+109 warn enoent ENOENT: no such file or directory, open '/Users/Terry/node_modules/bn.js/package.json'
+110 verbose enoent ENOENT: no such file or directory, open '/Users/Terry/node_modules/bn.js/package.json'
+110 verbose enoent This is most likely not a problem with npm itself
+110 verbose enoent and is related to npm not being able to find a file.
+111 warn enoent ENOENT: no such file or directory, open '/Users/Terry/node_modules/ethjs/package.json'
+112 verbose enoent ENOENT: no such file or directory, open '/Users/Terry/node_modules/ethjs/package.json'
+112 verbose enoent This is most likely not a problem with npm itself
+112 verbose enoent and is related to npm not being able to find a file.
+113 warn enoent ENOENT: no such file or directory, open '/Users/Terry/node_modules/ethjs-abi/package.json'
+114 verbose enoent ENOENT: no such file or directory, open '/Users/Terry/node_modules/ethjs-abi/package.json'
+114 verbose enoent This is most likely not a problem with npm itself
+114 verbose enoent and is related to npm not being able to find a file.
+115 warn enoent ENOENT: no such file or directory, open '/Users/Terry/node_modules/ethjs-contract/package.json'
+116 verbose enoent ENOENT: no such file or directory, open '/Users/Terry/node_modules/ethjs-contract/package.json'
+116 verbose enoent This is most likely not a problem with npm itself
+116 verbose enoent and is related to npm not being able to find a file.
+117 warn enoent ENOENT: no such file or directory, open '/Users/Terry/node_modules/ethjs-filter/package.json'
+118 verbose enoent ENOENT: no such file or directory, open '/Users/Terry/node_modules/ethjs-filter/package.json'
+118 verbose enoent This is most likely not a problem with npm itself
+118 verbose enoent and is related to npm not being able to find a file.
+119 warn enoent ENOENT: no such file or directory, open '/Users/Terry/node_modules/ethjs-format/package.json'
+120 verbose enoent ENOENT: no such file or directory, open '/Users/Terry/node_modules/ethjs-format/package.json'
+120 verbose enoent This is most likely not a problem with npm itself
+120 verbose enoent and is related to npm not being able to find a file.
+121 warn enoent ENOENT: no such file or directory, open '/Users/Terry/node_modules/ethjs-query/package.json'
+122 verbose enoent ENOENT: no such file or directory, open '/Users/Terry/node_modules/ethjs-query/package.json'
+122 verbose enoent This is most likely not a problem with npm itself
+122 verbose enoent and is related to npm not being able to find a file.
+123 warn enoent ENOENT: no such file or directory, open '/Users/Terry/node_modules/ethjs-rpc/package.json'
+124 verbose enoent ENOENT: no such file or directory, open '/Users/Terry/node_modules/ethjs-rpc/package.json'
+124 verbose enoent This is most likely not a problem with npm itself
+124 verbose enoent and is related to npm not being able to find a file.
+125 warn enoent ENOENT: no such file or directory, open '/Users/Terry/node_modules/ethjs-schema/package.json'
+126 verbose enoent ENOENT: no such file or directory, open '/Users/Terry/node_modules/ethjs-schema/package.json'
+126 verbose enoent This is most likely not a problem with npm itself
+126 verbose enoent and is related to npm not being able to find a file.
+127 warn enoent ENOENT: no such file or directory, open '/Users/Terry/node_modules/ethjs-unit/package.json'
+128 verbose enoent ENOENT: no such file or directory, open '/Users/Terry/node_modules/ethjs-unit/package.json'
+128 verbose enoent This is most likely not a problem with npm itself
+128 verbose enoent and is related to npm not being able to find a file.
+129 warn enoent ENOENT: no such file or directory, open '/Users/Terry/node_modules/ethjs-util/package.json'
+130 verbose enoent ENOENT: no such file or directory, open '/Users/Terry/node_modules/ethjs-util/package.json'
+130 verbose enoent This is most likely not a problem with npm itself
+130 verbose enoent and is related to npm not being able to find a file.
+131 warn enoent ENOENT: no such file or directory, open '/Users/Terry/node_modules/is-hex-prefixed/package.json'
+132 verbose enoent ENOENT: no such file or directory, open '/Users/Terry/node_modules/is-hex-prefixed/package.json'
+132 verbose enoent This is most likely not a problem with npm itself
+132 verbose enoent and is related to npm not being able to find a file.
+133 warn enoent ENOENT: no such file or directory, open '/Users/Terry/node_modules/js-sha3/package.json'
+134 verbose enoent ENOENT: no such file or directory, open '/Users/Terry/node_modules/js-sha3/package.json'
+134 verbose enoent This is most likely not a problem with npm itself
+134 verbose enoent and is related to npm not being able to find a file.
+135 warn enoent ENOENT: no such file or directory, open '/Users/Terry/node_modules/number-to-bn/package.json'
+136 verbose enoent ENOENT: no such file or directory, open '/Users/Terry/node_modules/number-to-bn/package.json'
+136 verbose enoent This is most likely not a problem with npm itself
+136 verbose enoent and is related to npm not being able to find a file.
+137 warn enoent ENOENT: no such file or directory, open '/Users/Terry/node_modules/strip-hex-prefix/package.json'
+138 verbose enoent ENOENT: no such file or directory, open '/Users/Terry/node_modules/strip-hex-prefix/package.json'
+138 verbose enoent This is most likely not a problem with npm itself
+138 verbose enoent and is related to npm not being able to find a file.
+139 warn enoent ENOENT: no such file or directory, open '/Users/Terry/node_modules/xhr2/package.json'
+140 verbose enoent ENOENT: no such file or directory, open '/Users/Terry/node_modules/xhr2/package.json'
+140 verbose enoent This is most likely not a problem with npm itself
+140 verbose enoent and is related to npm not being able to find a file.
+141 warn Terry No description
+142 verbose If you need help, you may report this error at:
+142 verbose     <https://github.com/npm/npm/issues>
+143 warn Terry No repository field.
+144 verbose If you need help, you may report this error at:
+144 verbose     <https://github.com/npm/npm/issues>
+145 warn Terry No README data
+146 verbose If you need help, you may report this error at:
+146 verbose     <https://github.com/npm/npm/issues>
+147 warn Terry No license field.
+148 verbose If you need help, you may report this error at:
+148 verbose     <https://github.com/npm/npm/issues>
+149 verbose stack Error: EACCES: permission denied, access '/Users/Terry/node_modules'
+149 verbose stack     at Error (native)
+150 verbose cwd /Users/Terry/Documents/adchain/AdChainRegistry
+151 error Darwin 15.6.0
+152 error argv "/usr/local/bin/node" "/usr/local/bin/npm" "install" "--save" "ethjs-provider-http"
+153 error node v6.11.0
+154 error npm  v3.10.10
+155 error path /Users/Terry/node_modules
+156 error code EACCES
+157 error errno -13
+158 error syscall access
+159 error Error: EACCES: permission denied, access '/Users/Terry/node_modules'
+159 error     at Error (native)
+159 error  { Error: EACCES: permission denied, access '/Users/Terry/node_modules'
+159 error     at Error (native)
+159 error   errno: -13,
+159 error   code: 'EACCES',
+159 error   syscall: 'access',
+159 error   path: '/Users/Terry/node_modules' }
+160 error Please try running this command again as root/Administrator.
+161 verbose exit [ -13, true ]
