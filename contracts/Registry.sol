@@ -128,11 +128,11 @@ contract Registry {
 			voterInfo[msg.sender][_pollID] == true;
 	}
 
-	// function giveTokens(uint _pollID, address _voter) {
-	// 	// number of tokens person used to vote / total number of tokens for winning side
-	// 	// scale using distribution number
-	// 	// give the tokens
-	// }
+	function giveTokens(uint _pollID, address _voter) {
+		// number of tokens person used to vote / total number of tokens for winning side
+		// scale using distribution number
+		// give the tokens
+	}
 
 	// function callVote(bytes32 _domainHash) private returns (bool) {
 	// 	// event that vote has started
