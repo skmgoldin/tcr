@@ -1,16 +1,14 @@
 pragma solidity 0.4.11;
 import "./StandardToken.sol";
+// import "./PartialLockVoting.sol";
+// import "./Parametrizer.sol";
 
 // to do:
 // implement events
 // update domain name functionality (?)
-// save challenger based on output from voting system
-// distribute tokens based on output from voting system
-// add to whitelist based on output from voting system
-// what happens if you fail and wanna go again
 // check on delete in solidity
-// keep deposit if never challenged
-// move losers out of appPool
+// keep deposit if never challenged ?
+// implement param
 
 
 contract Registry {
@@ -79,7 +77,7 @@ contract Registry {
 		bytes32 domainHash = sha3(_domain);
 		appPool[domainHash].challengeTime = now + challengeDuration;
 		appPool[domainHash].owner = msg.sender;	
-		appPool[domainHash].deposit = applyCost;	
+		appPool[domainHash].deposit = applyCost;
 		// trigger an event
 	}
 
@@ -87,6 +85,7 @@ contract Registry {
 		require(token.allowance(msg.sender, this) >= applyCost);
 		token.transferFrom(msg.sender, wallet, applyCost);
 		bytes32 domainHash = sha3(_domain);
+		// prevent someone from challenging an unintialized application
 		require(appPool[domainHash].owner != 0);
 		require(appPool[domainHash].challenged == false);
 		require(appPool[domainHash].challengeTime > now);
@@ -97,7 +96,7 @@ contract Registry {
 
 	function moveToRegistry(string _domain) {
 		bytes32 domainHash = sha3(_domain);
-		require(appPool[domainHash].challengeTime < now);
+		require(appPool[domainHash].challengeTime < now);  // is challenge duration different from vote duration
 		require(appPool[domainHash].challenged == false);
 		// prevents moving a domain to the registry without ever applying
 		require(appPool[domainHash].owner != 0);
@@ -106,17 +105,33 @@ contract Registry {
 		add(_domain);
 	}
 
-	//didProposalPass(id);
-	//need to access domain
-	// function claimReward(uint _pollID) {
-	// 	require(voterInfo[msg.sender][_pollID] == false);
-	// 	if (voteProcessed[_pollID] == false) {
-	// 		// if applicant won move to registry
-	// 		// distribute to challenger here (?) if lost
-	// 		voteProcessed[_pollID] == true;
-	// 	}
-	// 		// if winning vote transfer tokens based on distribution scale, else do nothing
-	// 		voterInfo[msg.sender][_pollID] == true;
+	function claimReward(uint _pollID) {
+		require(voterInfo[msg.sender][_pollID] == false);
+		if (voteProcessed[_pollID] == false) {
+			// string domain = ??;
+			bytes32 domainHash = sha3(domain);
+			appPool[domainHash].challenged = false;
+			if (didProposalPass(_pollID)) {
+				moveToRegistry(domain);
+			}
+			else {
+				appPool[domainHash].owner = 0;
+				// give tokens to challenger based on dist and total tokens
+			}
+			voteProcessed[_pollID] == true;
+			giveTokens(_pollID, msg.sender);
+		}
+		else {
+			giveTokens(_pollID, msg.sender);
+		}
+			// if winning vote transfer tokens based on distribution scale, else do nothing
+			voterInfo[msg.sender][_pollID] == true;
+	}
+
+	// function giveTokens(uint _pollID, address _voter) {
+	// 	// number of tokens person used to vote / total number of tokens for winning side
+	// 	// scale using distribution number
+	// 	// give the tokens
 	// }
 
 	// function callVote(bytes32 _domainHash) private returns (bool) {
