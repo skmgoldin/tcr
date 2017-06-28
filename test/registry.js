@@ -9,7 +9,6 @@ var Token = artifacts.require("./HumanStandardToken.sol")
 contract('Registry', function(accounts) {
   
   it("should add a domain to the mapping", function() {
-    console.log("a")
     const domain = "consensys1.net";
     let registry;
     return Registry.deployed()
@@ -24,34 +23,26 @@ contract('Registry', function(accounts) {
       return registry.whitelist.call(domainHash);
     })
     .then(function(result) {
-      console.log(result[0]);
-      console.log(Number(result[1]+0)/10);
       return registry.isVerified.call(domain);
     })
     .then(function(result) {
-      console.log(result);
       assert.equal(result, true , "Domain is not added.");
     })
   });
   it("should add time to evm then make expiration period over", function() {
-    console.log("a")
     const domain = "consensys1.net";
     let registry;
     return new Promise((resolve, reject) => { 
-      console.log();
       return ethRPC.sendAsync({
         method: 'evm_increaseTime',
         params: [40000]
       }, (err, res) => {
-        console.log("c")
-        console.log();
         if (err) reject(err)
         resolve(res)
       })
     })
     .then(() => {
       return new Promise((resolve, reject) => { 
-      console.log();
       return ethRPC.sendAsync({
         method: 'evm_mine',
         params: []
@@ -74,16 +65,9 @@ contract('Registry', function(accounts) {
       return registry.whitelist.call(domainHash)
     })
     .then(function(result) {
-      console.log(result[0]);
-      console.log(Number(result[1]+0)/10);
-      return registry.getCurrentTime.call()
-    })
-    .then(function(result) {
-      console.log(Number(result+0)/10);
       return registry.isVerified.call(domain)
     })
     .then(function(result) {
-      console.log(result);
       assert.equal(result, false , "It's not expired.");
     })
   });
@@ -100,7 +84,6 @@ contract('Registry', function(accounts) {
       return registry.isVerified.call(domain);
     })
     .then(function(result) {
-      console.log(result);
       assert.equal(result, true , "Domain is not added.");
     });
   });
@@ -225,6 +208,7 @@ contract('Registry', function(accounts) {
   it("should check that we can't move to registry because challenge time not up", function(){
     //check that owner is again 0
       let registry;
+      console.log("should print hi");
       const domain = 'consensys.net'
       return Registry.deployed()
       .then(function(_registry) {
@@ -255,13 +239,13 @@ contract('Registry', function(accounts) {
       return token.balanceOf.call(0x123);
     })
     .then(function(balance){
-      console.log(Number(balance+0)/10);
       assert.equal(balance, minimalDeposit, "why is there money in my wallet");
      })
  });
 
   it("should not let address to apply with domains that are already in appPool", function(){
     const domain = 'consensys.net'
+    console.log("should print hi");
     let registry;
     let token;
     let depositAmount = 50;
@@ -313,7 +297,6 @@ contract('Registry', function(accounts) {
       return token.balanceOf.call(0x123);
     })
     .then(function(balance){
-      console.log(balance);
       assert.equal(balance, minimalDeposit, "why is there money in my wallet");
      });
   });
@@ -392,6 +375,7 @@ contract('Registry', function(accounts) {
 
   it("challenge an already challenged domain", function() {
     const domain = 'consensys.net'
+    console.log("should print hi");
     let registry;
     let token;
     let depositAmount = 50;
@@ -443,6 +427,7 @@ contract('Registry', function(accounts) {
 
   it("should check that we can't challenge domain not in appPool", function(){
     const domain = 'empty.net'
+    console.log("should print hi");
     let registry;
     let token;
     let depositAmount = 50;
