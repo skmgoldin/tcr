@@ -219,13 +219,24 @@ contract('Registry', function(accounts) {
       assert.equal(result[2]*1000> Date.now(), true , "challenge time < now");
       assert.equal(result[3], false , "challenged != false");
       assert.equal(result[4]==0x0000000000000000000000000000000000000000, true , "challenger = zero address");
-
     });
   });
 
   it("should check that we can't move to registry because challenge time not up", function(){
     //check that owner is again 0
-  })
+      let registry;
+      const domain = 'consensys.net'
+      return Registry.deployed()
+      .then(function(_registry) {
+      registry = _registry;  
+    })
+      .then(function(){
+        return registry.moveToRegistry(domain);
+      })
+       .catch(function(error) {
+      console.log('hi');
+    });
+  })//add error handle
 
   it("should check that the wallet now has minimal deposit", function(){
     let token;
@@ -273,35 +284,14 @@ contract('Registry', function(accounts) {
      })
     .then(function(){
       //apply with accounts[1]
-      registry.apply(domain, {from: accounts[2]});
+      return registry.apply(domain, {from: accounts[2]});
     }) 
     .catch(function(error) {
-      console.log("Failed!", error);
+      console.log('hi');
     });
   });//should fail
 
 
-  it("should check that the wallet now has minimal deposit", function(){
-    let token;
-    let minimalDeposit = 50;
-    return Registry.deployed() //get the deployed instance of registry
-    .then(function(_registry) {
-      registry = _registry;  
-    })
-    .then(function(){
-      //get the deployed instance, deployed in 2_deploy_contracts.js
-      //initialized with 10000
-      return Token.deployed(); 
-    })
-    .then(function(_token){
-      token = _token
-      return token.balanceOf.call(0x123);
-    })
-    .then(function(balance){
-      console.log(Number(balance+0)/10);
-      assert.equal(balance, minimalDeposit, "why is there money in my wallet");
-     })
- });
 
 
 
@@ -375,6 +365,9 @@ contract('Registry', function(accounts) {
     });
   });
 
+
+
+
   it("should check that the wallet now has 2x minimal deposit", function(){
     let token;
     let minimalDeposit = 50*2;
@@ -417,11 +410,11 @@ contract('Registry', function(accounts) {
     })
     .then(function(){
        token.approve(registry.address, depositAmount, {from: accounts[3]})
-       return registry.challenge(domain, {from: accounts[2]}); //should fail! error handle
+       return registry.challenge(domain, {from: accounts[3]}); //should fail! error handle
     })
-    .then(function(balance){
-      assert.equal(0, 0, "check");
-    })
+    .catch(function(error) {
+      console.log('hi');
+    });
   });//should fail
 
 
@@ -447,9 +440,6 @@ contract('Registry', function(accounts) {
      })
   }) 
 
-  // it("should check that we can move to registry", function(){
-  //   //check that owner is again 0
-  // })
 
   it("should check that we can't challenge domain not in appPool", function(){
     const domain = 'empty.net'
@@ -471,11 +461,11 @@ contract('Registry', function(accounts) {
     })
     .then(function(){
        token.approve(registry.address, depositAmount, {from: accounts[3]})
-       return registry.challenge(domain, {from: accounts[2]}); //should fail! error handle
+       return registry.challenge(domain, {from: accounts[3]}); //should fail! error handle
     })
-    .then(function(balance){
-      assert.equal(0, 0, "check");
-    })
+    .catch(function(error) {
+      console.log('hi');
+      });
   })//should fail
 /*
   Test that challengeTime is updated  ie. > now

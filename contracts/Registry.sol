@@ -38,7 +38,7 @@ contract Registry {
         // placeholder values
         expDuration = 2000;  // = get("registryLen");
         applyCost = 50;         // = get("minDeposit");
-        challengeDuration = 200; // = get("challengeLen");
+        challengeDuration = 2000; // = get("challengeLen");
         distributionScale = 0;  // = get("dispensationPct");
     }
     function add(string _domain)  {
