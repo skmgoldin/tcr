@@ -13,6 +13,7 @@ contract Registry {
 
     address public wallet;
     StandardToken public token;
+    
 
     struct Publisher {
         address owner;
@@ -23,7 +24,7 @@ contract Registry {
     struct Application {
         address owner;
         bool challenged;
-        uint challengeTime;
+        uint challengeTime; //should be challegeEndTime
         address challenger;
         Param snapshot;
     }
@@ -183,6 +184,52 @@ contract Registry {
     }
     function getCurrentTime() returns (uint){
         return now;
+    }
+
+
+    mapping(bytes32 => Proposals) public proposalList;
+    mapping(bytes32 => uint) public Parameters;
+
+    struct Proposals {
+        address owner;
+        bool challenged;
+        uint challengeTime; //should be challegeEndTime
+        address challenger;
+        proposealParam snapshot;
+
+    }
+
+    struct proposealParam {
+        // parameters concerning the whitelist and application pool
+        uint minDeposit;
+        uint challengeLen;
+
+        // parameters to be passed into the voting contract
+        uint commitVoteLen;
+        uint revealVoteLen;
+        uint majority;
+
+        // parameter representing the scale of how token rewards are distributed
+        uint dispensationPct;
+    }
+
+
+    function propose(string _parameter, uint _value) {
+        parameterHash = sha3(_parameter, _value);
+            // applicant must pay the current value of minDeposit
+        uint deposit = get("minDeposit");
+        // check that registry can take sufficient amount of tokens from the applicant
+        require(token.allowance(msg.sender, this) >= deposit);
+        token.transferFrom(msg.sender, wallet, deposit);
+        // initialize application with a snapshot with the current values of all parameters
+        initializeSnapshot(_domain);
+        appPool[domainHash].challengeTime = now + appPool[domainHash].snapshot[challengeLen];
+        appPool[domainHash].owner = msg.sender;
+
+    }
+
+    function challengeProposal(string _parameter, uint _value) {
+
     }
     
 }
