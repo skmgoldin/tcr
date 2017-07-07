@@ -5,44 +5,42 @@ import "./StandardToken.sol";
 
 // to do:
 // implement events
-// update domain name functionality (?)
 // check on delete in solidity
 // keep deposit if never challenged (?) if win (?)
-// implement param - MAKE SURE ALL PARAM ARE STATIC FOR A SINGLE APP, including voting times
-// do we need owner in publisher struct?
+// ask about wallet location
 
 contract Registry {
 
     address public wallet;
-    // this will later be the parameters from the parametrizer
-    uint public expDuration;
-    uint public applyCost;
-    uint public challengeDuration;
-    uint public distributionScale;
     StandardToken public token;
 
     struct Publisher {
         address owner;
         uint expTime;
-        // keep deposit and implement that
+        uint deposit;
     }
 
     struct Application {
         address owner;
         bool challenged;
+        uint challengeTime;
         address challenger;
-        struct Param snapshot;
+        Param snapshot;
     }
 
     struct Param {
+        // parameters concerning the whitelist and application pool
     	uint minDeposit;
         uint challengeLen;
         uint registryLen;
+
+        // parameters to be passed into the voting contract
         uint commitVoteLen;
         uint revealVoteLen;
-        uint dispensationPct;
-        uint proposalThresh;
         uint majority;
+
+        // parameter representing the scale of how token rewards are distributed
+        uint dispensationPct;
     }
 
     mapping(bytes32 => Publisher) public whitelist;
@@ -53,30 +51,101 @@ contract Registry {
     function Registry(address _token, address _wallet) {
         token = StandardToken(_token);
         wallet = _wallet;
-        // placeholder values, will be instantiated by application
-        expDuration = 2000;  
-        applyCost = 50;         
-        challengeDuration = 2000; 
-        distributionScale = 0; 
     }
 
-    function add(string _domain)  {
+    // called by an applicant to apply (moves them into the application pool on success)
+    function apply(string _domain) {
         bytes32 domainHash = sha3(_domain);
-        // exp from state
-        whitelist[domainHash].expTime = now + expDuration;
-        whitelist[domainHash].owner = appPool[domainHash].owner;  // pass in owner for clarity/remove owner
-        // whitelist[domainHash].owner = 0x804;
+        // applicant must pay the current value of minDeposit
+        uint deposit = get("minDeposit");
+        // check to prevent repeat applications
+        require(appPool[domainHash].owner == 0);
+        // check that registry can take sufficient amount of tokens from the applicant
+        require(token.allowance(msg.sender, this) >= deposit);
+        token.transferFrom(msg.sender, wallet, deposit);
+        // initialize application with a snapshot with the current values of all parameters
+        initializeSnapshot(_domain);
+        appPool[domainHash].challengeTime = now + appPool[domainHash].snapshot[challengeLen];
+        appPool[domainHash].owner = msg.sender;
     }
 
-    // for testing purposes
-    function toHash(string _domain) returns (bytes32){
-        return sha3(_domain);
-    }
-    function getCurrentTime() returns (uint){
-        return now;
+    // called by any adtoken holder to challenge an application to the whitelist and start a vote
+    function challenge(string _domain) {
+        bytes32 domainHash = sha3(_domain);
+        // check that registry can take sufficient amount of tokens from the challenger
+        uint deposit = appPool[domainHash].snapshot[minDeposit];
+        require(token.allowance(msg.sender, this) >= deposit);
+        token.transferFrom(msg.sender, wallet, deposit);
+        // prevent someone from challenging an unintialized application, rechallenging,
+        // or challenging after the challenge period has ended
+        require(appPool[domainHash].owner != 0);
+        require(appPool[domainHash].challenged == false);
+        require(appPool[domainHash].challengeTime > now);
+        // update the application's status
+        appPool[domainHash].challenged = true;
+        appPool[domainHash].challenger = msg.sender;
+        // start a vote
+        // poll ID = callVote(voting params);
     }
 
+    function callVote(bytes32 _domainHash) private returns (bool) {
+        // event that vote has started
+        // ??
+    }
 
+    // a one-time function for each completed vote
+    // if domain won: domain is moved to the whitelist and applicant is rewarded tokens
+    // if domain lost: challenger is rewarded tokens
+    function processResult(uint _pollID)
+    {
+        require(voteProcessed[_pollID] == false);
+        // string domain = ??;
+        bytes32 domainHash = sha3(domain);
+        if (didProposalPass(_pollID)) {
+            // add to registry
+            add(domain, appPool[domainHash].owner);
+            appPool[domainHash].owner = 0;
+            // give tokens to applicant based on dist and total tokens
+        }
+        else {
+            appPool[domainHash].owner = 0;
+            // give tokens to challenger based on dist and total tokens
+        }
+        // ensures the result cannot be processed again
+        voteProcessed[_pollID] = true;
+    }
+
+    // called by each voter to claim their reward for each completed vote
+    function claimReward(uint _pollID) {
+        // checks if a voter has claimed tokens
+        require(voterInfo[msg.sender][_pollID] == false);
+        giveTokens(_pollID, msg.sender);
+        // ensures a voter cannot claim tokens again
+        voterInfo[msg.sender][_pollID] = true;
+    }
+
+    // called to move an applying domain to the whitelist
+    // iff the domain's challenge period has passed without a challenge
+    function moveToRegistry(string _domain) {
+        bytes32 domainHash = sha3(_domain);
+        require(appPool[domainHash].challengeTime < now); 
+        require(appPool[domainHash].challenged == false);
+        // prevents moving a domain to the registry without ever applying
+        require(appPool[domainHash].owner != 0);
+        // prevent applicant from moving to registry multiple times
+        add(_domain, appPool[domainHash].owner);
+        appPool[domainHash].owner = 0; // use delete or write a deleter
+    }
+
+    // private function to add a domain name to the whitelist
+    function add(string _domain, address _owner)  {
+        bytes32 domainHash = sha3(_domain);
+        uint expiration = appPool[domainHash].snapshot[registryLen];
+        whitelist[domainHash].expTime = now + expiration;
+        whitelist[domainHash].owner = _owner;
+    }
+
+    // checks if a domain name is in the whitelist and unexpired
     function isVerified(string _domain) returns (bool) {
         bytes32 domainHash = sha3(_domain);
         if (whitelist[domainHash].expTime > now) {
@@ -87,79 +156,33 @@ contract Registry {
         }
     }
 
-    function apply(string _domain) {
-        // applyCost = get("minDeposit");
-        // prevent repeat applications
+    // private function to initialize a snapshot of parameters for each application
+    function initializeSnapshot(string _domain) {
         bytes32 domainHash = sha3(_domain);
-        require(appPool[domainHash].owner == 0);
-        require(token.allowance(msg.sender, this) >= applyCost);
-        token.transferFrom(msg.sender, wallet, applyCost);
-        appPool[domainHash].challengeTime = now + challengeDuration;
-        appPool[domainHash].owner = msg.sender;
-        // instantiate snapshot
+        appPool[domainHash].snapshot[minDeposit] = get("minDeposit");
+        appPool[domainHash].snapshot[challengeLen] = get("challengeLen");
+        appPool[domainHash].snapshot[registryLen] = get("registryLen");
+        appPool[domainHash].snapshot[commitVoteLen] = get("commitVoteLen");
+        appPool[domainHash].snapshot[revealVoteLen] = get("revealVoteLen");
+        appPool[domainHash].snapshot[majority] = get("majority");
+        appPool[domainHash].snapshot[dispensationPct] = get("dispensationPct");
     }
 
-    function challenge(string _domain) {
-        // from snapshot
-        require(token.allowance(msg.sender, this) >= applyCost);
-        token.transferFrom(msg.sender, wallet, applyCost);
-        bytes32 domainHash = sha3(_domain);
-        // prevent someone from challenging an unintialized application
-        require(appPool[domainHash].owner != 0);
-        require(appPool[domainHash].challenged == false);
-        require(appPool[domainHash].challengeTime > now);
-        appPool[domainHash].challenged = true;
-        appPool[domainHash].challenger = msg.sender;
-        // callVote();
-    }
-
-    function moveToRegistry(string _domain) {
-        bytes32 domainHash = sha3(_domain);
-        require(appPool[domainHash].challengeTime < now); 
-        require(appPool[domainHash].challenged == false);
-        // prevents moving a domain to the registry without ever applying
-        require(appPool[domainHash].owner != 0);
-        // prevent applicant from moving to registry multiple times
-        add(_domain);
-        appPool[domainHash].owner = 0; // use delete or write a deleter
-    }
-
-    //separate move to registry
-    function claimReward(uint _pollID) {
-    //check if the person claiming has alread claimed
-    require(voterInfo[msg.sender][_pollID] == false);
-    //check if poll has been moved to registry. 
-    if (voteProcessed[_pollID] == false) {
-        // string domain = ??;
+    function giveTokens(uint _pollID, uint _salt) {
+        // number of tokens person used to vote / total number of tokens for winning side
+        // scale using distribution number
+        // give the tokens
+        // string domain = ??
         bytes32 domainHash = sha3(domain);
-        if (didProposalPass(_pollID)) {
-            // add to registry
-            add(domain);
-            appPool[domainHash].owner = 0;
-        }
-        else {
-            appPool[domainHash].owner = 0;
-            // give tokens to challenger based on dist and total tokens
-        }
-        voteProcessed[_pollID] == true;
-        giveTokens(_pollID, msg.sender);
-    }
-    else {
-        giveTokens(_pollID, msg.sender);
-    }
-        // if winning vote transfer tokens based on distribution scale, else do nothing
-        voterInfo[msg.sender][_pollID] = true;
+        getNumCorrectInvestment(_pollID, _salt)*appPool[domainHash].snapshot[minDeposit]*(1-dispensationPct)/getTotalNumberOfTokensForWinningOption(_pollID);
     }
 
-    function giveTokens(uint _pollID, address _voter) {
-     // number of tokens person used to vote / total number of tokens for winning side
-     // scale using distribution number
-     // give the tokens
+    // FOR TESTING
+    function toHash(string _domain) returns (bytes32){
+        return sha3(_domain);
     }
-
-    function callVote(bytes32 _domainHash) private returns (bool) {
-     // event that vote has started
-     // ??
+    function getCurrentTime() returns (uint){
+        return now;
     }
     
 }
