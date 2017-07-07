@@ -214,22 +214,33 @@ contract Registry {
     }
 
 
-    function propose(string _parameter, uint _value) {
+    function proposeUpdate(string _parameter, uint _value) {
         parameterHash = sha3(_parameter, _value);
-            // applicant must pay the current value of minDeposit
+        // applicant must pay the current value of minDeposit
         uint deposit = get("minDeposit");
         // check that registry can take sufficient amount of tokens from the applicant
         require(token.allowance(msg.sender, this) >= deposit);
         token.transferFrom(msg.sender, wallet, deposit);
         // initialize application with a snapshot with the current values of all parameters
-        initializeSnapshot(_domain);
-        appPool[domainHash].challengeTime = now + appPool[domainHash].snapshot[challengeLen];
-        appPool[domainHash].owner = msg.sender;
+        initializeSnapshotParam(parameterHash);
+        paramProposals[parameterHash ].challengeEndTime= now + paramProposals[parameterHash ].snapshot[challengeLen];
+        paramProposals[parameterHash ].owner = msg.sender;
 
     }
 
     function challengeProposal(string _parameter, uint _value) {
 
     }
+
+    function initializeSnapshotParam(byte32 _hash) {
+        Proposals[domainHash].snapshot[minDeposit] = get("minDeposit");
+        Proposals[domainHash].snapshot[challengeLen] = get("challengeLen");
+        Proposals[domainHash].snapshot[commitVoteLen] = get("commitVoteLen");
+        Proposals[domainHash].snapshot[revealVoteLen] = get("revealVoteLen");
+        Proposals[domainHash].snapshot[majority] = get("majority");
+        Proposals[domainHash].snapshot[dispensationPct] = get("dispensationPct");
+    }
+
+   
     
 }
