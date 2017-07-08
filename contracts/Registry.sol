@@ -31,7 +31,7 @@ contract Registry {
 
     struct Param {
         // parameters concerning the whitelist and application pool
-    	uint minDeposit;
+        uint minDeposit;
         uint challengeLen;
         uint registryLen;
 
@@ -49,6 +49,7 @@ contract Registry {
     mapping(uint => bool) public voteProcessed;
     mapping(address => mapping(uint => bool)) public voterInfo;
 
+    // Constructor
     function Registry(address _token, address _wallet) {
         token = StandardToken(_token);
         wallet = _wallet;
@@ -187,19 +188,25 @@ contract Registry {
     }
 
 
-    mapping(bytes32 => Proposals) public proposalList;
+
+
+/*******************************************************************/
+
+
+
+    mapping(bytes32 => Proposals) public paramProposals;
     mapping(bytes32 => uint) public Parameters;
 
     struct Proposals {
         address owner;
         bool challenged;
-        uint challengeTime; //should be challegeEndTime
+        uint challengeEndTime; //expiry of challenge period
         address challenger;
         proposealParam snapshot;
 
     }
 
-    struct proposealParam {
+    struct proposalParam {
         // parameters concerning the whitelist and application pool
         uint minDeposit;
         uint challengeLen;
@@ -229,10 +236,27 @@ contract Registry {
     }
 
     function challengeProposal(string _parameter, uint _value) {
-
+        parameterHash = sha3(_parameter, _value);
+        
+        // check that registry can take sufficient amount of tokens from the challenger
+        uint deposit = paramProposals[parameterHash ].snapshot[minDeposit];
+        require(token.allowance(msg.sender, this) >= deposit);
+        token.transferFrom(msg.sender, wallet, deposit);
+        
+        // prevent someone from challenging an unintialized application, rechallenging,
+        // or challenging after the challenge period has ended
+        require(paramProposals[parameterHash ].owner != 0);
+        require(paramProposals[parameterHash ].challenged == false);
+        require(paramProposals[parameterHash ].challengeEndTime> now);
+        
+        // update the application's status
+        paramProposals[parameterHash ].challenged = true;
+        paramProposals[parameterHash ].challenger = msg.sender;
+        // start a vote
+        // poll ID = callVote(voting params);
     }
-
-    function initializeSnapshotParam(byte32 _hash) {
+    
+     function initializeSnapshotParam(byte32 _hash) {
         Proposals[domainHash].snapshot[minDeposit] = get("minDeposit");
         Proposals[domainHash].snapshot[challengeLen] = get("challengeLen");
         Proposals[domainHash].snapshot[commitVoteLen] = get("commitVoteLen");
@@ -242,5 +266,4 @@ contract Registry {
     }
 
    
-    
 }
