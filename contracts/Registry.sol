@@ -146,11 +146,12 @@ contract Registry {
     }
 
     // called by each voter to claim their reward for each completed vote
-    function claimReward(uint _pollID) {
+    function claimReward(uint _pollID, uint _salt) {
         // checks if a voter has claimed tokens
         require(voterInfo[msg.sender][_pollID] == false);
-        giveTokens(_pollID, msg.sender);
+        reward = giveTokens(_pollID, _salt);
         // ensures a voter cannot claim tokens again
+        transfer(msg.sender, reward);
         voterInfo[msg.sender][_pollID] = true;
     }
 
@@ -173,6 +174,7 @@ contract Registry {
         uint expiration = appPool[domainHash].snapshot[registryLen];
         whitelist[domainHash].expTime = now + expiration;
         whitelist[domainHash].owner = _owner;
+        whitelist[domainHash].deposit = appPool[domainHash].snapshot[minDeposit];
     }
 
     // checks if a domain name is in the whitelist and unexpired
@@ -198,7 +200,7 @@ contract Registry {
         appPool[domainHash].snapshot[dispensationPct] = get("dispensationPct");
     }
 
-    function giveTokens(uint _pollID, uint _salt) {
+    function giveTokens(uint _pollID, uint _salt) returns(uint) {
         // number of tokens person used to vote / total number of tokens for winning side
         // scale using distribution number
         // give the tokens
@@ -210,7 +212,7 @@ contract Registry {
         uint voterTokens = getNumCorrectInvestment(_pollID, _salt)
 
         uint reward = voterTokens*minDeposit*(1-dispensationPct)/totalTokens;
-        //move from wallet
+        return reward;
     }
 
     // FOR TESTING
@@ -303,7 +305,29 @@ contract Registry {
         voteProcessed[_pollID] = true;
     }
 
+    function claimParamReward(uint _pollID, uint _salt) {
+        // checks if a voter has claimed tokens
+        require(voterInfo[msg.sender][_pollID] == false);
+        reward = giveTokens(_pollID, _salt);
+        // ensures a voter cannot claim tokens again
+        transfer(msg.sender, reward);
+        voterInfo[msg.sender][_pollID] = true;
+    }
 
+     function giveParamTokens(uint _pollID, uint _salt) returns(uint) {
+        // number of tokens person used to vote / total number of tokens for winning side
+        // scale using distribution number
+        // give the tokens
+        // string parameter = ??
+        parameterHash = sha3(parameter, value);
+        uint minDeposit = Proposals[parameterHash].snapshot[minDeposit];
+        uint dispensationPct = Proposals[parameterHash].snapshot[dispensationPct];
+        uint totalTokens = getTotalNumberOfTokensForWinningOption(_pollID);
+        uint voterTokens = getNumCorrectInvestment(_pollID, _salt)
+
+        uint reward = voterTokens*minDeposit*(1-dispensationPct)/totalTokens;
+        return reward;
+    }
 
      function initializeSnapshotParam(byte32 _hash) {
         Proposals[_hash].snapshot[minDeposit] = get("minDeposit");
