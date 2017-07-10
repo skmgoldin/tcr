@@ -64,7 +64,6 @@ contract Registry {
        uint _commitVoteLen,
        uint _revealVoteLen,
        uint _dispensationPct,
-       uint _proposalThresh,
        uint _majority) {
         
         token = StandardToken(_token);
@@ -75,7 +74,6 @@ contract Registry {
        paramMap[sha3("commitVoteLen")]     = _commitVoteLen;
        paramMap[sha3("revealVoteLen")]     = _revealVoteLen;
        paramMap[sha3("dispensationPct")]   = _dispensationPct;
-       paramMap[sha3("proposalThresh")]    = _proposalThresh;
        paramMap[sha3("majority")]          = _majority;
     }
 
@@ -131,11 +129,11 @@ contract Registry {
             //??what would happen if didProposalPass() called and vote's still ongoing??
             // add to registry
             add(domain, appPool[domainHash].owner);
-            appPool[domainHash].owner = 0;
+            delete appPool[domainHash].owner;
             // give tokens to applicant based on dist and total tokens
         }
         else {
-            appPool[domainHash].owner = 0;
+            delete appPool[domainHash].owner;
             deposit = appPool[domainHash].snapshot[minDeposit]
             winning = appPool[domainHash].snapshot[minDeposit]*appPool[domainHash].snapshot[dispensationPct]
             tokens.transfer(appPool[domainHash].challenger, winning+ deposit)
@@ -165,7 +163,7 @@ contract Registry {
         require(appPool[domainHash].owner != 0);
         // prevent applicant from moving to registry multiple times
         add(_domain, appPool[domainHash].owner);
-        appPool[domainHash].owner = 0; // use delete or write a deleter
+        delete appPool[domainHash].owner;
     }
 
     // private function to add a domain name to the whitelist
@@ -278,7 +276,7 @@ contract Registry {
         require(Proposals[parameterHash].owner != 0);
         // prevent applicant from moving to registry multiple times
         Parameters[sha3(_parameter)] = _value;
-        Proposals[parameterHash].owner = 0; // use delete or write a deleter
+        delete Proposals[parameterHash].owner;
     }
 
     // a one-time function for each completed vote
@@ -294,11 +292,11 @@ contract Registry {
             //??what would happen if didProposalPass() called and vote's still ongoing??
             // setting the value of parameter
             Parameters[sha3(parameter)] = value;
-            Proposals[parameterHash].owner = 0; // use delete or write a deleter
+            delete Proposals[parameterHash].owner;
             // give tokens to applicant based on dist and total tokens
         }
         else {
-            Proposals[parameterHash].owner = 0;
+            delete Proposals[parameterHash].owner;
             // give tokens to challenger based on dist and total tokens
         }
         // ensures the result cannot be processed again

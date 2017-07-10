@@ -156,7 +156,7 @@ contract('Registry', function(accounts) {
     })
     .then(function(_token){
       token = _token
-      return token.balanceOf.call(0x123);
+      return token.balanceOf.call(registry.address);
     })
     .then(function(balance){
       assert.equal(balance, 0, "why is there money in my wallet");
