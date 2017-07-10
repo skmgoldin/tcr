@@ -7,11 +7,9 @@ import "./StandardToken.sol";
 // implement events
 // check on delete in solidity
 // keep deposit if never challenged (?) if win (?)
-// ask about wallet location
 
 contract Registry {
 
-    address public wallet;
     StandardToken public token;
     
 
@@ -50,9 +48,35 @@ contract Registry {
     mapping(address => mapping(uint => bool)) public voterInfo;
 
     // Constructor
-    function Registry(address _token, address _wallet) {
+    /// @param _minDeposit      application & challenger deposit amounts
+    /// @param _challengeLen    duration of the challenge period
+    /// @param _registryLen     duration of a registration’s validity
+    /// @param _commitVoteLen   duration of the commit period in token votes
+    /// @param _revealVoteLen   duration of reveal period in token votes 
+    /// @param _dispensationPct percentage of forfeited deposit distributed to winning party; uint between 0 and 100 
+    /// @param _proposalThresh  share of tokens required to initiate a reparameterization
+    /// @param _majority        percentage of votes that constitutes the majority; uint between 0 and 100
+
+    function Registry(address _token,
+        uint _minDeposit,
+       uint _challengeLen,
+       uint _registryLen,
+       uint _commitVoteLen,
+       uint _revealVoteLen,
+       uint _dispensationPct,
+       uint _proposalThresh,
+       uint _majority) {
+        
         token = StandardToken(_token);
-        wallet = _wallet;
+        // initialize values
+       paramMap[sha3("minDeposit")]        = _minDeposit;
+       paramMap[sha3("challengeLen")]      = _challengeLen;
+       paramMap[sha3("registryLen")]       = _registryLen;
+       paramMap[sha3("commitVoteLen")]     = _commitVoteLen;
+       paramMap[sha3("revealVoteLen")]     = _revealVoteLen;
+       paramMap[sha3("dispensationPct")]   = _dispensationPct;
+       paramMap[sha3("proposalThresh")]    = _proposalThresh;
+       paramMap[sha3("majority")]          = _majority;
     }
 
     // called by an applicant to apply (moves them into the application pool on success)
@@ -64,7 +88,7 @@ contract Registry {
         require(appPool[domainHash].owner == 0);
         // check that registry can take sufficient amount of tokens from the applicant
         require(token.allowance(msg.sender, this) >= deposit);
-        token.transferFrom(msg.sender, wallet, deposit);
+        token.transferFrom(msg.sender, this, deposit);
         // initialize application with a snapshot with the current values of all parameters
         initializeSnapshot(_domain);
         appPool[domainHash].challengeTime = now + appPool[domainHash].snapshot[challengeLen];
@@ -77,7 +101,7 @@ contract Registry {
         // check that registry can take sufficient amount of tokens from the challenger
         uint deposit = appPool[domainHash].snapshot[minDeposit];
         require(token.allowance(msg.sender, this) >= deposit);
-        token.transferFrom(msg.sender, wallet, deposit);
+        token.transferFrom(msg.sender, this, deposit);
         // prevent someone from challenging an unintialized application, rechallenging,
         // or challenging after the challenge period has ended
         require(appPool[domainHash].owner != 0);
@@ -112,7 +136,10 @@ contract Registry {
         }
         else {
             appPool[domainHash].owner = 0;
-            // give tokens to challenger based on dist and total tokens
+            deposit = appPool[domainHash].snapshot[minDeposit]
+            winning = appPool[domainHash].snapshot[minDeposit]*appPool[domainHash].snapshot[dispensationPct]
+            tokens.transfer(appPool[domainHash].challenger, winning+ deposit)
+            // check math
         }
         // ensures the result cannot be processed again
         voteProcessed[_pollID] = true;
@@ -200,11 +227,9 @@ contract Registry {
 /*******************************************************************/
 
 
-
     mapping(bytes32 => Application) public Proposals; // similar to appPool
     mapping(bytes32 => uint) public Parameters;
 
-   
 
     function proposeUpdate(string _parameter, uint _value) {
         parameterHash = sha3(_parameter, _value);
@@ -212,7 +237,7 @@ contract Registry {
         uint deposit = get("minDeposit");
         // check that registry can take sufficient amount of tokens from the applicant
         require(token.allowance(msg.sender, this) >= deposit);
-        token.transferFrom(msg.sender, wallet, deposit);
+        token.transferFrom(msg.sender, this, deposit);
         // initialize application with a snapshot with the current values of all parameters
         initializeSnapshotParam(parameterHash);
         Proposals[parameterHash].challengeTime= now + Proposals[parameterHash].snapshot[challengeLen];
@@ -226,7 +251,7 @@ contract Registry {
         // check that registry can take sufficient amount of tokens from the challenger
         uint deposit = Proposals[parameterHash ].snapshot[minDeposit];
         require(token.allowance(msg.sender, this) >= deposit);
-        token.transferFrom(msg.sender, wallet, deposit);
+        token.transferFrom(msg.sender, this, deposit);
         
         // prevent someone from challenging an unintialized application, rechallenging,
         // or challenging after the challenge period has ended
