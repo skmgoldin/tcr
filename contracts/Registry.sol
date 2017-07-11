@@ -10,8 +10,19 @@ import "./StandardToken.sol";
 
 contract Registry {
 
+    /*
+     * Storage
+     */
+     
+    //Registry storage
     StandardToken public token;
-    
+    mapping(bytes32 => Publisher) public whitelist;
+    mapping(bytes32 => Application) public appPool;
+    mapping(uint => bool) public voteProcessed;
+    mapping(address => mapping(uint => bool)) public voterInfo;
+    //Parameter storage
+    mapping(bytes32 => Application) public Proposals; // similar to appPool
+    mapping(bytes32 => uint) public Parameters;
 
     struct Publisher {
         address owner;
@@ -42,11 +53,6 @@ contract Registry {
         uint dispensationPct;
     }
 
-    mapping(bytes32 => Publisher) public whitelist;
-    mapping(bytes32 => Application) public appPool;
-    mapping(uint => bool) public voteProcessed;
-    mapping(address => mapping(uint => bool)) public voterInfo;
-
     // Constructor
     /// @param _minDeposit      application & challenger deposit amounts
     /// @param _challengeLen    duration of the challenge period
@@ -58,7 +64,7 @@ contract Registry {
     /// @param _majority        percentage of votes that constitutes the majority; uint between 0 and 100
 
     function Registry(address _token,
-        uint _minDeposit,
+       uint _minDeposit,
        uint _challengeLen,
        uint _registryLen,
        uint _commitVoteLen,
@@ -66,8 +72,8 @@ contract Registry {
        uint _dispensationPct,
        uint _majority) {
         
-        token = StandardToken(_token);
-        // initialize values
+       token = StandardToken(_token);
+       // initialize values
        paramMap[sha3("minDeposit")]        = _minDeposit;
        paramMap[sha3("challengeLen")]      = _challengeLen;
        paramMap[sha3("registryLen")]       = _registryLen;
@@ -111,7 +117,8 @@ contract Registry {
         // start a vote
         // poll ID = callVote(voting params);
     }
-
+    
+    // helper function to the challenge() function. Initializes a vote through the voting contract
     function callVote(bytes32 _domainHash) private returns (bool) {
         // event that vote has started
         // ??
@@ -227,10 +234,9 @@ contract Registry {
 /*******************************************************************/
 
 
-    mapping(bytes32 => Application) public Proposals; // similar to appPool
-    mapping(bytes32 => uint) public Parameters;
 
-
+    //called by a user who wishes to change a parameter
+    //initializes a proposal to change a parameter
     function proposeUpdate(string _parameter, uint _value) {
         parameterHash = sha3(_parameter, _value);
         // applicant must pay the current value of minDeposit
@@ -240,11 +246,14 @@ contract Registry {
         token.transferFrom(msg.sender, this, deposit);
         // initialize application with a snapshot with the current values of all parameters
         initializeSnapshotParam(parameterHash);
-        Proposals[parameterHash].challengeTime= now + Proposals[parameterHash].snapshot[challengeLen];
+        uint challengeLen = Proposals[parameterHash].snapshot[challengeLen];
+        Proposals[parameterHash].challengeTime= now + challengeLen;
         Proposals[parameterHash].owner = msg.sender;
 
     }
-
+    
+    //called by user who wishes to reject a proposal
+    //initializes a vote to accept/reject the param change proposal
     function challengeProposal(string _parameter, uint _value) {
         parameterHash = sha3(_parameter, _value);
         
@@ -326,7 +335,8 @@ contract Registry {
         uint reward = voterTokens*minDeposit*(1-dispensationPct)/totalTokens;
         return reward;
     }
-
+    
+     // private function to initialize a snapshot of parameters for each proposal
      function initializeSnapshotParam(byte32 _hash) {
         Proposals[_hash].snapshot[minDeposit] = get("minDeposit");
         Proposals[_hash].snapshot[challengeLen] = get("challengeLen");
