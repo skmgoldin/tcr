@@ -37,14 +37,11 @@ contract Registry {
         bool challenged;
         uint challengeTime; //End of challenge period
         address challenger;
-        Param snapshot;
 
         string domain;
         string parameter;
         uint value;
-    }
 
-    struct Param {
         // parameters concerning the whitelist and application pool
         uint minDeposit;
         uint challengeLen;
@@ -58,6 +55,8 @@ contract Registry {
         // parameter representing the scale of how token rewards are distributed
         uint dispensationPct;
     }
+
+    
 
     // Constructor
     /// @param _minDeposit      application & challenger deposit amounts
@@ -98,9 +97,9 @@ contract Registry {
         // check that registry can take sufficient amount of tokens from the applicant
         require(token.allowance(msg.sender, this) >= deposit);
         token.transferFrom(msg.sender, this, deposit);
-        // initialize application with a snapshot with the current values of all parameters
+        // initialize application with a with the current values of all parameters
         initializeSnapshot(_domain);
-        appPool[domainHash].challengeTime = now + appPool[domainHash].snapshot.challengeLen;
+        appPool[domainHash].challengeTime = now + appPool[domainHash].challengeLen;
         appPool[domainHash].owner = msg.sender;
     }
 
@@ -108,7 +107,7 @@ contract Registry {
     function challenge(string _domain) {
         bytes32 domainHash = sha3(_domain);
         // check that registry can take sufficient amount of tokens from the challenger
-        uint deposit = appPool[domainHash].snapshot.minDeposit;
+        uint deposit = appPool[domainHash].minDeposit;
         require(token.allowance(msg.sender, this) >= deposit);
         token.transferFrom(msg.sender, this, deposit);
         // prevent someone from challenging an unintialized application, rechallenging,
@@ -122,9 +121,9 @@ contract Registry {
         appPool[domainHash].domain = _domain;
         // start a vote
         uint pollID = callVote(_domain, 0
-        ,appPool[domainHash].snapshot.majority
-        ,appPool[domainHash].snapshot.commitVoteLen
-        ,appPool[domainHash].snapshot.revealVoteLen);
+        ,appPool[domainHash].majority
+        ,appPool[domainHash].commitVoteLen
+        ,appPool[domainHash].revealVoteLen);
         idToApplications[pollID] = appPool[domainHash];
     }
     
@@ -159,8 +158,8 @@ contract Registry {
         }
         else {
             delete appPool[domainHash].owner;
-            uint minDeposit = appPool[domainHash].snapshot.minDeposit;
-            uint dispensationPct = appPool[domainHash].snapshot.dispensationPct;
+            uint minDeposit = appPool[domainHash].minDeposit;
+            uint dispensationPct = appPool[domainHash].dispensationPct;
             uint winning = minDeposit * dispensationPct;
             token.transfer(appPool[domainHash].challenger, winning + minDeposit);
             // check math
@@ -184,8 +183,8 @@ contract Registry {
     function giveTokens(uint _pollID, uint _salt) private returns(uint) {
         domain = idToApplications[_pollID].domain;
         bytes32 domainHash = sha3(domain);
-        uint minDeposit = appPool[domainHash].snapshot.minDeposit;
-        uint dispensationPct = appPool[domainHash].snapshot.dispensationPct;
+        uint minDeposit = appPool[domainHash].minDeposit;
+        uint dispensationPct = appPool[domainHash].dispensationPct;
         uint totalTokens = voting.getTotalNumberOfTokensForWinningOption(_pollID);
         uint voterTokens = voting.getNumCorrectVote(_pollID, _salt);
         uint reward = voterTokens*minDeposit*(1-dispensationPct)/totalTokens;
@@ -208,10 +207,10 @@ contract Registry {
     // private function to add a domain name to the whitelist
     function add(string _domain, address _owner) private {
         bytes32 domainHash = sha3(_domain);
-        uint expiration = appPool[domainHash].snapshot.registryLen;
+        uint expiration = appPool[domainHash].registryLen;
         whitelist[domainHash].expTime = now + expiration;
         whitelist[domainHash].owner = _owner;
-        whitelist[domainHash].deposit = appPool[domainHash].snapshot.minDeposit;
+        whitelist[domainHash].deposit = appPool[domainHash].minDeposit;
     }
 
     // checks if a domain name is in the whitelist and unexpired
@@ -228,13 +227,13 @@ contract Registry {
     // private function to initialize a snapshot of parameters for each application
     function initializeSnapshot(string _domain) private {
         bytes32 domainHash = sha3(_domain);
-        appPool[domainHash].snapshot.minDeposit = get("minDeposit");
-        appPool[domainHash].snapshot.challengeLen = get("challengeLen");
-        appPool[domainHash].snapshot.registryLen = get("registryLen");
-        appPool[domainHash].snapshot.commitVoteLen = get("commitVoteLen");
-        appPool[domainHash].snapshot.revealVoteLen = get("revealVoteLen");
-        appPool[domainHash].snapshot.majority = get("majority");
-        appPool[domainHash].snapshot.dispensationPct = get("dispensationPct");
+        appPool[domainHash].minDeposit = get("minDeposit");
+        appPool[domainHash].challengeLen = get("challengeLen");
+        appPool[domainHash].registryLen = get("registryLen");
+        appPool[domainHash].commitVoteLen = get("commitVoteLen");
+        appPool[domainHash].revealVoteLen = get("revealVoteLen");
+        appPool[domainHash].majority = get("majority");
+        appPool[domainHash].dispensationPct = get("dispensationPct");
     }
 
 
@@ -254,9 +253,9 @@ contract Registry {
         // check that registry can take sufficient amount of tokens from the applicant
         require(token.allowance(msg.sender, this) >= deposit);
         token.transferFrom(msg.sender, this, deposit);
-        // initialize application with a snapshot with the current values of all parameters
+        // initialize application with a with the current values of all parameters
         initializeSnapshotParam(parameterHash);
-        uint challengeLen = appPool[parameterHash].snapshot.challengeLen;
+        uint challengeLen = appPool[parameterHash].challengeLen;
         appPool[parameterHash].challengeTime= now + challengeLen;
         appPool[parameterHash].owner = msg.sender;
 
@@ -268,7 +267,7 @@ contract Registry {
         bytes32 parameterHash = sha3(_parameter, _value);
         
         // check that registry can take sufficient amount of tokens from the challenger
-        uint deposit = appPool[parameterHash].snapshot.minDeposit;
+        uint deposit = appPool[parameterHash].minDeposit;
         require(token.allowance(msg.sender, this) >= deposit);
         token.transferFrom(msg.sender, this, deposit);
         
@@ -288,9 +287,9 @@ contract Registry {
         // idToApplications[pollID] = appPool[parameterHash];
         // start a vote
         uint pollID = callVote(_parameter, _value
-        ,appPool[parameterHash].snapshot.majority
-        ,appPool[parameterHash].snapshot.commitVoteLen
-        ,appPool[parameterHash].snapshot.revealVoteLen);
+        ,appPool[parameterHash].majority
+        ,appPool[parameterHash].commitVoteLen
+        ,appPool[parameterHash].revealVoteLen);
         idToApplications[pollID] = appPool[parameterHash];
     }
     
@@ -345,8 +344,8 @@ contract Registry {
         parameter = idToApplications[_pollID].parameter;
         value = idToApplications[_pollID].value;
         bytes32 parameterHash = sha3(parameter, value);
-        uint minDeposit = appPool[parameterHash].snapshot.minDeposit;
-        uint dispensationPct = appPool[parameterHash].snapshot.dispensationPct;
+        uint minDeposit = appPool[parameterHash].minDeposit;
+        uint dispensationPct = appPool[parameterHash].dispensationPct;
         uint totalTokens = voting.getTotalNumberOfTokensForWinningOption(_pollID);
         uint voterTokens = voting.getNumCorrectVote(_pollID, _salt);
 
@@ -356,12 +355,12 @@ contract Registry {
     
      // private function to initialize a snapshot of parameters for each proposal
      function initializeSnapshotParam(bytes32 _hash) private {
-        appPool[_hash].snapshot.minDeposit = get("minDeposit");
-        appPool[_hash].snapshot.challengeLen = get("challengeLen");
-        appPool[_hash].snapshot.commitVoteLen = get("commitVoteLen");
-        appPool[_hash].snapshot.revealVoteLen = get("revealVoteLen");
-        appPool[_hash].snapshot.majority = get("majority");
-        appPool[_hash].snapshot.dispensationPct = get("dispensationPct");
+        appPool[_hash].minDeposit = get("minDeposit");
+        appPool[_hash].challengeLen = get("challengeLen");
+        appPool[_hash].commitVoteLen = get("commitVoteLen");
+        appPool[_hash].revealVoteLen = get("revealVoteLen");
+        appPool[_hash].majority = get("majority");
+        appPool[_hash].dispensationPct = get("dispensationPct");
     }
 
     // interface for retrieving config parameter from hashmapping
