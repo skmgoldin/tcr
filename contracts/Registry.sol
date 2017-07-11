@@ -1,5 +1,5 @@
-pragma solidity 0.4.11;
-import "./StandardToken.sol";
+pragma solidity ^0.4.11;
+//import "./StandardToken.sol";
 // import "./PartialLockVoting.sol";
 // import "./Parametrizer.sol";
 
@@ -141,9 +141,9 @@ contract Registry {
         }
         else {
             delete appPool[domainHash].owner;
-            deposit = appPool[domainHash].snapshot[minDeposit]
-            winning = appPool[domainHash].snapshot[minDeposit]*appPool[domainHash].snapshot[dispensationPct]
-            tokens.transfer(appPool[domainHash].challenger, winning+ deposit)
+            deposit = appPool[domainHash].snapshot[minDeposit];
+            winning = appPool[domainHash].snapshot[minDeposit]*appPool[domainHash].snapshot[dispensationPct];
+            tokens.transfer(appPool[domainHash].challenger, winning+ deposit);
             // check math
         }
         // ensures the result cannot be processed again
@@ -214,7 +214,7 @@ contract Registry {
         uint minDeposit = appPool[domainHash].snapshot[minDeposit];
         uint dispensationPct = appPool[domainHash].snapshot[dispensationPct];
         uint totalTokens = getTotalNumberOfTokensForWinningOption(_pollID);
-        uint voterTokens = getNumCorrectInvestment(_pollID, _salt)
+        uint voterTokens = getNumCorrectInvestment(_pollID, _salt);
 
         uint reward = voterTokens*minDeposit*(1-dispensationPct)/totalTokens;
         return reward;
@@ -330,7 +330,7 @@ contract Registry {
         uint minDeposit = Proposals[parameterHash].snapshot[minDeposit];
         uint dispensationPct = Proposals[parameterHash].snapshot[dispensationPct];
         uint totalTokens = getTotalNumberOfTokensForWinningOption(_pollID);
-        uint voterTokens = getNumCorrectInvestment(_pollID, _salt)
+        uint voterTokens = getNumCorrectInvestment(_pollID, _salt);
 
         uint reward = voterTokens*minDeposit*(1-dispensationPct)/totalTokens;
         return reward;
