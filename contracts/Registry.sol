@@ -94,7 +94,7 @@ contract Registry {
         token.transferFrom(msg.sender, this, deposit);
         // initialize application with a snapshot with the current values of all parameters
         initializeSnapshot(_domain);
-        appPool[domainHash].challengeTime = now + appPool[domainHash].snapshot[challengeLen];
+        appPool[domainHash].challengeTime = now + appPool[domainHash].snapshot.challengeLen;
         appPool[domainHash].owner = msg.sender;
     }
 
