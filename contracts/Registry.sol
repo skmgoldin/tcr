@@ -1,7 +1,6 @@
 pragma solidity ^0.4.11;
-//import "./StandardToken.sol";
-// import "./PartialLockVoting.sol";
-// import "./Parametrizer.sol";
+import "./StandardToken.sol";
+import "./PartialLockVoting.sol";
 
 // to do:
 // implement events
@@ -121,15 +120,26 @@ contract Registry {
         appPool[domainHash].challenger = msg.sender;
         appPool[domainHash].domain = _domain;
         // start a vote
-        // uint pollID = callVote(voting params);
-        // idToApplications[pollID] = appPool[domainHash];
+        uint pollID = callVote(_domain, 0
+        ,appPool[domainHash].snapshot.majority
+        ,appPool[domainHash].snapshot.commitVoteLen
+        ,appPool[domainHash].snapshot.revealVoteLen);
+        idToApplications[pollID] = appPool[domainHash];
     }
     
     // helper function to the challenge() function. Initializes a vote through the voting contract
     // returns a poll id
-    function callVote(bytes32 _domainHash) private returns (uint) {
+    function callVote(string _proposalString, 
+        uint _proposalValue
+        uint _majority, 
+        uint _commitVoteLen,
+        uint _revealVoteLen
+        ) private returns (uint) {
         // event that vote has started
-        // ??
+        PollID = startPoll(string _proposalString, uint _majority, 
+        uint _commitVoteLen, uint _revealVoteLen);
+
+        return PollID
     }
 
     // a one-time function for each completed vote
@@ -171,7 +181,7 @@ contract Registry {
 
     // number of tokens person used to vote / total number of tokens for winning side
     // scale using distribution number, give the tokens
-    function giveTokens(uint _pollID, uint _salt) returns(uint) {
+    function giveTokens(uint _pollID, uint _salt) private returns(uint) {
         domain = idToApplications[_pollID].domain;
         bytes32 domainHash = sha3(domain);
         uint minDeposit = appPool[domainHash].snapshot[minDeposit];
@@ -196,7 +206,7 @@ contract Registry {
     }
 
     // private function to add a domain name to the whitelist
-    function add(string _domain, address _owner)  {
+    function add(string _domain, address _owner) private {
         bytes32 domainHash = sha3(_domain);
         uint expiration = appPool[domainHash].snapshot.registryLen;
         whitelist[domainHash].expTime = now + expiration;
@@ -216,7 +226,7 @@ contract Registry {
     }
 
     // private function to initialize a snapshot of parameters for each application
-    function initializeSnapshot(string _domain) {
+    function initializeSnapshot(string _domain) private {
         bytes32 domainHash = sha3(_domain);
         appPool[domainHash].snapshot.minDeposit = get("minDeposit");
         appPool[domainHash].snapshot.challengeLen = get("challengeLen");
@@ -276,6 +286,12 @@ contract Registry {
         // start a vote
         // pollID = callVote(voting params);
         // idToApplications[pollID] = appPool[parameterHash];
+        // start a vote
+        uint pollID = callVote(_parameter, _value
+        ,appPool[parameterHash].snapshot.majority
+        ,appPool[parameterHash].snapshot.commitVoteLen
+        ,appPool[parameterHash].snapshot.revealVoteLen);
+        idToApplications[pollID] = appPool[parameterHash];
     }
     
     // called to change parameter
@@ -301,7 +317,6 @@ contract Registry {
         value = idToApplications[_pollID].value;
         bytes32 parameterHash = sha3(parameter, value);
         if (didProposalPass(_pollID)) {
-            //??what would happen if didProposalPass() called and vote's still ongoing??
             // setting the value of parameter
             Parameters[sha3(parameter)] = value;
             delete appPool[parameterHash].owner;
@@ -318,7 +333,7 @@ contract Registry {
     function claimParamReward(uint _pollID, uint _salt) {
         // checks if a voter has claimed tokens
         require(voterInfo[msg.sender][_pollID] == false);
-        uint reward = giveTokens(_pollID, _salt);
+        uint reward = giveParamTokens(_pollID, _salt);
         // ensures a voter cannot claim tokens again
         transfer(msg.sender, reward);
         voterInfo[msg.sender][_pollID] = true;
@@ -340,7 +355,7 @@ contract Registry {
     }
     
      // private function to initialize a snapshot of parameters for each proposal
-     function initializeSnapshotParam(bytes32 _hash) {
+     function initializeSnapshotParam(bytes32 _hash) private {
         appPool[_hash].snapshot.minDeposit = get("minDeposit");
         appPool[_hash].snapshot.challengeLen = get("challengeLen");
         appPool[_hash].snapshot.commitVoteLen = get("commitVoteLen");
