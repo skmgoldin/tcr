@@ -13,7 +13,8 @@ contract Registry {
      */
      
     //Registry storage
-    //StandardToken public token;
+    StandardToken public token;
+    PLCRVoting public voting;
     mapping(bytes32 => Publisher) public whitelist;
     mapping(bytes32 => Application) public appPool; //holds applications for both domain and parameter appPool
     mapping(uint => bool) public voteProcessed;
@@ -130,16 +131,15 @@ contract Registry {
     // helper function to the challenge() function. Initializes a vote through the voting contract
     // returns a poll id
     function callVote(string _proposalString, 
-        uint _proposalValue
+        uint _proposalValue,
         uint _majority, 
         uint _commitVoteLen,
         uint _revealVoteLen
         ) private returns (uint) {
         // event that vote has started
-        PollID = startPoll(string _proposalString, uint _majority, 
-        uint _commitVoteLen, uint _revealVoteLen);
+        uint PollID = voting.startPoll( _proposalString, _majority, _commitVoteLen,  _revealVoteLen);
 
-        return PollID
+        return PollID;
     }
 
     // a one-time function for each completed vote
@@ -150,7 +150,7 @@ contract Registry {
         require(voteProcessed[_pollID] == false);
         domain = idToApplications[_pollID].domain;
         bytes32 domainHash = sha3(domain);
-        if (didProposalPass(_pollID)) {
+        if (voting.isPassed(_pollID)) {
             //??what would happen if didProposalPass() called and vote's still ongoing??
             // add to registry
             add(domain, appPool[domainHash].owner);
@@ -161,8 +161,8 @@ contract Registry {
             delete appPool[domainHash].owner;
             uint minDeposit = appPool[domainHash].snapshot.minDeposit;
             uint dispensationPct = appPool[domainHash].snapshot.dispensationPct;
-            uint winning = deposit * dispensationPct;
-            tokens.transfer(appPool[domainHash].challenger, winning + deposit);
+            uint winning = minDeposit * dispensationPct;
+            token.transfer(appPool[domainHash].challenger, winning + minDeposit);
             // check math
         }
         // ensures the result cannot be processed again
@@ -175,7 +175,7 @@ contract Registry {
         require(voterInfo[msg.sender][_pollID] == false);
         uint reward = giveTokens(_pollID, _salt);
         // ensures a voter cannot claim tokens again
-        transfer(msg.sender, reward);
+        token.transfer(msg.sender, reward);
         voterInfo[msg.sender][_pollID] = true;
     }
 
@@ -184,10 +184,10 @@ contract Registry {
     function giveTokens(uint _pollID, uint _salt) private returns(uint) {
         domain = idToApplications[_pollID].domain;
         bytes32 domainHash = sha3(domain);
-        uint minDeposit = appPool[domainHash].snapshot[minDeposit];
-        uint dispensationPct = appPool[domainHash].snapshot[dispensationPct];
-        uint totalTokens = getTotalNumberOfTokensForWinningOption(_pollID);
-        uint voterTokens = getNumCorrectInvestment(_pollID, _salt);
+        uint minDeposit = appPool[domainHash].snapshot.minDeposit;
+        uint dispensationPct = appPool[domainHash].snapshot.dispensationPct;
+        uint totalTokens = voting.getTotalNumberOfTokensForWinningOption(_pollID);
+        uint voterTokens = voting.getNumCorrectVote(_pollID, _salt);
         uint reward = voterTokens*minDeposit*(1-dispensationPct)/totalTokens;
         return reward;
     }
@@ -256,7 +256,7 @@ contract Registry {
         token.transferFrom(msg.sender, this, deposit);
         // initialize application with a snapshot with the current values of all parameters
         initializeSnapshotParam(parameterHash);
-        uint challengeLen = appPool[parameterHash].snapshot[challengeLen];
+        uint challengeLen = appPool[parameterHash].snapshot.challengeLen;
         appPool[parameterHash].challengeTime= now + challengeLen;
         appPool[parameterHash].owner = msg.sender;
 
@@ -316,7 +316,7 @@ contract Registry {
         parameter = idToApplications[_pollID].parameter;
         value = idToApplications[_pollID].value;
         bytes32 parameterHash = sha3(parameter, value);
-        if (didProposalPass(_pollID)) {
+        if (voting.isPassed(_pollID)) {
             // setting the value of parameter
             Parameters[sha3(parameter)] = value;
             delete appPool[parameterHash].owner;
@@ -335,7 +335,7 @@ contract Registry {
         require(voterInfo[msg.sender][_pollID] == false);
         uint reward = giveParamTokens(_pollID, _salt);
         // ensures a voter cannot claim tokens again
-        transfer(msg.sender, reward);
+        token.transfer(msg.sender, reward);
         voterInfo[msg.sender][_pollID] = true;
     }
 
@@ -345,10 +345,10 @@ contract Registry {
         parameter = idToApplications[_pollID].parameter;
         value = idToApplications[_pollID].value;
         bytes32 parameterHash = sha3(parameter, value);
-        uint minDeposit = appPool[parameterHash].snapshot[minDeposit];
-        uint dispensationPct = appPool[parameterHash].snapshot[dispensationPct];
-        uint totalTokens = getTotalNumberOfTokensForWinningOption(_pollID);
-        uint voterTokens = getNumCorrectInvestment(_pollID, _salt);
+        uint minDeposit = appPool[parameterHash].snapshot.minDeposit;
+        uint dispensationPct = appPool[parameterHash].snapshot.dispensationPct;
+        uint totalTokens = voting.getTotalNumberOfTokensForWinningOption(_pollID);
+        uint voterTokens = voting.getNumCorrectVote(_pollID, _salt);
 
         uint reward = voterTokens*minDeposit*(1-dispensationPct)/totalTokens;
         return reward;
