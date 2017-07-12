@@ -4,7 +4,8 @@ import "./PLCRVoting.sol";
 
 // to do:
 // implement events
-// keep deposit if never challenged (?) if win (?)
+// deposit
+// token flooring issue
 
 contract Registry {
 
@@ -18,12 +19,12 @@ contract Registry {
     mapping(bytes32 => Publisher) public whitelist; //domainHash => Publisher struct
     mapping(bytes32 => Application) public appPool; //holds applications for both domain and parameter appPool
     mapping(bytes32 => Params) public paramSnapshots;
-    mapping(uint => bool) public voteProcessed;
-    mapping(address => mapping(uint => bool)) public voterInfo;
+    mapping(uint => VoteInfo) public pollInfo; // holds information on individual polls
+    mapping(address => mapping(uint => bool)) public voterInfo; // holds information on voters' token claims
     string domain;
     //Parameter storage
     mapping(bytes32 => uint) public Parameters;
-    mapping(uint => Application) public idToApplications;
+    mapping(uint => bytes32) public idToHash;
     string parameter;
     uint value;
 
@@ -57,6 +58,14 @@ contract Registry {
 
         // parameter representing the scale of how token rewards are distributed
         uint dispensationPct;
+    }
+
+    struct VoteInfo {
+        // if the vote has been processed
+        bool processed;
+        // amount of leftover tokens available for winning party to claim
+        // (a byproduct of needing to floor the distributed tokens to voters)
+        uint remainder;
     }
 
     
@@ -93,9 +102,9 @@ contract Registry {
     // called by an applicant to apply (moves them into the application pool on success)
     function apply(string _domain) {
         bytes32 domainHash = sha3(_domain);
-        initApplication(domainHash);
         // initialize with the current values of all parameters
         initializeSnapshot(_domain);
+        initApplication(domainHash);
         appPool[domainHash].domain = _domain;
     }
 
@@ -103,7 +112,7 @@ contract Registry {
     //initialize general application
     function initApplication(bytes32 _hash) {
         // applicant must pay the current value of minDeposit
-        uint deposit = get("minDeposit");
+        uint deposit = paramSnapshots[_hash].minDeposit;
         // check to prevent repeat applications
         require(appPool[_hash].owner == 0);
         // check that registry can take sufficient amount of tokens from the applicant
@@ -119,11 +128,11 @@ contract Registry {
         bytes32 domainHash = sha3(_domain);
         challenge(domainHash);
         // start a vote
-        uint pollID = callVote(_domain, 0
+        uint pollID = callVote(_domain 
         ,paramSnapshots[domainHash].majority
         ,paramSnapshots[domainHash].commitVoteLen
         ,paramSnapshots[domainHash].revealVoteLen);
-        idToApplications[pollID] = appPool[domainHash];
+        idToHash[pollID] = domainHash;
     }
 
     //helper function to challengeApplication() and challengeProposal()
@@ -147,14 +156,13 @@ contract Registry {
     // helper function to the challenge() function. Initializes a vote through the voting contract
     // returns a poll id
     function callVote(string _proposalString, 
-        uint _proposalValue,
         uint _majority, 
         uint _commitVoteLen,
         uint _revealVoteLen
         ) private returns (uint) {
         // event that vote has started
-        uint PollID = voting.startPoll( _proposalString, _majority, _commitVoteLen,  _revealVoteLen);
-        return PollID;
+        uint pollID = voting.startPoll( _proposalString, _majority, _commitVoteLen,  _revealVoteLen);
+        return pollID;
     }
 
     // a one-time function for each completed vote
@@ -162,13 +170,13 @@ contract Registry {
     // if domain lost: challenger is rewarded tokens
     function processResult(uint _pollID)
     {
-        require(voteProcessed[_pollID] == false);
-        domain = idToApplications[_pollID].domain;
-        bytes32 domainHash = sha3(domain);
+        require(pollInfo[_pollID].processed == false);
+        bytes32 domainHash = idToHash[_pollID];
+
         if (voting.isPassed(_pollID)) {
             //??what would happen if didProposalPass() called and vote's still ongoing??
             // add to registry
-            add(domain, appPool[domainHash].owner);
+            add(domainHash, appPool[domainHash].owner);
             delete appPool[domainHash].owner;
             // give tokens to applicant based on dist and total tokens
         }
@@ -176,12 +184,11 @@ contract Registry {
             delete appPool[domainHash].owner;
             uint minDeposit = paramSnapshots[domainHash].minDeposit;
             uint dispensationPct = paramSnapshots[domainHash].dispensationPct;
-            uint winning = minDeposit * dispensationPct;
+            uint winning = minDeposit * dispensationPct;  // change math to be int between 0-100
             token.transfer(appPool[domainHash].challenger, winning + minDeposit);
-            // check math
         }
         // ensures the result cannot be processed again
-        voteProcessed[_pollID] = true;
+        pollInfo[_pollID].processed = true;
     }
 
     // called by each voter to claim their reward for each completed vote
@@ -197,10 +204,9 @@ contract Registry {
     // number of tokens person used to vote / total number of tokens for winning side
     // scale using distribution number, give the tokens
     function giveTokens(uint _pollID, uint _salt) private returns(uint) {
-        domain = idToApplications[_pollID].domain;
-        bytes32 domainHash = sha3(domain);
-        uint minDeposit = paramSnapshots[domainHash].minDeposit;
-        uint dispensationPct = paramSnapshots[domainHash].dispensationPct;
+        bytes32 hash = idToHash[_pollID];
+        uint minDeposit = paramSnapshots[hash].minDeposit;
+        uint dispensationPct = paramSnapshots[hash].dispensationPct;
         uint totalTokens = voting.getTotalNumberOfTokensForWinningOption(_pollID);
         uint voterTokens = voting.getNumCorrectVote(_pollID, _salt);
         uint reward = voterTokens*minDeposit*(1-dispensationPct)/totalTokens;
@@ -216,17 +222,16 @@ contract Registry {
         // prevents moving a domain to the registry without ever applying
         require(appPool[domainHash].owner != 0);
         // prevent applicant from moving to registry multiple times
-        add(_domain, appPool[domainHash].owner);
+        add(domainHash, appPool[domainHash].owner);
         delete appPool[domainHash].owner;
     }
 
     // private function to add a domain name to the whitelist
-    function add(string _domain, address _owner) private {
-        bytes32 domainHash = sha3(_domain);
-        uint expiration = paramSnapshots[domainHash].registryLen;
-        whitelist[domainHash].expTime = now + expiration;
-        whitelist[domainHash].owner = _owner;
-        whitelist[domainHash].deposit = paramSnapshots[domainHash].minDeposit;
+    function add(bytes32 _domainHash, address _owner) private {
+        uint expiration = paramSnapshots[_domainHash].registryLen;
+        whitelist[_domainHash].expTime = now + expiration;
+        whitelist[_domainHash].owner = _owner;
+        whitelist[_domainHash].deposit = paramSnapshots[_domainHash].minDeposit;
     }
 
     // checks if a domain name is in the whitelist and unexpired
@@ -243,13 +248,8 @@ contract Registry {
     // private function to initialize a snapshot of parameters for each application
     function initializeSnapshot(string _domain) private {
         bytes32 domainHash = sha3(_domain);
-        paramSnapshots[domainHash].minDeposit = get("minDeposit");
-        paramSnapshots[domainHash].challengeLen = get("challengeLen");
+        initializeSnapshotParam(domainHash);  // maybe put the two together
         paramSnapshots[domainHash].registryLen = get("registryLen");
-        paramSnapshots[domainHash].commitVoteLen = get("commitVoteLen");
-        paramSnapshots[domainHash].revealVoteLen = get("revealVoteLen");
-        paramSnapshots[domainHash].majority = get("majority");
-        paramSnapshots[domainHash].dispensationPct = get("dispensationPct");
     }
 
 
@@ -264,9 +264,9 @@ contract Registry {
     //initializes a proposal to change a parameter
     function proposeUpdate(string _parameter, uint _value) {
         bytes32 parameterHash = sha3(_parameter, _value);
-        initApplication(parameterHash);
         // initialize application with a with the current values of all parameters
         initializeSnapshotParam(parameterHash);
+        initApplication(parameterHash);
         appPool[parameterHash].parameter = _parameter;
         appPool[parameterHash].value = _value;
     }
@@ -277,11 +277,11 @@ contract Registry {
         bytes32 parameterHash = sha3(_parameter, _value);
         challenge(parameterHash);
         // start a vote
-        uint pollID = callVote(_parameter, _value
+        uint pollID = callVote(_parameter
         ,paramSnapshots[parameterHash].majority
         ,paramSnapshots[parameterHash].commitVoteLen
         ,paramSnapshots[parameterHash].revealVoteLen);
-        idToApplications[pollID] = appPool[parameterHash];
+        idToHash[pollID] = parameterHash;
     }
     
     // called to change parameter
@@ -302,46 +302,33 @@ contract Registry {
     // if prospsal lost: challenger is rewarded tokens
     function processProposal(uint _pollID)
     {
-        require(voteProcessed[_pollID] == false);
-        parameter = idToApplications[_pollID].parameter;
-        value = idToApplications[_pollID].value;
-        bytes32 parameterHash = sha3(parameter, value);
+        require(pollInfo[_pollID].processed == false);
+        bytes32 parameterHash = idToHash[_pollID];
+        parameter = appPool[parameterHash].parameter;
+        value = appPool[parameterHash].value;
         if (voting.isPassed(_pollID)) {
             // setting the value of parameter
             Parameters[sha3(parameter)] = value;
             delete appPool[parameterHash].owner;
-            // give tokens to applicant based on dist and total tokens
+            // give tokens to applicant based on dist and total tokens IMPLEMENT
         }
         else {
             delete appPool[parameterHash].owner;
             // give tokens to challenger based on dist and total tokens
         }
         // ensures the result cannot be processed again
-        voteProcessed[_pollID] = true;
+        pollInfo[_pollID].processed = true;
     }
 
     function claimParamReward(uint _pollID, uint _salt) {
         // checks if a voter has claimed tokens
         require(voterInfo[msg.sender][_pollID] == false);
-        uint reward = giveParamTokens(_pollID, _salt);
+        uint reward = giveTokens(_pollID, _salt);
         // ensures a voter cannot claim tokens again
         token.transfer(msg.sender, reward);
         voterInfo[msg.sender][_pollID] = true;
     }
 
-    // number of tokens person used to vote / total number of tokens for winning side
-    // scale using distribution number, give the tokens
-     function giveParamTokens(uint _pollID, uint _salt) returns(uint) {
-        parameter = idToApplications[_pollID].parameter;
-        value = idToApplications[_pollID].value;
-        bytes32 parameterHash = sha3(parameter, value);
-        uint minDeposit = paramSnapshots[parameterHash].minDeposit;
-        uint dispensationPct = paramSnapshots[parameterHash].dispensationPct;
-        uint totalTokens = voting.getTotalNumberOfTokensForWinningOption(_pollID);
-        uint voterTokens = voting.getNumCorrectVote(_pollID, _salt);
-        uint reward = voterTokens*minDeposit*(1-dispensationPct)/totalTokens;
-        return reward;
-    }
     
      // private function to initialize a snapshot of parameters for each proposal
      function initializeSnapshotParam(bytes32 _hash) private {
