@@ -121,7 +121,7 @@ contract Registry {
         require(token.allowance(_applicant, this) >= deposit);
         token.transferFrom(_applicant, this, deposit);        
         appPool[_hash].challengeTime = now + paramSnapshots[_hash].challengeLen;
-        appPool[_hash].owner = msg.sender;
+        appPool[_hash].owner = _applicant;
     }
 
     function renew (string _domain) {
@@ -149,7 +149,7 @@ contract Registry {
     // initialize vote to accept/reject a domain to the registry
     function challengeApplication(string _domain) {
         bytes32 domainHash = sha3(_domain);
-        challenge(domainHash);
+        challenge(domainHash, msg.sender);
         // start a vote
         uint pollID = callVote(_domain 
         ,paramSnapshots[domainHash].majority
@@ -159,11 +159,11 @@ contract Registry {
     }
 
     //helper function to challengeApplication() and challengeProposal()
-    function challenge(bytes32 _hash) {
+    function challenge(bytes32 _hash, address _challenger) {
         // check that registry can take sufficient amount of tokens from the challenger
         uint deposit = paramSnapshots[_hash].minDeposit;
-        require(token.allowance(msg.sender, this) >= deposit);
-        token.transferFrom(msg.sender, this, deposit);
+        require(token.allowance(_challenger, this) >= deposit);
+        token.transferFrom(_challenger, this, deposit);
 
         // prevent someone from challenging an unintialized application, rechallenging,
         // or challenging after the challenge period has ended
@@ -173,7 +173,7 @@ contract Registry {
 
         // update the application's status
         appPool[_hash].challenged = true;
-        appPool[_hash].challenger = msg.sender;
+        appPool[_hash].challenger = _challenger;
     }
     
     // helper function to the challenge() function. Initializes a vote through the voting contract
@@ -308,7 +308,7 @@ contract Registry {
     //initializes a vote to accept/reject the param change proposal
     function challengeProposal(string _parameter, uint _value) {
         bytes32 parameterHash = sha3(_parameter, _value);
-        challenge(parameterHash);
+        challenge(parameterHash, msg.sender);
         // start a vote
         uint pollID = callVote(_parameter
         ,paramSnapshots[parameterHash].majority
