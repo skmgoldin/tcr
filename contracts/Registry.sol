@@ -210,6 +210,16 @@ contract Registry {
         uint totalTokens = voting.getTotalNumberOfTokensForWinningOption(_pollID);
         uint voterTokens = voting.getNumCorrectVote(_pollID, _salt);
         uint reward = voterTokens*minDeposit*(1-dispensationPct)/totalTokens;
+
+
+
+        // check if there will be leftover from flooring, add into a pool claimable by winner
+        // (to prevent token locking due to flooring of voter rewards)
+        // uint modCheck = voterTokens % ;
+        // uint purchaseAmount = msg.value - excessAmount;
+        // uint tokenPurchase = purchaseAmount / price;
+
+
         return reward;
     }
 
