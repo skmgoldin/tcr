@@ -104,22 +104,45 @@ contract Registry {
         bytes32 domainHash = sha3(_domain);
         // initialize with the current values of all parameters
         initializeSnapshot(_domain);
-        initApplication(domainHash);
+        initApplication(domainHash, msg.sender);
         appPool[domainHash].domain = _domain;
     }
 
+
+
     //helper function to apply() and proposeUpdate()
     //initialize general application
-    function initApplication(bytes32 _hash) {
+    function initApplication(bytes32 _hash, address _applicant) {
         // applicant must pay the current value of minDeposit
         uint deposit = paramSnapshots[_hash].minDeposit;
         // check to prevent repeat applications
         require(appPool[_hash].owner == 0);
         // check that registry can take sufficient amount of tokens from the applicant
-        require(token.allowance(msg.sender, this) >= deposit);
-        token.transferFrom(msg.sender, this, deposit);        
+        require(token.allowance(_applicant, this) >= deposit);
+        token.transferFrom(_applicant, this, deposit);        
         appPool[_hash].challengeTime = now + paramSnapshots[_hash].challengeLen;
         appPool[_hash].owner = msg.sender;
+    }
+
+    function renew (string _domain) {
+        bytes32 domainHash = sha3(_domain);
+        require(msg.sender == whitelist[domainHash].owner );
+        if (whitelist[domainHash].deposit >= get(minDeposit)){
+            apply(_domain);
+        }
+        else {
+            //emit event need to send in more money, then the person
+            //has to take back deposit then re-apply
+        }
+    }
+
+    function claimDeposit(string _domain){
+        bytes32 domainHash = sha3(_domain);
+        require(msg.sender == whitelist[domainHash].owner );
+        require(now >= whitelist[domainHash].expTime);
+        require(whitelist[domainHash].deposit > 0);
+        token.transfer(msg.sender,whitelist[domainHash].deposit);
+        whitelist[domainHash].deposit = 0;
     }
 
     // called by any adtoken holder to challenge an application to the whitelist
@@ -276,7 +299,7 @@ contract Registry {
         bytes32 parameterHash = sha3(_parameter, _value);
         // initialize application with a with the current values of all parameters
         initializeSnapshotParam(parameterHash);
-        initApplication(parameterHash);
+        initApplication(parameterHash, msg.sender);
         appPool[parameterHash].parameter = _parameter;
         appPool[parameterHash].value = _value;
     }
