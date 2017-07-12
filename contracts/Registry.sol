@@ -99,6 +99,26 @@ contract Registry {
        Parameters[sha3("majority")]          = _majority;
     }
 
+    function renew (string _domain) {
+        bytes32 domainHash = sha3(_domain);
+        require(msg.sender == whitelist[domainHash].owner );
+        if (whitelist[domainHash].deposit >= get(minDeposit)){
+            apply(_domain);
+        }
+        else {
+            //emit event need to send in more money, then the person
+            //has to take back deposit then re-apply
+        }
+    }
+    function claimDeposit(string _domain){
+        bytes32 domainHash = sha3(_domain);
+        require(msg.sender == whitelist[domainHash].owner );
+        require(now >= whitelist[domainHash].expTime);
+        require(whitelist[domainHash].deposit > 0);
+        token.transfer(msg.sender,whitelist[domainHash].deposit);
+        whitelist[domainHash].deposit = 0;
+    }
+
     // called by an applicant to apply (moves them into the application pool on success)
     function apply(string _domain) {
         bytes32 domainHash = sha3(_domain);
