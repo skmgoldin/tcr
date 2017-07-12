@@ -56,6 +56,8 @@ contract Registry {
         uint dispensationPct;
     }
 
+    
+
     // Constructor
     /// @param _minDeposit      application & challenger deposit amounts
     /// @param _challengeLen    duration of the challenge period
