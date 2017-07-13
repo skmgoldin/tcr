@@ -99,25 +99,7 @@ contract Registry {
        Parameters[sha3("majority")]          = _majority;
     }
 
-    function renew (string _domain) {
-        bytes32 domainHash = sha3(_domain);
-        require(msg.sender == whitelist[domainHash].owner );
-        if (whitelist[domainHash].deposit >= get(minDeposit)){
-            apply(_domain);
-        }
-        else {
-            //emit event need to send in more money, then the person
-            //has to take back deposit then re-apply
-        }
-    }
-    function claimDeposit(string _domain){
-        bytes32 domainHash = sha3(_domain);
-        require(msg.sender == whitelist[domainHash].owner );
-        require(now >= whitelist[domainHash].expTime);
-        require(whitelist[domainHash].deposit > 0);
-        token.transfer(msg.sender,whitelist[domainHash].deposit);
-        whitelist[domainHash].deposit = 0;
-    }
+
 
     // called by an applicant to apply (moves them into the application pool on success)
     function apply(string _domain) {
@@ -238,7 +220,7 @@ contract Registry {
     function claimReward(uint _pollID, uint _salt) {
         // checks if a voter has claimed tokens
         require(voterInfo[msg.sender][_pollID] == false);
-        uint reward = giveTokens(_pollID, _salt);
+        uint reward = giveTokens(_pollID, _salt, msg.sender);
         // ensures a voter cannot claim tokens again
         token.transfer(msg.sender, reward);
         voterInfo[msg.sender][_pollID] = true;
@@ -246,12 +228,12 @@ contract Registry {
 
     // number of tokens person used to vote / total number of tokens for winning side
     // scale using distribution number, give the tokens
-    function giveTokens(uint _pollID, uint _salt) private returns(uint) {
+    function giveTokens(uint _pollID, uint _salt, address _voter) private returns(uint) {
         bytes32 hash = idToHash[_pollID];
         uint minDeposit = paramSnapshots[hash].minDeposit;
         uint dispensationPct = paramSnapshots[hash].dispensationPct;
         uint totalTokens = voting.getTotalNumberOfTokensForWinningOption(_pollID);
-        uint voterTokens = voting.getNumCorrectVote(_pollID, _salt);
+        uint voterTokens = voting.getNumCorrectVote(_pollID, _salt, _voter);
         uint reward = voterTokens*minDeposit*(1-dispensationPct)/totalTokens;
 
 
