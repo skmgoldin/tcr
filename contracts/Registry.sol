@@ -32,6 +32,10 @@ contract Registry {
         address owner;
         uint expTime;
         uint deposit;
+        uint prevExpTime //
+        uint nextExpTime //
+        uint prevDeposit // total withdrawable amount
+        uint nextDeposit // 
     }
 
     struct Application {
@@ -104,6 +108,7 @@ contract Registry {
     // called by an applicant to apply (moves them into the application pool on success)
     function apply(string _domain) {
         bytes32 domainHash = sha3(_domain);
+        require(hasRenewal[domainHash] == false);
         // initialize with the current values of all parameters
         initializeSnapshot(_domain);
         initApplication(domainHash, msg.sender);
@@ -128,23 +133,76 @@ contract Registry {
 
     function renew (string _domain) {
         bytes32 domainHash = sha3(_domain);
-        require(msg.sender == whitelist[domainHash].owner );
-        if (whitelist[domainHash].deposit >= get(minDeposit)){
-            apply(_domain);
+        // check if no active renewal
+        require(hasRenewal(domainHash) == false);
+        require(msg.sender == whitelist[domainHash].owner); // checks that you are the owner of the domain
+        require(appPool[_hash].owner == 0); // no double renewal
+        uint deposit = get('minDeposit');
+        //Check if existing deposit is sufficient 
+        if (whitelist[domainHash].deposit + whitelist[domainHash].prevDeposit >= deposit){
+            //apply
+            initializeSnapshot(_domain);        
+            appPool[_hash].challengeTime = now + paramSnapshots[_hash].challengeLen;
+            appPool[_hash].owner = msg.sender;
+            // only take from deposit
+            if (whitelist[domainHash].deposit >= deposit)
+            {
+                uint difference = whitelist[domainHash].deposit - deposit;
+                whitelist[domainHash].deposit = difference;
+            }
+            // take whole deposit and part of prevDeposit
+            else
+            {
+                // take all of locked deposit and a portion of unlocked deposit
+                uint difference = deposit - whitelist[domainHash].deposit;
+                uint difference2 = whitelist[domainHash].prevDeposit - difference;
+                whitelist[domainHash].prevDeposit = difference2;
+            }
+             
         }
+        //if insufficient # of tokens, then must send in the difference 
         else {
-            //emit event need to send in more money, then the person
-            //has to take back deposit then re-apply
+            uint difference = deposit-(whitelist[domainHash].deposit + whitelist.[domainHash].prevDeposit);
+            require(token.allowance(msg.sender, this) >= difference);
+            token.transferFrom(msg.sender, this, difference);
+            //apply
+            initializeSnapshot(_domain);              
+            appPool[_hash].challengeTime = now + paramSnapshots[_hash].challengeLen;
+            appPool[_hash].owner = msg.sender;
         }
     }
 
-    function claimDeposit(string _domain){
+    function claimDeposit(string _domain) {  // take out only part
         bytes32 domainHash = sha3(_domain);
-        require(msg.sender == whitelist[domainHash].owner );
-        require(now >= whitelist[domainHash].expTime);
-        require(whitelist[domainHash].deposit > 0);
-        token.transfer(msg.sender,whitelist[domainHash].deposit);
-        whitelist[domainHash].deposit = 0;
+        require(msg.sender == whitelist[domainHash].owner);
+        if (hasRenewal(domainHash))  // updates token values if necessary
+        {
+            token.transfer(msg.sender, whitelist[domainHash].prevDeposit);
+            whitelist[domainHash].prevDeposit = 0;
+        }
+    }
+
+    // checks to see if a renewal has turned into current whitelist period
+    // if there is a renewal and it has become the current whitelist period,
+    // process and change state of variables
+    function hasRenewal(bytes32 _hash) private returns (bool){
+        // renewal start point is in the past
+        if (whitelist[_hash].expTime <= now ) {
+            if (whitelist[_hash].nextExpTime != whitelist[_hash].expTime)
+            { // no active renewal
+                return false;
+            }
+            // renewal is processed to change state of whitelist struct
+            whitelist[_hash].prevExpTime = whitelist[_hash].expTime;
+            whitelist[_hash].expTime = whitelist[_hash].nextExpTime;
+            whitelist[_hash].prevDeposit += whitelist[_hash].deposit;
+            whitelist[_hash].deposit = whitelist[_hash].nextDeposit;
+            return false;
+        }
+        else
+        {
+            return true;
+        }
     }
 
     // called by any adtoken holder to challenge an application to the whitelist
