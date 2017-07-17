@@ -78,8 +78,11 @@ contract Registry {
         bool processed;
         // amount of leftover tokens available for winning party to claim
         // (a byproduct of needing to floor the distributed tokens to voters)
-        uint remainder;
+        uint256 remainder;
+        address claimer;
     }
+
+    uint256 constant private MULTIPLIER = 10 ** 18;
 
     
 
@@ -259,11 +262,13 @@ contract Registry {
         if (voting.isPassed(_pollID)) {
             // add to registry
             add(domainHash, appPool[domainHash].owner);
+            pollInfo[_pollID].claimer = appPool[domainHash].owner;
             delete appPool[domainHash].owner;
             // give tokens to applicant based on dist and total tokens
             return true;
         }
         else {
+            pollInfo[_pollID].claimer = appPool[domainHash].challenger;
             delete appPool[domainHash].owner;
             // uint minDeposit = paramSnapshots[domainHash].minDeposit;
             // uint dispensationPct = paramSnapshots[domainHash].dispensationPct;
@@ -283,26 +288,31 @@ contract Registry {
         voterInfo[msg.sender][_pollID] = true;
     }
 
+    // FOR DISP DECIDE WHERE OTHER TOKENS GO 50/50 101 tokens
+
     // number of tokens person used to vote / total number of tokens for winning side
     // scale using distribution number, give the tokens
     function giveTokens(uint _pollID, uint _salt, address _voter) private returns(uint) {
         bytes32 hash = idToHash[_pollID];
-        uint minDeposit = paramSnapshots[hash].minDeposit;
-        uint dispensationPct = paramSnapshots[hash].dispensationPct;
-        uint totalTokens = voting.getTotalNumberOfTokensForWinningOption(_pollID);
-        uint voterTokens = voting.getNumCorrectVote(_pollID, _salt, _voter);
-        uint reward = voterTokens*minDeposit*(1-dispensationPct)/totalTokens;
+        uint256 minDeposit = paramSnapshots[hash].minDeposit;
+        uint256 dispensationPct = paramSnapshots[hash].dispensationPct;
+        uint256 totalTokens = voting.getTotalNumberOfTokensForWinningOption(_pollID);
+        uint256 voterTokens = voting.getNumCorrectVote(_pollID, _salt, _voter);
 
+        uint256 rewardTokens = minDeposit * (100 - dispensationPct) / 100;
+        uint256 numerator = voterTokens * rewardTokens * MULTIPLIER; 
+        uint256 denominator = totalTokens * MULTIPLIER;
+        uint256 remainder = denominator % numerator;
 
+        // save remainder tokens in the form of decimal numbers with 18 places represented
+        // as a uint256
+        pollInfo[_pollID].remainder += remainder;
 
-        // check if there will be leftover from flooring, add into a pool claimable by winner
-        // (to prevent token locking due to flooring of voter rewards)
-        // uint modCheck = voterTokens % ;
-        // uint purchaseAmount = msg.value - excessAmount;
-        // uint tokenPurchase = purchaseAmount / price;
+        return numerator / denominator;
+    }
 
-
-        return reward;
+    function claimExtraReward(uint _pollID) {
+        // give pollInfo[_pollID].claimer the floored reward
     }
 
     // called to move an applying domain to the whitelist
