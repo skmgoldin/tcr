@@ -11,7 +11,6 @@ implement events
 deposit
 token flooring issue
 refactor & wrap check & transfer
-appication struct delet domain param value
 idea: store hash of param
     bytes32 MINDEPOSIT = //the hash
     bytes32 REGISTRYLEN = //the hash
@@ -57,10 +56,6 @@ contract Registry {
         bool challenged;
         uint challengeTime; //End of challenge period
         address challenger;
-
-        string domain;
-        string parameter;
-        uint value;
     }
 
     struct Params {
@@ -184,36 +179,26 @@ contract Registry {
         }
     }
 
-    function claimDeposit(string _domain) public {  // take out only part
+    function claimDeposit(string _domain) public { // allow to take out part not all?
         bytes32 domainHash = sha3(_domain);
         require(msg.sender == whitelist[domainHash].owner);
-        if (hasRenewal(domainHash))  // updates token values if necessary
-        {
-            token.transfer(msg.sender, whitelist[domainHash].prevDeposit);
-            whitelist[domainHash].prevDeposit = 0;
-        }
+        token.transfer(msg.sender, whitelist[domainHash].prevDeposit);
+        whitelist[domainHash].prevDeposit = 0;
     }
 
-    // checks to see if a renewal has turned into current whitelist period
-    // if there is a renewal and it has become the current whitelist period,
-    // process and change state of variables
-    function hasRenewal(bytes32 _hash) private returns (bool){
-        // renewal start point is in the past
-        if (whitelist[_hash].expTime <= now ) {
-            if (whitelist[_hash].nextExpTime != whitelist[_hash].expTime)
-            { // no active renewal
-                return false;
-            }
-            // renewal is processed to change state of whitelist struct
+    // checks to see if a renewal is there
+    function hasRenewal(bytes32 _hash) private returns (bool) {
+        return whitelist[_hash].nextExpTime > whitelist[_hash].expTime;
+    }
+
+    // called by domain owner to activate renewal period and allow additional renewals
+    function activateRenewal(string _domain) public {
+        if (whitelist[_hash].nextExpTime > whitelist[_hash].expTime && whitelist[_hash].expTime <= now)
+        {
             whitelist[_hash].prevExpTime = whitelist[_hash].expTime;
             whitelist[_hash].expTime = whitelist[_hash].nextExpTime;
             whitelist[_hash].prevDeposit += whitelist[_hash].deposit;
             whitelist[_hash].deposit = whitelist[_hash].nextDeposit;
-            return false;
-        }
-        else
-        {
-            return true;
         }
     }
 
@@ -231,7 +216,7 @@ contract Registry {
         return pollID;
     }
 
-    //helper function to challengeApplication() and challengeProposal()
+    // helper function to challengeApplication() and challengeProposal()
     function challenge(bytes32 _hash, address _challenger) private {
         // check that registry can take sufficient amount of tokens from the challenger
         uint deposit = paramSnapshots[_hash].minDeposit;
@@ -332,6 +317,8 @@ contract Registry {
         add(domainHash, appPool[domainHash].owner);
         delete appPool[domainHash].owner;
     }
+
+    // IS RENEWAL OR NOT
 
     // private function to add a domain name to the whitelist
     function add(bytes32 _domainHash, address _owner) private {
