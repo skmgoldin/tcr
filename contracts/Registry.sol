@@ -312,7 +312,9 @@ contract Registry {
     }
 
     function claimExtraReward(uint _pollID) {
-        // give pollInfo[_pollID].claimer the floored reward
+        uint256 reward = pollInfo[_pollID].remainder / MULTIPLIER;
+        pollInfo[_pollID].remainder = pollInfo[_pollID].remainder - reward*MULTIPLIER;
+        token.transfer(pollInfo[_pollID].claimer, reward);
     }
 
     // called to move an applying domain to the whitelist
@@ -329,6 +331,7 @@ contract Registry {
     }
 
     // IS RENEWAL OR NOT
+    // CHECK IF PAST EXP TIME, IF SO PROCCESS IMMEDIATELY
 
     // private function to add a domain name to the whitelist
     function add(bytes32 _domainHash, address _owner) private {
