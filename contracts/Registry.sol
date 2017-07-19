@@ -262,7 +262,7 @@ contract Registry {
     function processResult(uint _pollID) returns(bool)
     {
         bytes32 domainHash = idToHash[_pollID];
-        require(isDomainApp(domainHash));
+        require(isDomainApp(domainHash));  // processing parameter hash this way is unintended behavior
         require(pollInfo[_pollID].processed == false);
         // ensures the result cannot be processed again
         pollInfo[_pollID].processed = true;
@@ -271,19 +271,31 @@ contract Registry {
             // add to registry
             add(domainHash, appPool[domainHash].owner);
             pollInfo[_pollID].claimer = appPool[domainHash].owner;
-            delete appPool[domainHash].owner;
             // give tokens to applicant based on dist and total tokens
+            giveWinnerReward(domainHash, appPool[domainHash].owner);
+            // uninitialize application
+            delete appPool[domainHash].owner;
             return true;
         }
         else {
             pollInfo[_pollID].claimer = appPool[domainHash].challenger;
+            giveWinnerReward(domainHash, appPool[domainHash].challenger);
+            token.transfer(appPool[domainHash].challenger, paramSnapshots[domainHash].minDeposit);
             delete appPool[domainHash].owner;
-            // uint minDeposit = paramSnapshots[domainHash].minDeposit;
-            // uint dispensationPct = paramSnapshots[domainHash].dispensationPct;
-            // uint winning = minDeposit * dispensationPct;  // change math to be int between 0-100
-            // token.transfer(appPool[domainHash].challenger, winning + minDeposit);
             return false;
         }
+    }
+
+    // internal function to give applicant/challenger reward
+    // if dispensationPct does not divide minDeposit evenly, gives then the extra token
+    function giveWinnerReward(_hash, _address) private {
+        uint256 minDeposit = paramSnapshots[_hash].minDeposit;
+        uint256 dispensationPct = paramSnapshots[_hash].dispensationPct;
+        uint256 rewardTokens = minDeposit * (dispensationPct) / 100;
+        if ((minDeposit * dispensationPct) % 100 != 0) {
+            rewardTokens++;
+        }
+        token.transfer(_address, rewardTokens);
     }
 
     // called by each voter to claim their reward for each completed vote
@@ -296,7 +308,6 @@ contract Registry {
         voterInfo[msg.sender][_pollID] = true;
     }
 
-    // FOR DISP DECIDE WHERE OTHER TOKENS GO 50/50 101 tokens
 
     // number of tokens person used to vote / total number of tokens for winning side
     // scale using distribution number, give the tokens
@@ -305,12 +316,12 @@ contract Registry {
         uint256 minDeposit = paramSnapshots[hash].minDeposit;
         uint256 dispensationPct = paramSnapshots[hash].dispensationPct;
         uint256 totalTokens = voting.getTotalNumberOfTokensForWinningOption(_pollID);
-        uint256 voterTokens = voting.getNumCorrectVote(_pollID, _salt, _voter);
+        uint256 voterTokens = voting.getNumPassingTokens(_pollID, _salt, _voter);
 
         uint256 rewardTokens = minDeposit * (100 - dispensationPct) / 100;
         uint256 numerator = voterTokens * rewardTokens * MULTIPLIER; 
         uint256 denominator = totalTokens * MULTIPLIER;
-        uint256 remainder = denominator % numerator;
+        uint256 remainder = numerator % denominator;
 
         // save remainder tokens in the form of decimal numbers with 18 places represented
         // as a uint256
@@ -321,7 +332,7 @@ contract Registry {
 
     function claimExtraReward(uint _pollID) {
         uint256 reward = pollInfo[_pollID].remainder / MULTIPLIER;
-        pollInfo[_pollID].remainder = pollInfo[_pollID].remainder - reward*MULTIPLIER;
+        pollInfo[_pollID].remainder = pollInfo[_pollID].remainder - reward * MULTIPLIER;
         token.transfer(pollInfo[_pollID].claimer, reward);
     }
 
@@ -416,20 +427,26 @@ contract Registry {
         bytes32 parameterHash = idToHash[_pollID];
         parameter = appPool[parameterHash].parameter;
         value = appPool[parameterHash].value;
-        // ensures the result cannot be processed again
-        pollInfo[_pollID].processed = true;
         delete appPool[parameterHash].owner;
         
         if (voting.isPassed(_pollID)) {
+            pollInfo[_pollID].claimer = appPool[parameterHash].owner;
             // setting the value of parameter
             Parameters[sha3(parameter)] = value;
             // give tokens to applicant based on dist and total tokens IMPLEMENT
+            giveWinnerReward(parameterHash, appPool[parameterHash].owner);
+            token.transfer(appPool[parameterHash].owner, paramSnapshots[parameterHash].minDeposit);
             return true;
         }
         else {
+            pollInfo[_pollID].claimer = appPool[parameterHash].challenger;
             // give tokens to challenger based on dist and total tokens
+            giveWinnerReward(parameterHash, appPool[parameterHash].challenger);
+            token.transfer(appPool[parameterHash].challenger, paramSnapshots[parameterHash].minDeposit);
             return false;
         }
+        // ensures the result cannot be processed again
+        pollInfo[_pollID].processed = true;
     }
 
     
