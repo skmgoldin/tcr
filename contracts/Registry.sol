@@ -8,13 +8,9 @@ import "./PLCRVoting.sol";
 =======
 
 implement events
-deposit
-token flooring issue
 refactor & wrap check & transfer
-idea: store hash of param
-    bytes32 MINDEPOSIT = //the hash
-    bytes32 REGISTRYLEN = //the hash
-use the one global struct for params instead of a mapping. snapshots are equal to canonical param struct
+check for unintended behavior when domain functions are called with param hashes and vice versa (via pollID)
+make sure people can't create random parameters
 
 */
 
@@ -45,7 +41,6 @@ contract Registry {
         address owner;
         uint expTime;
         uint deposit;
-        uint prevExpTime //
         uint nextExpTime //
         uint prevDeposit // total withdrawable amount
         uint nextDeposit // 
@@ -56,6 +51,9 @@ contract Registry {
         bool challenged;
         uint challengeTime; //End of challenge period
         address challenger;
+
+        string parameter;
+        uint value;
     }
 
     struct Params {
@@ -82,6 +80,7 @@ contract Registry {
         address claimer;
     }
 
+    // constant used to help represent doubles as ints
     uint256 constant private MULTIPLIER = 10 ** 18;
 
     
@@ -127,8 +126,8 @@ contract Registry {
         appPool[domainHash].domain = _domain;
     }
 
-    //helper function to apply() and proposeUpdate()
-    //initialize general application
+    // helper function to apply() and proposeUpdate()
+    // initialize general application
     function initApplication(bytes32 _hash, address _applicant) private {
         // applicant must pay the current value of minDeposit
         uint deposit = paramSnapshots[_hash].minDeposit;
@@ -175,6 +174,8 @@ contract Registry {
             uint difference = deposit-(whitelist[domainHash].deposit + whitelist.[domainHash].prevDeposit);
             require(token.allowance(msg.sender, this) >= difference);
             token.transferFrom(msg.sender, this, difference);
+            whitelist[domainHash].deposit = 0;
+            whitelist[domainHash].prevDeposit = 0;
             //apply
             initializeSnapshot(_domain);              
             appPool[_hash].challengeTime = now + paramSnapshots[_hash].challengeLen;
@@ -182,11 +183,13 @@ contract Registry {
         }
     }
 
-    function claimDeposit(string _domain) public { // allow to take out part not all?
+    function claimDeposit(string _domain, uint _amount) public {
         bytes32 domainHash = sha3(_domain);
         require(msg.sender == whitelist[domainHash].owner);
-        token.transfer(msg.sender, whitelist[domainHash].prevDeposit);
-        whitelist[domainHash].prevDeposit = 0;
+        uint difference = whitelist[domainHash].prevDeposit - _amount;
+        require(difference >= 0);
+        token.transfer(msg.sender, _amount);
+        whitelist[domainHash].prevDeposit = difference;
     }
 
     // checks to see if a renewal is there
@@ -196,13 +199,17 @@ contract Registry {
 
     // called by domain owner to activate renewal period and allow additional renewals
     function activateRenewal(string _domain) public {
-        if (whitelist[_hash].nextExpTime > whitelist[_hash].expTime && whitelist[_hash].expTime <= now)
+        bytes32 _hash = sha3(_domain);
+        if (hasRenewal(_hash) && whitelist[_hash].expTime <= now)
         {
-            whitelist[_hash].prevExpTime = whitelist[_hash].expTime;
             whitelist[_hash].expTime = whitelist[_hash].nextExpTime;
             whitelist[_hash].prevDeposit += whitelist[_hash].deposit;
             whitelist[_hash].deposit = whitelist[_hash].nextDeposit;
         }
+    }
+
+    function isDomainApp(bytes32 _hash) private {
+        return appPool[_hash].parameter == "";  // checks if param string is initialized
     }
 
     // called by any adtoken holder to challenge an application to the whitelist
@@ -254,8 +261,9 @@ contract Registry {
     // if domain lost: challenger is rewarded tokens, return false
     function processResult(uint _pollID) returns(bool)
     {
-        require(pollInfo[_pollID].processed == false);
         bytes32 domainHash = idToHash[_pollID];
+        require(isDomainApp(domainHash));
+        require(pollInfo[_pollID].processed == false);
         // ensures the result cannot be processed again
         pollInfo[_pollID].processed = true;
 
@@ -364,6 +372,7 @@ contract Registry {
     //called by a user who wishes to change a parameter
     //initializes a proposal to change a parameter
     function proposeUpdate(string _parameter, uint _value) public {
+        require(_parameter != "");
         bytes32 parameterHash = sha3(_parameter, _value);
         // initialize application with a with the current values of all parameters
         initializeSnapshotParam(parameterHash);
@@ -421,16 +430,6 @@ contract Registry {
             // give tokens to challenger based on dist and total tokens
             return false;
         }
-
-    }
-
-    function claimParamReward(uint _pollID, uint _salt) {
-        // checks if a voter has claimed tokens
-        require(voterInfo[msg.sender][_pollID] == false);
-        uint reward = giveTokens(_pollID, _salt);
-        // ensures a voter cannot claim tokens again
-        token.transfer(msg.sender, reward);
-        voterInfo[msg.sender][_pollID] = true;
     }
 
     
