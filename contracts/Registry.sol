@@ -9,8 +9,6 @@ import "./PLCRVoting.sol";
 
 implement events
 refactor & wrap check & transfer
-check for unintended behavior when domain functions are called with param hashes and vice versa (via pollID)
-make sure people can't create random parameters
 
 */
 
@@ -41,9 +39,11 @@ contract Registry {
         address owner;
         uint expTime;
         uint deposit;
+
         uint nextExpTime //
         uint prevDeposit // total withdrawable amount
-        uint nextDeposit // 
+        uint nextDeposit //
+        bool renewal; 
     }
 
     struct Application {
@@ -119,7 +119,8 @@ contract Registry {
     // called by an applicant to apply (moves them into the application pool on success)
     function apply(string _domain) public {
         bytes32 domainHash = sha3(_domain);
-        require(hasRenewal[domainHash] == false);
+        // must be a new member of the whitelist
+        require(whitelist[domainHash].owner == 0);
         // initialize with the current values of all parameters
         initializeSnapshot(domainHash);
         initApplication(domainHash, msg.sender);
@@ -145,14 +146,10 @@ contract Registry {
         // check if no active renewal
         require(hasRenewal(domainHash) == false);
         require(msg.sender == whitelist[domainHash].owner); // checks that you are the owner of the domain
-        require(appPool[_hash].owner == 0); // no double renewal
+        require(appPool[domainHash].owner == 0); // no double renewal
         uint deposit = get('minDeposit');
         //Check if existing deposit is sufficient 
         if (whitelist[domainHash].deposit + whitelist[domainHash].prevDeposit >= deposit){
-            //apply
-            initializeSnapshot(_domain);        
-            appPool[_hash].challengeTime = now + paramSnapshots[_hash].challengeLen;
-            appPool[_hash].owner = msg.sender;
             // only take from deposit
             if (whitelist[domainHash].deposit >= deposit)
             {
@@ -166,8 +163,7 @@ contract Registry {
                 uint difference = deposit - whitelist[domainHash].deposit;
                 uint difference2 = whitelist[domainHash].prevDeposit - difference;
                 whitelist[domainHash].prevDeposit = difference2;
-            }
-             
+            } 
         }
         //if insufficient # of tokens, then must send in the difference 
         else {
@@ -176,11 +172,12 @@ contract Registry {
             token.transferFrom(msg.sender, this, difference);
             whitelist[domainHash].deposit = 0;
             whitelist[domainHash].prevDeposit = 0;
-            //apply
-            initializeSnapshot(_domain);              
-            appPool[_hash].challengeTime = now + paramSnapshots[_hash].challengeLen;
-            appPool[_hash].owner = msg.sender;
         }
+        //apply
+        initializeSnapshot(_domain);              
+        appPool[domainHash].challengeTime = now + paramSnapshots[_hash].challengeLen;
+        appPool[domainHash].owner = msg.sender;
+        whitelist[domainHash].renewal = true;
     }
 
     function claimDeposit(string _domain, uint _amount) public {
@@ -192,11 +189,6 @@ contract Registry {
         whitelist[domainHash].prevDeposit = difference;
     }
 
-    // checks to see if a renewal is there
-    function hasRenewal(bytes32 _hash) private returns (bool) {
-        return whitelist[_hash].nextExpTime > whitelist[_hash].expTime;
-    }
-
     // called by domain owner to activate renewal period and allow additional renewals
     function activateRenewal(string _domain) public {
         bytes32 _hash = sha3(_domain);
@@ -205,11 +197,8 @@ contract Registry {
             whitelist[_hash].expTime = whitelist[_hash].nextExpTime;
             whitelist[_hash].prevDeposit += whitelist[_hash].deposit;
             whitelist[_hash].deposit = whitelist[_hash].nextDeposit;
+            whitelist[_hash].renewal = false;
         }
-    }
-
-    function isDomainApp(bytes32 _hash) private {
-        return appPool[_hash].parameter == "";  // checks if param string is initialized
     }
 
     // called by any adtoken holder to challenge an application to the whitelist
@@ -349,15 +338,38 @@ contract Registry {
         delete appPool[domainHash].owner;
     }
 
-    // IS RENEWAL OR NOT
-    // CHECK IF PAST EXP TIME, IF SO PROCCESS IMMEDIATELY
+    // ISSUE WITH OVERLAP
 
     // private function to add a domain name to the whitelist
     function add(bytes32 _domainHash, address _owner) private {
         uint expiration = paramSnapshots[_domainHash].registryLen;
-        whitelist[_domainHash].expTime = now + expiration;
+        if (whitelist[_domainHash].renewal = true)
+        {
+            whitelist[_domainHash].nextExpTime = whitelist[_domainHash].expTime + expiration;
+            whitelist[_domainHash].nextDeposit = paramSnapshots[_domainHash].minDeposit;
+        }
+        else
+        {
+            whitelist[_domainHash].expTime = now + expiration;
+            whitelist[_domainHash].deposit = paramSnapshots[_domainHash].minDeposit;
+        }
         whitelist[_domainHash].owner = _owner;
-        whitelist[_domainHash].deposit = paramSnapshots[_domainHash].minDeposit;
+    }
+
+    /*
+     * Helper Functions
+     */
+
+    // STATIC
+
+    // returns true if a renewal has been initialized
+    function hasRenewal(bytes32 _hash) private constant returns (bool) {
+        return whitelist[_hash].renewal;
+    } 
+
+    //returns true if Application is for domain and not parameter
+    function isDomainApp(bytes32 _hash) private constant returns(bool){
+        return appPool[_hash].parameter == "";  // checks if param string is initialized
     }
 
     // checks if a domain name is in the whitelist and unexpired
@@ -365,6 +377,8 @@ contract Registry {
         bytes32 domainHash = sha3(_domain);
         return whitelist[domainHash].expTime > now;
     }
+
+    // DYNAMIC
 
     // private function to initialize a snapshot of parameters for each application
     function initializeSnapshot(bytes32 _hash) private {
@@ -474,13 +488,8 @@ contract Registry {
 
 
 
-    // FOR TESTING
-    function toHash(string _domain) returns (bytes32){
-        return sha3(_domain);
-    }
-    function getCurrentTime() returns (uint){
-        return now;
-    }
+    // Helper Functions
+
 
 
 }
