@@ -53,7 +53,7 @@ contract Registry {
         address challenger;
         string domain;
 
-        //for parmeter changes
+        //for parameter changes
         string parameter;
         uint value;
     }
@@ -177,7 +177,6 @@ contract Registry {
             whitelist[domainHash].prevDeposit = 0;
         }
         //apply
-        delete appPool[domainHash].challenged;
 
         initializeSnapshot(domainHash);
         setAppAttr(domainHash, msg.sender);
@@ -398,6 +397,7 @@ contract Registry {
 
     //set the challenge end time and the owner of an application
     function setAppAttr(bytes32 _hash, address _applicant) private {
+        delete appPool[domainHash].challenged;
         appPool[_hash].challengeTime = now + paramSnapshots[_hash].challengeLen;
         appPool[_hash].owner = _applicant;
     }
