@@ -325,7 +325,7 @@ contract Registry {
     function claimExtraReward(uint _pollID) {
         uint256 totalTokens = voting.getTotalNumberOfTokensForWinningOption(_pollID);
         uint256 reward = pollInfo[_pollID].remainder / (MULTIPLIER);
-        reward = reward / totalTokens
+        reward = reward / totalTokens;
         pollInfo[_pollID].remainder = pollInfo[_pollID].remainder - reward * MULTIPLIER;
         token.transfer(pollInfo[_pollID].claimer, reward);
     }

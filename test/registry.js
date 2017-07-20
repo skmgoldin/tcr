@@ -8,6 +8,18 @@ var Token = artifacts.require("./HumanStandardToken.sol")
 
 contract('Registry', function(accounts) {
   
+  it ("should get a current parameter valie", function(){
+    let registry;
+    return Registry.deployed()
+    .then(function(_registry) {
+      registry = _registry;
+      return registry.get.call("dispensationPct")
+    })
+    .then(function(value){
+      assert.equal(value,50, "value not right")
+    })
+  });
+
   
   it("should verify a domain is not in the whitelist", function() {
     const domain = 'eth.eth';
@@ -692,7 +704,6 @@ it("challenge a proposal", function() {
       return token.balanceOf.call(accounts[3]);
     })
     .then(function(balance){
-      console.log(balance);
       assert.equal(balance, 75, "balance not right");
     });
   });
@@ -700,10 +711,62 @@ it("challenge a proposal", function() {
 //propose another proposal, let time pass, try setParameter
 //propose another proposal, challenge, win, and process proposal
 
-//claim reward
-//renew
-//try get function?
-//claim extra reward
+//renew, claim deposit
+// it("should renew existing domain",function(){
+//   const domain = 'consensys.net'
+//   return  registry.renew(domain);
+//   .then(function(){
+
+//   })
+// });
+
+
+//claim extra reward,claim reward
+it("should let account 9 claim reward", function(){
+  let originalBalance;
+  return registry.claimReward(1,0, {from: accounts[9]})
+    .then(function(){
+      return token.balanceOf.call(accounts[9]);
+    })
+    .then(function(balance){
+      assert.equal(balance, 1, "balance not right 1");
+    })
+    .then(function(){
+      return token.balanceOf.call(accounts[1]);
+    })
+    .then(function(balance){
+      originalBalance= balance;
+      return registry.claimExtraReward(1, {from: accounts[8]});
+    })
+    .then(function(){
+      return token.balanceOf.call(accounts[1]);
+    })
+    .then(function(balance){
+      assert.equal(balance, 25, "balance not right 2");
+    })
+    .then(function(){
+      return registry.claimReward(1,0, {from: accounts[7]})
+    })
+    .then(function(){
+      return registry.claimReward(1,0, {from: accounts[6]})
+    })
+    .then(function(){
+      return registry.claimReward(1,0, {from: accounts[5]})
+    })
+    .then(function(){
+      return registry.claimExtraReward(1, {from: accounts[8]})
+    })
+    .then(function(){
+      return token.balanceOf.call(accounts[1]);
+    })
+    .then(function(balance){
+      assert.equal(balance, 26, "balance not right 4");
+    });
+});
+
+
+
+
 });
 
 
