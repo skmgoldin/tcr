@@ -119,11 +119,12 @@ contract Registry {
        Parameters[sha3("majority")]          = _majority;
     }
 
-    // called by an applicant to apply (moves them into the application pool on success)
+    // called by an applicant to add to application pool on success
     function apply(string _domain) public {
         bytes32 domainHash = sha3(_domain);
         // must be a new member of the whitelist
-        require(whitelist[domainHash].owner == 0);
+        require(whitelist[domainHash].owner == 0); //not on whitelist
+        require(appPool[domainHash].owner == 0); //not in appPool
         // initialize with the current values of all parameters
         initializeSnapshot(domainHash);
         initApplication(domainHash, msg.sender);
@@ -131,68 +132,68 @@ contract Registry {
     }
 
     // helper function to apply() and proposeUpdate()
-    // initialize general application
+    // obtain deposit from applicant and initialize challenge end time and owner
     function initApplication(bytes32 _hash, address _applicant) private {
+        require(appPool[_hash].owner == 0); // prevent repeat applications
+
         // applicant must pay the current value of minDeposit
         uint deposit = paramSnapshots[_hash].minDeposit;
-        // check to prevent repeat applications
-        require(appPool[_hash].owner == 0);
-        // check that registry can take sufficient amount of tokens from the applicant
-        require(token.allowance(_applicant, this) >= deposit);
-        token.transferFrom(_applicant, this, deposit);        
-        appPool[_hash].challengeTime = now + paramSnapshots[_hash].challengeLen;
-        appPool[_hash].owner = _applicant;
+        require(token.transferFrom(_applicant, this, deposit));  
+
+        setAppAttr(_hash, _applicant);
     }
 
+    //called by the owner of a domain on the whitelist
+    //make necessary token transfers and initialize application for renewal in the appPool
     function renew (string _domain) {
         bytes32 domainHash = sha3(_domain);
-        // check if no active renewal
-        require(hasRenewal(domainHash) == false);
-        require(msg.sender == whitelist[domainHash].owner); // checks that you are the owner of the domain
-        require(appPool[domainHash].owner == 0); // no double renewal
-        uint deposit = get('minDeposit');
-        //Check if existing deposit is sufficient 
-        if (whitelist[domainHash].deposit + whitelist[domainHash].prevDeposit >= deposit){
-            // only take from deposit
-            if (whitelist[domainHash].deposit >= deposit)
-            {
-                uint difference = whitelist[domainHash].deposit - deposit;
-                whitelist[domainHash].deposit = difference;
+        require(hasRenewal(domainHash) == false); //prevent duplicate renewals
+        require(msg.sender == whitelist[domainHash].owner); // must be the owner of the domain
+        uint minDeposit = get('minDeposit');
+        uint lockedTok = whitelist[domainHash].deposit;
+        uint unlockedTok = whitelist[domainHash].prevDeposit;
+        uint extraNeeded;
+
+        if (lockedTok + unlockedTok >= minDeposit) 
+        {//existing total num tokens is sufficient 
+            if (lockedTok >= minDeposit) 
+            {// have enough locked tok, only take from currently locked deposit
+                whitelist[domainHash].deposit = locked - minDeposit;
             }
-            // take whole deposit and part of prevDeposit
-            else
-            {
-                // take all of locked deposit and a portion of unlocked deposit
-                difference = deposit - whitelist[domainHash].deposit;
-                uint difference2 = whitelist[domainHash].prevDeposit - difference;
-                whitelist[domainHash].prevDeposit = difference2;
+            else //lockedTok < minDeposit
+            {// not enough locked tok, take entire locked deposit and part of unlocked 
+                extraNeeded = minDeposit - lockedTok;
+                //update num unlocked tokens
+                whitelist[domainHash].prevDeposit = unlockedTok - extraNeeded;
+                whitelist[domainHash].deposit = 0;  // ************?*********
             } 
         }
-        //if insufficient # of tokens, then must send in the difference 
-        else {
-            difference = deposit-(whitelist[domainHash].deposit + whitelist[domainHash].prevDeposit);
-            require(token.allowance(msg.sender, this) >= difference);
-            token.transferFrom(msg.sender, this, difference);
+        else 
+        { //existing total num tokens is not sufficient, must send in more tokens
+            extraNeeded = minDeposit - (lockedTok + unlockedTok);
+            require(token.transferFrom(msg.sender, this, extraNeeded));
             whitelist[domainHash].deposit = 0;
             whitelist[domainHash].prevDeposit = 0;
         }
         //apply
-        initializeSnapshot(domainHash);              
-        appPool[domainHash].challengeTime = now + paramSnapshots[domainHash].challengeLen;
-        appPool[domainHash].owner = msg.sender;
+        initializeSnapshot(domainHash);
+        setAppAttr(domainHash, msg.sender);
         whitelist[domainHash].renewal = true;
     }
 
+    //called by the owner of a domain on the whitelist
+    //withdraw any number of unlocked tokens
     function claimDeposit(string _domain, uint _amount) public {
         bytes32 domainHash = sha3(_domain);
+        uint unlockedTok = whitelist[domainHash].prevDeposit;
         require(msg.sender == whitelist[domainHash].owner);
-        uint difference = whitelist[domainHash].prevDeposit - _amount;
-        require(difference >= 0);
-        token.transfer(msg.sender, _amount);
-        whitelist[domainHash].prevDeposit = difference;
+        require(unlockedTok >= _amount);
+        require(token.transfer(msg.sender, _amount));
+        whitelist[domainHash].prevDeposit = unlockedTok - _amount;
     }
 
-    // called by domain owner to activate renewal period and allow additional renewals
+    //called by the owner of a domain on the whitelist
+    //renew the domain on the whitelist and allow additional renewals
     function activateRenewal(string _domain) public {
         bytes32 _hash = sha3(_domain);
         if (hasRenewal(_hash) && whitelist[_hash].expTime <= now)
@@ -244,6 +245,7 @@ contract Registry {
         uint pollID = voting.startPoll( _proposalString, _majority, _commitVoteLen,  _revealVoteLen);
         return pollID;
     }
+    
     // a one-time function for each completed vote
     // if domain won: domain is moved to the whitelist and applicant is rewarded tokens, return true
     // if domain lost: challenger is rewarded tokens, return false
@@ -274,8 +276,9 @@ contract Registry {
         }
     }
 
-    // internal function to give applicant/challenger reward
-    // if dispensationPct does not divide minDeposit evenly, gives then the extra token
+    // helper function to processResult() 
+    // reward a portion of minDeposit to _address
+    // reward extra token to _address if dispensationPct does not divide minDeposit evenly
     function giveWinnerReward(bytes32 _hash, address _address) private {
         uint256 minDeposit = paramSnapshots[_hash].minDeposit;
         uint256 dispensationPct = paramSnapshots[_hash].dispensationPct;
@@ -283,16 +286,16 @@ contract Registry {
         if ((minDeposit * dispensationPct) % 100 != 0) {
             rewardTokens++;
         }
-        token.transfer(_address, rewardTokens);
+        require(token.transfer(_address, rewardTokens));
     }
 
     // called by each voter to claim their reward for each completed vote
     function claimReward(uint _pollID, uint _salt) {
-        // checks if a voter has claimed tokens
+        // ensure voter has not already claimed tokens
         require(voterInfo[msg.sender][_pollID] == false);
         uint reward = giveTokens(_pollID, _salt, msg.sender);
         // ensures a voter cannot claim tokens again
-        token.transfer(msg.sender, reward);
+        require(token.transfer(msg.sender, reward));
         voterInfo[msg.sender][_pollID] = true;
     }
 
@@ -318,11 +321,6 @@ contract Registry {
         return numerator / denominator;
     }
 
-    function claimExtraReward(uint _pollID) {
-        uint256 reward = pollInfo[_pollID].remainder / MULTIPLIER;
-        pollInfo[_pollID].remainder = pollInfo[_pollID].remainder - reward * MULTIPLIER;
-        token.transfer(pollInfo[_pollID].claimer, reward);
-    }
 
     // called to move an applying domain to the whitelist
     // iff the domain's challenge period has passed without a challenge
@@ -334,7 +332,7 @@ contract Registry {
         require(appPool[domainHash].owner != 0);
         // prevent applicant from moving to registry multiple times
         add(domainHash, appPool[domainHash].owner);
-        delete appPool[domainHash].owner;
+        delete appPool[domainHash].owner; //remove from appPool
     }
 
     // ISSUE WITH OVERLAP
@@ -366,23 +364,30 @@ contract Registry {
         return whitelist[_hash].renewal;
     } 
 
-    //returns true if Application is for domain and not parameter
+    // returns true if Application is for domain and not parameter
     function isDomainApp(bytes32 _hash) private constant returns(bool){
         return bytes(appPool[_hash].parameter).length == 0;  // checks if param string is initialized
     }
 
-    // checks if a domain name is in the whitelist and unexpired
-    function isVerified(string _domain) public constant returns (bool) {
+    // returns true if a domain name is in the whitelist and unexpired
+    // provided for the user to verify the status of their domain
+    function isInRegistry(string _domain) public constant returns (bool) {
         bytes32 domainHash = sha3(_domain);
         return whitelist[domainHash].expTime > now;
     }
 
     // DYNAMIC
 
-    // private function to initialize a snapshot of parameters for each application
+    // Initialize snapshot of parameters for each application
     function initializeSnapshot(bytes32 _hash) private {
         initializeSnapshotParam(_hash);  // maybe put the two together
         paramSnapshots[_hash].registryLen = get("registryLen");
+    }
+
+    //set the challenge end time and the owner of an application
+    function setAppAttr(bytes32 _hash, string _applicant) private {
+        appPool[_hash].challengeTime = now + paramSnapshots[_hash].challengeLen;
+        appPool[_hash].owner = _applicant;
     }
 
 
