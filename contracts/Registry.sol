@@ -309,8 +309,9 @@ contract Registry {
         uint256 totalTokens = voting.getTotalNumberOfTokensForWinningOption(_pollID);
         uint256 voterTokens = voting.getNumPassingTokens(_pollID, _salt, _voter);
 
-        uint256 rewardTokens = minDeposit * (100 - dispensationPct) / 100;
-        uint256 numerator = voterTokens * rewardTokens * MULTIPLIER; 
+        uint256 rewardTokens = minDeposit * (100 - dispensationPct)*MULTIPLIER / 100;
+        //what happens if expression does not divide evenly
+        uint256 numerator = voterTokens * rewardTokens; 
         uint256 denominator = totalTokens * MULTIPLIER;
         uint256 remainder = numerator % denominator;
 
@@ -319,6 +320,14 @@ contract Registry {
         pollInfo[_pollID].remainder += remainder;
 
         return numerator / denominator;
+    }
+
+    function claimExtraReward(uint _pollID) {
+        uint256 totalTokens = voting.getTotalNumberOfTokensForWinningOption(_pollID);
+        uint256 reward = pollInfo[_pollID].remainder / (MULTIPLIER);
+        reward = reward / totalTokens
+        pollInfo[_pollID].remainder = pollInfo[_pollID].remainder - reward * MULTIPLIER;
+        token.transfer(pollInfo[_pollID].claimer, reward);
     }
 
 
