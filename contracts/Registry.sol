@@ -52,8 +52,8 @@ contract Registry {
         uint challengeTime; //End of challenge period
         address challenger;
 
-        string parameter;
         string domain;
+        string parameter;
         uint value;
     }
 
@@ -98,6 +98,7 @@ contract Registry {
     /// @param _majority        percentage of votes that constitutes the majority; uint between 0 and 100
 
     function Registry(address _token,
+        address _voting,
        uint _minDeposit,
        uint _challengeLen,
        uint _registryLen,
@@ -107,6 +108,7 @@ contract Registry {
        uint _majority) {
         
        token = StandardToken(_token);
+       voting = PLCRVoting(_voting);
        // initialize values
        Parameters[sha3("minDeposit")]        = _minDeposit;
        Parameters[sha3("challengeLen")]      = _challengeLen;
@@ -236,16 +238,12 @@ contract Registry {
     
     // helper function to the challenge() function. Initializes a vote through the voting contract
     // returns a poll id
-    function callVote(string _proposalString, 
-        uint _majority, 
-        uint _commitVoteLen,
-        uint _revealVoteLen
-        ) private returns (uint) {
+    function callVote(string _proposalString, uint _majority, uint _commitVoteLen,
+        uint _revealVoteLen) private returns (uint) {
         // event that vote has started
         uint pollID = voting.startPoll( _proposalString, _majority, _commitVoteLen,  _revealVoteLen);
         return pollID;
     }
-
     // a one-time function for each completed vote
     // if domain won: domain is moved to the whitelist and applicant is rewarded tokens, return true
     // if domain lost: challenger is rewarded tokens, return false

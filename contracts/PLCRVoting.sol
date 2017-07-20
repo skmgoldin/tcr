@@ -1,8 +1,13 @@
 pragma solidity ^0.4.8;
-import "./HumanStandardToken.sol";
 
 contract PLCRVoting {
-    uint public pollID = 0 ;
+    uint public pollID ;
+
+    function PLCRVoting(uint _pollID) {
+        pollID +=1;
+        pollID = _pollID;
+    }
+
 
     function startPoll(string _proposalString, 
         uint _majority,uint _commitVoteLen, uint _revealVoteLen) returns (uint){

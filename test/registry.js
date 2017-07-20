@@ -28,7 +28,7 @@ contract('Registry', function(accounts) {
   it("check for appropriate amount of allowance and starting balance", function() {
     let registry;
     let token;
-    let allowance = 1000;
+    let allowance = 50;
     return Registry.deployed() //get the deployed instance of registry
     .then(function(_registry) {
       registry = _registry;  
@@ -83,11 +83,11 @@ contract('Registry', function(accounts) {
  });
 
 
-  it("should allow a domain to apply", function() {
+  it.only("should allow a domain to apply", function() {
     const domain = 'consensys.net'
     let registry;
     let token;
-    let depositAmount = 1000;
+    let depositAmount = 50;
     return Registry.deployed() //get the deployed instance of registry
     .then(function(_registry) {
       registry = _registry;  
@@ -103,8 +103,10 @@ contract('Registry', function(accounts) {
        return token.transfer(accounts[1], depositAmount, {from: accounts[0]});
      })
     .then(function(boo){
+       return  token.approve(registry.address, depositAmount, {from: accounts[1]})
+     })
+    .then(function(boo){
       //apply with accounts[1]
-      token.approve(registry.address, depositAmount, {from: accounts[1]})
       return registry.apply(domain, {from: accounts[1]});
     })
     .then(function(){
@@ -162,7 +164,7 @@ contract('Registry', function(accounts) {
 
   it("should check that the wallet now has minimal deposit", function(){
     let token;
-    let minimalDeposit = 1000;
+    let minimalDeposit = 50;
     return Registry.deployed() //get the deployed instance of registry
     .then(function(_registry) {
       registry = _registry;  
@@ -186,7 +188,7 @@ contract('Registry', function(accounts) {
     console.log("shoud have failed");
     let registry;
     let token;
-    let depositAmount = 1000;
+    let depositAmount = 50;
     return Registry.deployed() //get the deployed instance of registry
     .then(function(_registry) {
       registry = _registry;  
@@ -216,7 +218,7 @@ contract('Registry', function(accounts) {
 
   it("should check that the wallet balance did not increase due to failed application", function(){
     let token;
-    let minimalDeposit = 1000
+    let minimalDeposit = 50;
     ;
     return Registry.deployed() //get the deployed instance of registry
     .then(function(_registry) {
@@ -238,11 +240,11 @@ contract('Registry', function(accounts) {
   
 
 
-  it("should allow a address to challenge", function() {
+  it.only("should allow a address to challenge", function() {
     const domain = 'consensys.net'
     let registry;
     let token;
-    let depositAmount = 1000;
+    let depositAmount = 50;
     return Registry.deployed() //get the deployed instance of registry
     .then(function(_registry) {
       registry = _registry;  
@@ -258,9 +260,11 @@ contract('Registry', function(accounts) {
     .then(function(boo){
        return token.transfer(accounts[2], depositAmount, {from: accounts[0]});
      })
+     .then(function(boo){
+       return token.approve(registry.address, depositAmount, {from: accounts[2]})
+     })
     .then(function(){
       //challenge
-      token.approve(registry.address, depositAmount, {from: accounts[2]})
       return registry.challengeApplication(domain, {from: accounts[2]});
     })
     .then(function(){
@@ -287,7 +291,7 @@ contract('Registry', function(accounts) {
 
   it("should check that the wallet now has 2x minimal deposit", function(){
     let token;
-    let minimalDeposit = 1000*2;
+    let minimalDeposit = 50*2;
     return Registry.deployed() //get the deployed instance of registry
     .then(function(_registry) {
       registry = _registry;  
@@ -312,7 +316,7 @@ contract('Registry', function(accounts) {
     console.log("shoud have failed");
     let registry;
     let token;
-    let depositAmount = 1000;
+    let depositAmount = 50;
     return Registry.deployed() //get the deployed instance of registry
     .then(function(_registry) {
       registry = _registry;  
@@ -339,7 +343,7 @@ contract('Registry', function(accounts) {
 
   it("should check that the wallet balance did not increase due to failed challenge", function(){
     let token;
-    let minimalDeposit = 1000*2;
+    let minimalDeposit = 50*2;
     return Registry.deployed() //get the deployed instance of registry
     .then(function(_registry) {
       registry = _registry;  
@@ -364,7 +368,7 @@ contract('Registry', function(accounts) {
     console.log("shoud have failed");
     let registry;
     let token;
-    let depositAmount = 1000;
+    let depositAmount = 50;
     return Registry.deployed() //get the deployed instance of registry
     .then(function(_registry) {
       registry = _registry;  
@@ -409,7 +413,7 @@ contract('Registry', function(accounts) {
     const domain = 'nochallenge.net'
     let registry;
     let token;
-    let depositAmount = 1000;
+    let depositAmount = 50;
     return Registry.deployed() //get the deployed instance of registry
     .then(function(_registry) {
       registry = _registry;  
@@ -514,7 +518,7 @@ it("should propose a parameter change", function() {
     const value = 50
     let registry;
     let token;
-    let depositAmount = 1000;
+    let depositAmount = 50;
     return Registry.deployed() //get the deployed instance of registry
     .then(function(_registry) {
       registry = _registry;  
@@ -576,7 +580,7 @@ it("challenge a proposal", function() {
     const value = 50
     let registry;
     let token;
-    let depositAmount = 1000;
+    let depositAmount = 50;
     return Registry.deployed() //get the deployed instance of registry
     .then(function(_registry) {
       registry = _registry;  
