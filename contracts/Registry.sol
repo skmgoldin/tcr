@@ -397,7 +397,7 @@ contract Registry {
 
     //set the challenge end time and the owner of an application
     function setAppAttr(bytes32 _hash, address _applicant) private {
-        delete appPool[domainHash].challenged;
+        delete appPool[_hash].challenged;
         appPool[_hash].challengeTime = now + paramSnapshots[_hash].challengeLen;
         appPool[_hash].owner = _applicant;
     }
