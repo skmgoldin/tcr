@@ -1,0 +1,15 @@
+Using network 'development'.
+
+
+[0m[0m
+[0m  Contract: Registry[0m
+  [32m  √[0m[90m should verify a domain is not in the whitelist[0m[31m (140ms)[0m
+  [32m  √[0m[90m check for appropriate amount of allowance and starting balance[0m[31m (516ms)[0m
+  [32m  √[0m[90m should check that the wallet starts with zero money[0m[31m (110ms)[0m
+  [32m  √[0m[90m should allow a domain to apply[0m[31m (1485ms)[0m
+shoud have failed
+failed
+  [32m  √[0m[90m should check that we can't move to registry because challenge time not up[0m[33m (46ms)[0m
+  [32m  √[0m[90m should check that the wallet now has minimal deposit[0m[31m (109ms)[0m
+shoud have failed
+Terminate batch job (Y/N)? Terminate batch job (Y/N)? Terminate batch job (Y/N)? Terminate batch job (Y/N)? 

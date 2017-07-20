@@ -17,7 +17,7 @@ contract('Registry', function(accounts) {
       registry = _registry;
     })
     .then(function(){
-      return registry.isVerified.call(domain);
+      return registry.isInRegistry.call(domain);
     })
     .then(function(result) {
       assert.equal(result, false , "Domain is actually added.");
@@ -420,7 +420,7 @@ contract('Registry', function(accounts) {
       return registry.processResult(1); 
     })
     .then(function() {
-      return registry.isVerified.call(domain);
+      return registry.isInRegistry.call(domain);
     })
     .then(function(result) {
       assert.equal(result, true , "Domain is not added.");
@@ -539,7 +539,7 @@ it("should add time to evm then not allow to challenge because challenge time pa
       return registry.moveToRegistry(domain);
     })
     .then(function(result) {
-      return registry.isVerified.call(domain)
+      return registry.isInRegistry.call(domain)
     })
     .then(function(result) {
       assert.equal(result, true , "it's not in the registry.");
