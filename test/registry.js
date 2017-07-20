@@ -155,12 +155,6 @@ contract('Registry', function(accounts) {
     .then(function(balance){
       assert.equal(balance, 0, "shouldnt be tokens here");
     })
-    .then(function(allow){
-      return token.balanceOf.call(accounts[1]);
-    })
-    .then(function(balance){
-      assert.equal(balance, 0, "balance not zero");
-    });
 
   });
 
@@ -485,9 +479,11 @@ contract('Registry', function(accounts) {
        //transfer 5000 to accounts[1], return true if transfer success
        return token.transfer(accounts[1], depositAmount, {from: accounts[0]});
      })
-    .then(function(boo){
+     .then(function(){
+      return token.approve(registry.address, depositAmount, {from: accounts[1]})
+     })
+    .then(function(){
       //apply with accounts[1]
-      token.approve(registry.address, depositAmount, {from: accounts[1]})
       return registry.apply(domain, {from: accounts[1]});
     })
   });
@@ -540,7 +536,7 @@ it("should add time to evm then not allow to challenge because challenge time pa
       });
   });
 
- it("should add time to evm then move to registry after challenge time is over", function() {
+ it("should move to registry now challenge time is over", function() {
     const domain = "nochallenge.net";
     let registry;
     return Registry.deployed()
@@ -569,6 +565,7 @@ it("should add time to evm then not allow to challenge because challenge time pa
     })
   });
 
+// it ("should add more time to evm until expire off the whitelist")
 
 it("should propose a parameter change", function() {
     const parameter = "registryLen" 
@@ -711,15 +708,6 @@ it("challenge a proposal", function() {
 //propose another proposal, let time pass, try setParameter
 //propose another proposal, challenge, win, and process proposal
 
-//renew, claim deposit
-// it("should renew existing domain",function(){
-//   const domain = 'consensys.net'
-//   return  registry.renew(domain);
-//   .then(function(){
-
-//   })
-// });
-
 
 //claim extra reward,claim reward
 it("should let account 9 claim reward", function(){
@@ -763,6 +751,51 @@ it("should let account 9 claim reward", function(){
       assert.equal(balance, 26, "balance not right 4");
     });
 });
+
+
+it("should renew existing domain with deposit amount = current minimal deposit",function(){
+  const domain = 'consensys.net'
+  let hash;
+  let depositAmount = 50;
+  return  registry.renew(domain, {from: accounts[1]})
+  .then(function(){
+      //has the domain so we can identify in appPool
+      return registry.toHash.call(domain);
+    })
+    .then(function(_hash){
+      hash= _hash;
+      //get the struct in the mapping
+      return registry.appPool.call(hash);
+    })
+    .then(function(result) {
+      assert.equal(result[0], accounts[1] , "owner of application != address that applied");
+      assert.equal(result[1], false , "challenged != false");
+      assert.equal(result[4]=='consensys.net', true , "domain is not right");
+    })
+    .then(function(){
+      //get the struct in the mapping
+      return registry.paramSnapshots.call(hash);
+    })
+    .then(function(result) {
+      assert.equal(result[0], depositAmount ,"deposit amount not right");
+    })
+    .then(function(){
+      //get the struct in the mapping
+      return registry.whitelist.call(hash);
+    })
+    .then(function(result) {
+      assert.equal(result[6], true ,"renewal != true");
+      assert.equal(result[2], 0, "deposit amount not right")
+    })
+
+    // .then(function(){
+    //   return token.balanceOf.call(accounts[1]);
+
+    // })
+    // .then(function(balance){
+    //   assert.equal(balance, 0, "shouldnt be tokens here");
+    // })
+  });
 
 
 

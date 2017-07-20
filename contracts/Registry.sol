@@ -51,8 +51,9 @@ contract Registry {
         bool challenged;
         uint challengeTime; //End of challenge period
         address challenger;
-
         string domain;
+
+        //for parmeter changes
         string parameter;
         uint value;
     }
@@ -176,6 +177,8 @@ contract Registry {
             whitelist[domainHash].prevDeposit = 0;
         }
         //apply
+        delete appPool[domainHash].challenged;
+
         initializeSnapshot(domainHash);
         setAppAttr(domainHash, msg.sender);
         whitelist[domainHash].renewal = true;
