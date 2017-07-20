@@ -53,6 +53,7 @@ contract Registry {
         address challenger;
 
         string parameter;
+        string domain;
         uint value;
     }
 
@@ -160,22 +161,22 @@ contract Registry {
             else
             {
                 // take all of locked deposit and a portion of unlocked deposit
-                uint difference = deposit - whitelist[domainHash].deposit;
+                difference = deposit - whitelist[domainHash].deposit;
                 uint difference2 = whitelist[domainHash].prevDeposit - difference;
                 whitelist[domainHash].prevDeposit = difference2;
             } 
         }
         //if insufficient # of tokens, then must send in the difference 
         else {
-            uint difference = deposit-(whitelist[domainHash].deposit + whitelist.[domainHash].prevDeposit);
+            difference = deposit-(whitelist[domainHash].deposit + whitelist[domainHash].prevDeposit);
             require(token.allowance(msg.sender, this) >= difference);
             token.transferFrom(msg.sender, this, difference);
             whitelist[domainHash].deposit = 0;
             whitelist[domainHash].prevDeposit = 0;
         }
         //apply
-        initializeSnapshot(_domain);              
-        appPool[domainHash].challengeTime = now + paramSnapshots[_hash].challengeLen;
+        initializeSnapshot(domainHash);              
+        appPool[domainHash].challengeTime = now + paramSnapshots[domainHash].challengeLen;
         appPool[domainHash].owner = msg.sender;
         whitelist[domainHash].renewal = true;
     }
@@ -203,7 +204,7 @@ contract Registry {
 
     // called by any adtoken holder to challenge an application to the whitelist
     // initialize vote to accept/reject a domain to the registry
-    function challengeApplication(string _domain) public returns(pollID) {
+    function challengeApplication(string _domain) public returns(uint) {
         bytes32 domainHash = sha3(_domain);
         challenge(domainHash, msg.sender);
         // start a vote
@@ -277,7 +278,7 @@ contract Registry {
 
     // internal function to give applicant/challenger reward
     // if dispensationPct does not divide minDeposit evenly, gives then the extra token
-    function giveWinnerReward(_hash, _address) private {
+    function giveWinnerReward(bytes32 _hash, address _address) private {
         uint256 minDeposit = paramSnapshots[_hash].minDeposit;
         uint256 dispensationPct = paramSnapshots[_hash].dispensationPct;
         uint256 rewardTokens = minDeposit * (dispensationPct) / 100;
@@ -369,7 +370,7 @@ contract Registry {
 
     //returns true if Application is for domain and not parameter
     function isDomainApp(bytes32 _hash) private constant returns(bool){
-        return appPool[_hash].parameter == "";  // checks if param string is initialized
+        return bytes(appPool[_hash].parameter).length == 0;  // checks if param string is initialized
     }
 
     // checks if a domain name is in the whitelist and unexpired
@@ -397,7 +398,7 @@ contract Registry {
     //called by a user who wishes to change a parameter
     //initializes a proposal to change a parameter
     function proposeUpdate(string _parameter, uint _value) public {
-        require(_parameter != "");
+        //require(_parameter != "");
         bytes32 parameterHash = sha3(_parameter, _value);
         // initialize application with a with the current values of all parameters
         initializeSnapshotParam(parameterHash);
@@ -489,6 +490,17 @@ contract Registry {
 
 
     // Helper Functions
+     // FOR TESTING
+    function toHash(string _domain) returns (bytes32){
+        return sha3(_domain);
+    }
+    function toParameterHash(string _parameter, uint _value) returns (bytes32){
+        return sha3(_parameter, _value);
+    }
+    function getCurrentTime() returns (uint){
+        return now;
+    }
+    
 
 
 
