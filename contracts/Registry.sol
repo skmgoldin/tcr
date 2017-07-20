@@ -40,9 +40,9 @@ contract Registry {
         uint expTime;
         uint deposit;
 
-        uint nextExpTime //
-        uint prevDeposit // total withdrawable amount
-        uint nextDeposit //
+        uint nextExpTime; //
+        uint prevDeposit; // total withdrawable amount
+        uint nextDeposit; //
         bool renewal; 
     }
 
