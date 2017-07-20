@@ -15,7 +15,7 @@ contract PLCRVoting {
         return pollID;
     }
     function isPassed (uint _pollID) returns (bool) {
-        return ((_pollID %2)==0);
+        return ((_pollID %2)!=0);
     }
     function getTotalNumberOfTokensForWinningOption (uint _pollID) returns (uint) {
         return 100;
