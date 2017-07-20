@@ -158,7 +158,7 @@ contract Registry {
         {//existing total num tokens is sufficient 
             if (lockedTok >= minDeposit) 
             {// have enough locked tok, only take from currently locked deposit
-                whitelist[domainHash].deposit = locked - minDeposit;
+                whitelist[domainHash].deposit = lockedTok - minDeposit;
             }
             else //lockedTok < minDeposit
             {// not enough locked tok, take entire locked deposit and part of unlocked 
@@ -385,7 +385,7 @@ contract Registry {
     }
 
     //set the challenge end time and the owner of an application
-    function setAppAttr(bytes32 _hash, string _applicant) private {
+    function setAppAttr(bytes32 _hash, address _applicant) private {
         appPool[_hash].challengeTime = now + paramSnapshots[_hash].challengeLen;
         appPool[_hash].owner = _applicant;
     }
