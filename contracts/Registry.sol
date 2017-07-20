@@ -342,7 +342,7 @@ contract Registry {
     // private function to add a domain name to the whitelist
     function add(bytes32 _domainHash, address _owner) private {
         uint expiration = paramSnapshots[_domainHash].registryLen;
-        if (whitelist[_domainHash].renewal = true)
+        if (whitelist[_domainHash].renewal == true)
         {
             whitelist[_domainHash].nextExpTime = whitelist[_domainHash].expTime + expiration;
             whitelist[_domainHash].nextDeposit = paramSnapshots[_domainHash].minDeposit;

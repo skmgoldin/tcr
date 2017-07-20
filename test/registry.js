@@ -83,7 +83,7 @@ contract('Registry', function(accounts) {
  });
 
 
-  it.only("should allow a domain to apply", function() {
+  it("should allow a domain to apply", function() {
     const domain = 'consensys.net'
     let registry;
     let token;
@@ -142,7 +142,14 @@ contract('Registry', function(accounts) {
     })
     .then(function(balance){
       assert.equal(balance, 0, "shouldnt be tokens here");
+    })
+    .then(function(allow){
+      return token.balanceOf.call(accounts[1]);
+    })
+    .then(function(balance){
+      assert.equal(balance, 0, "balance not zero");
     });
+
   });
 
   it("should check that we can't move to registry because challenge time not up", function(){
@@ -240,7 +247,7 @@ contract('Registry', function(accounts) {
   
 
 
-  it.only("should allow a address to challenge", function() {
+  it("should allow a address to challenge", function() {
     const domain = 'consensys.net'
     let registry;
     let token;
@@ -283,7 +290,14 @@ contract('Registry', function(accounts) {
       assert.equal(result[1], true , "challenged != true");
       assert.equal(result[3]==accounts[2], true , "challenger != challenger");
 
+    })
+    .then(function(allow){
+      return token.balanceOf.call(accounts[2]);
+    })
+    .then(function(balance){
+      assert.equal(balance, 50, "balance not equal to the 50 from before");
     });
+
   });
 
 
@@ -328,10 +342,9 @@ contract('Registry', function(accounts) {
     })
      .then(function(_token){
        token = _token;
-       token.transfer(accounts[3], depositAmount, {from: accounts[0]});
+       return token.approve(registry.address, depositAmount, {from: accounts[3]})
     })
     .then(function(){
-       token.approve(registry.address, depositAmount, {from: accounts[3]})
        return registry.challengeApplication(domain, {from: accounts[3]}); //should fail! error handle
     })
     .catch(function(error) {
@@ -380,10 +393,9 @@ contract('Registry', function(accounts) {
     })
      .then(function(_token){
        token = _token;
-       token.transfer(accounts[3], depositAmount, {from: accounts[0]});
+       return token.approve(registry.address, depositAmount, {from: accounts[3]})
     })
     .then(function(){
-       token.approve(registry.address, depositAmount, {from: accounts[3]})
        return registry.challengeApplication(domain, {from: accounts[3]}); //should fail! error handle
     })
     .catch(function(error) {
@@ -398,15 +410,48 @@ contract('Registry', function(accounts) {
     .then(function(_registry) {
       registry = _registry;  
     })
-     .then(function(){
-      return registry.processResult(1); //should fail! error handle
+    .then(function(){
+      return Token.deployed(); 
     })
-    .then(function(result) {
+     .then(function(_token){
+       token = _token;
+     })
+     .then(function(){
+      return registry.processResult(1); 
+    })
+    .then(function() {
       return registry.isVerified.call(domain);
     })
     .then(function(result) {
       assert.equal(result, true , "Domain is not added.");
     })
+    .then(function(allow){
+      return token.balanceOf.call(accounts[1]);
+    })
+    .then(function(balance){
+      assert.equal(balance, 25, "balance not zero");
+    })
+    .then(function(){
+      //has the domain so we can identify in appPool
+      return registry.toHash.call(domain);
+    })
+    .then(function(_hash){
+      //get the struct in the mapping
+      hash = _hash;
+      return registry.whitelist.call(hash);
+    })
+    .then(function(publisher){
+      assert.equal(publisher[2],50, "deposit not right");
+    })
+    .then(function(hash){
+      //get the struct in the mapping
+      return registry.appPool.call(hash);
+    })
+    .then(function(result) {
+      //right now just check if owner = applier
+      // check if owner = applier
+      assert.equal(result[0], 0x0000000000000000000000000000000000000000 , "owner of application != address that applied");
+    });
   });
 
   it("should apply with another domain",function(){
@@ -533,9 +578,11 @@ it("should propose a parameter change", function() {
        //transfer 5000 to accounts[1], return true if transfer success
        return token.transfer(accounts[1], depositAmount, {from: accounts[0]});
      })
-    .then(function(boo){
+    .then(function(){
+      return token.approve(registry.address, depositAmount, {from: accounts[1]});
+    })
+    .then(function(){
       //apply with accounts[1]
-      token.approve(registry.address, depositAmount, {from: accounts[1]})
       return registry.proposeUpdate(parameter, value, {from: accounts[1]});
     })
     .then(function(){
@@ -571,7 +618,7 @@ it("should propose a parameter change", function() {
 
     })
     .then(function(balance){
-      assert.equal(balance, 0, "shouldnt be tokens here");
+      assert.equal(balance, 25, "shouldnt be tokens here other than the 25 won from before");
     });
   });
 
@@ -595,7 +642,10 @@ it("challenge a proposal", function() {
        token.transfer(accounts[3], depositAmount, {from: accounts[0]});
     })
     .then(function(){
-       token.approve(registry.address, depositAmount, {from: accounts[3]})
+      return token.approve(registry.address, depositAmount, {from: accounts[3]});
+
+    })
+    .then(function(){
        return registry.challengeProposal(parameter, value, {from: accounts[3]}); //should fail! error handle
     })
     .then(function(){
@@ -617,26 +667,43 @@ it("challenge a proposal", function() {
     });
   });
 
- it("should processResult then see that the value has been changed", function(){
+ it("should processResult then see that the value has not changed because the proposal lost", function(){
     let registry;
+    let token;
     const parameter = "registryLen"
     return Registry.deployed() //get the deployed instance of registry
     .then(function(_registry) {
       registry = _registry;  
     })
-     .then(function(){
+    .then(function(){
+      return Token.deployed(); 
+    })
+     .then(function(_token){
+      token = _token;
       return registry.processProposal(2); 
     })
     .then(function() {
       return registry.get.call(parameter);
     })
     .then(function(result) {
-      assert.equal(result, 50 , "value is not changed.");
+      assert.equal(result, 100 , "value is changed.");
     })
+    .then(function(allow){
+      return token.balanceOf.call(accounts[3]);
+    })
+    .then(function(balance){
+      console.log(balance);
+      assert.equal(balance, 75, "balance not right");
+    });
   });
 
+//propose another proposal, let time pass, try setParameter
+//propose another proposal, challenge, win, and process proposal
 
-
+//claim reward
+//renew
+//try get function?
+//claim extra reward
 });
 
 
