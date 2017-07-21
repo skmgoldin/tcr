@@ -181,7 +181,7 @@ contract Registry {
                 extraNeeded = minDeposit - lockedTok;
                 //update num unlocked tokens
                 whitelist[domainHash].prevDeposit = unlockedTok - extraNeeded;
-                whitelist[domainHash].deposit = 0;  // ************?*********
+                whitelist[domainHash].deposit = 0;
             } 
         }
         else 
@@ -192,7 +192,6 @@ contract Registry {
             whitelist[domainHash].prevDeposit = 0;
         }
         //apply
-
         initializeSnapshot(domainHash);
         setAppAttr(domainHash, msg.sender);
         whitelist[domainHash].renewal = true;
@@ -440,7 +439,7 @@ contract Registry {
     
     //called by user who wishes to reject a proposal
     //initialize vote to accept/reject the param change proposal
-    function challengeProposal(string _parameter, uint _value) public {
+    function challengeProposal(string _parameter, uint _value) public returns(uint){
         bytes32 parameterHash = sha3(_parameter, _value);
         challenge(parameterHash, msg.sender);
         // start a vote
@@ -449,6 +448,7 @@ contract Registry {
         ,paramSnapshots[parameterHash].commitVoteLen
         ,paramSnapshots[parameterHash].revealVoteLen);
         idToHash[pollID] = parameterHash;
+        return pollID;
     }
     
     // called to change parameter
@@ -482,13 +482,13 @@ contract Registry {
             pollInfo[_pollID].claimer = appPool[parameterHash].owner;
             // setting the value of parameter
             Parameters[sha3(parameter)] = value;
-            // give tokens to applicant based on dist and total tokens
+            // give tokens to applicant
             giveWinnerReward(parameterHash, appPool[parameterHash].owner);
             return true;
         }
         else {
             pollInfo[_pollID].claimer = appPool[parameterHash].challenger;
-            // give tokens to challenger based on dist and total tokens
+            // give tokens to challenger
             giveWinnerReward(parameterHash, appPool[parameterHash].challenger);
             return false;
         }
@@ -504,7 +504,7 @@ contract Registry {
         paramSnapshots[_hash].dispensationPct = Parameters[DISPENSATIONPCT_h];
     }
 
-    // interface for retrieving config parameter from hashmapping
+    // provided for users to get value of parameter
     /// @param _keyword key for hashmap (only useful when keyword matches variable name)
     function get(string _keyword) public constant returns (uint) {
        return Parameters[sha3(_keyword)];
