@@ -160,8 +160,8 @@ contract Registry {
         setAppAttr(_hash, _applicant);
     }
 
-    //called by the owner of a domain on the whitelist
-    //make necessary token transfers and initialize application for renewal in the appPool
+    // called by the owner of a domain on the whitelist
+    // make necessary token transfers and initialize application for renewal in the appPool
     function renew (string _domain) {
         bytes32 domainHash = sha3(_domain);
         require(hasRenewal(domainHash) == false); //prevent duplicate renewals
@@ -172,34 +172,34 @@ contract Registry {
         uint extraNeeded;
 
         if (lockedTok + unlockedTok >= minDeposit) 
-        {//existing total num tokens is sufficient 
+        {// existing total num tokens is sufficient 
             if (lockedTok >= minDeposit) 
             {// have enough locked tok, only take from currently locked deposit
                 whitelist[domainHash].deposit = lockedTok - minDeposit;
             }
-            else //lockedTok < minDeposit
+            else // lockedTok < minDeposit
             {// not enough locked tok, take entire locked deposit and part of unlocked 
                 extraNeeded = minDeposit - lockedTok;
-                //update num unlocked tokens
+                // update num unlocked tokens
                 whitelist[domainHash].prevDeposit = unlockedTok - extraNeeded;
                 whitelist[domainHash].deposit = 0;
             } 
         }
         else 
-        { //existing total num tokens is not sufficient, must send in more tokens
+        { // existing total num tokens is not sufficient, must send in more tokens
             extraNeeded = minDeposit - (lockedTok + unlockedTok);
             require(token.transferFrom(msg.sender, this, extraNeeded));
             whitelist[domainHash].deposit = 0;
             whitelist[domainHash].prevDeposit = 0;
         }
-        //apply
+        // apply
         initializeSnapshot(domainHash);
         setAppAttr(domainHash, msg.sender);
         whitelist[domainHash].renewal = true;
     }
 
-    //called by the owner of a domain on the whitelist
-    //withdraw any number of unlocked tokens
+    // called by the owner of a domain on the whitelist
+    // withdraw any number of unlocked tokens
     function claimDeposit(string _domain, uint _amount) public {
         bytes32 domainHash = sha3(_domain);
         uint unlockedTok = whitelist[domainHash].prevDeposit;
@@ -338,7 +338,7 @@ contract Registry {
         return numerator / denominator;
     }
 
-    //gives reminder tokens from poll to a designated person
+    // gives reminder tokens from poll to a designated person
     function claimExtraReward(uint _pollID) {
         uint256 totalTokens = voting.getTotalNumberOfTokensForWinningOption(_pollID);
         uint256 reward = pollInfo[_pollID].remainder / (MULTIPLIER);
@@ -379,6 +379,9 @@ contract Registry {
         whitelist[_domainHash].owner = _owner;
     }
 
+/*****************************************************************************/
+
+
     /*
      * Helper Functions
      */
@@ -410,7 +413,7 @@ contract Registry {
         paramSnapshots[_hash].registryLen = Parameters[REGISTRYLEN_h];
     }
 
-    //set the challenge end time and the owner of an application
+    // set the challenge end time and the owner of an application
     function setAppAttr(bytes32 _hash, address _applicant) private {
         delete appPool[_hash].challenged;
         appPool[_hash].challengeTime = now + paramSnapshots[_hash].challengeLen;
@@ -427,10 +430,10 @@ contract Registry {
      * Parameter Functions
      */
 
-    //called by a user who wishes to change a parameter
-    //initialize proposal to change a parameter
+    // called by a user who wishes to change a parameter
+    // initialize proposal to change a parameter
     function proposeUpdate(string _parameter, uint _value) public {
-        //require(_parameter != "");
+        // require(_parameter != "");
         bytes32 parameterHash = sha3(_parameter, _value);
         // initialize application with a with the current values of all parameters
         initializeSnapshotParam(parameterHash);
@@ -439,8 +442,8 @@ contract Registry {
         appPool[parameterHash].value = _value;
     }
     
-    //called by user who wishes to reject a proposal
-    //initialize vote to accept/reject the param change proposal
+    // called by user who wishes to reject a proposal
+    // initialize vote to accept/reject the param change proposal
     function challengeProposal(string _parameter, uint _value) public returns(uint){
         bytes32 parameterHash = sha3(_parameter, _value);
         challenge(parameterHash, msg.sender);
@@ -519,9 +522,10 @@ contract Registry {
 
 
 
+    /*
+     * Testing-Related Helper Functions
+     */
 
-    // Helper Functions
-     // FOR TESTING
     function toHash(string _domain) returns (bytes32){
         return sha3(_domain);
     }
