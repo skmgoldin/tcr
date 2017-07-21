@@ -334,10 +334,11 @@ contract Registry {
         // save remainder tokens in the form of decimal numbers with 18 places represented
         // as a uint256
         pollInfo[_pollID].remainder += remainder;
-
+        
         return numerator / denominator;
     }
 
+    //gives reminder tokens from poll to a designated person
     function claimExtraReward(uint _pollID) {
         uint256 totalTokens = voting.getTotalNumberOfTokensForWinningOption(_pollID);
         uint256 reward = pollInfo[_pollID].remainder / (MULTIPLIER);
