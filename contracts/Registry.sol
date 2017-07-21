@@ -35,6 +35,9 @@ contract Registry {
     string parameter;
     uint value;
 
+    /* 
+     * Structs
+     */
     struct Publisher {
         address owner;
         uint expTime;
@@ -82,9 +85,17 @@ contract Registry {
         address claimer;
     }
 
-    // constant used to help represent doubles as ints
-    uint256 constant private MULTIPLIER = 10 ** 18;
-
+    /* 
+     * Constants
+     */
+    uint256 constant private MULTIPLIER = 10 ** 18;  // constant used to help represent doubles as ints
+    bytes32 constant private MINDEPOSIT_h = sha3("minDeposit");
+    bytes32 constant private CHALLENGELEN_h = sha3("challengeLen");
+    bytes32 constant private REGISTRYLEN_h = sha3("registryLen");
+    bytes32 constant private COMMITVOTELEN_h = sha3("commitVoteLen");
+    bytes32 constant private REVEALVOTELEN_h = sha3("revealVoteLen");
+    bytes32 constant private DISPENSATIONPCT_h = sha3("dispensationPct");
+    bytes32 constant private MAJORITY_h = sha3("majority");
     
 
     /* 
@@ -97,7 +108,6 @@ contract Registry {
     /// @param _revealVoteLen   duration of reveal period in token votes 
     /// @param _dispensationPct percentage of forfeited deposit distributed to winning party; uint between 0 and 100 
     /// @param _majority        percentage of votes that constitutes the majority; uint between 0 and 100
-
     function Registry(address _token,
         address _voting,
         uint _minDeposit,
@@ -111,14 +121,19 @@ contract Registry {
         token = StandardToken(_token);
         voting = PLCRVoting(_voting);
         // initialize values
-        Parameters[sha3("minDeposit")]        = _minDeposit;
-        Parameters[sha3("challengeLen")]      = _challengeLen;
-        Parameters[sha3("registryLen")]       = _registryLen;
-        Parameters[sha3("commitVoteLen")]     = _commitVoteLen;
-        Parameters[sha3("revealVoteLen")]     = _revealVoteLen;
-        Parameters[sha3("dispensationPct")]   = _dispensationPct;
-        Parameters[sha3("majority")]          = _majority;
+        Parameters[MINDEPOSIT_h]        = _minDeposit;
+        Parameters[CHALLENGELEN_h]      = _challengeLen;
+        Parameters[REGISTRYLEN_h]       = _registryLen;
+        Parameters[COMMITVOTELEN_h]     = _commitVoteLen;
+        Parameters[REVEALVOTELEN_h]     = _revealVoteLen;
+        Parameters[DISPENSATIONPCT_h]   = _dispensationPct;
+        Parameters[MAJORITY_h]          = _majority;
     }
+
+
+    /*
+     * Registry Functions
+     */
 
     // called by an applicant to add to application pool on success
     function apply(string _domain) public {
@@ -150,7 +165,7 @@ contract Registry {
         bytes32 domainHash = sha3(_domain);
         require(hasRenewal(domainHash) == false); //prevent duplicate renewals
         require(msg.sender == whitelist[domainHash].owner); // must be the owner of the domain
-        uint minDeposit = get('minDeposit');
+        uint minDeposit = Parameters[MINDEPOSIT_h];
         uint lockedTok = whitelist[domainHash].deposit;
         uint unlockedTok = whitelist[domainHash].prevDeposit;
         uint extraNeeded;
@@ -391,7 +406,7 @@ contract Registry {
     // Initialize snapshot of parameters for each application
     function initializeSnapshot(bytes32 _hash) private {
         initializeSnapshotParam(_hash);  // maybe put the two together
-        paramSnapshots[_hash].registryLen = get("registryLen");
+        paramSnapshots[_hash].registryLen = Parameters[REGISTRYLEN_h];
     }
 
     //set the challenge end time and the owner of an application
@@ -407,7 +422,9 @@ contract Registry {
 /*****************************************************************************/
 
 
-
+    /*
+     * Parameter Functions
+     */
 
     //called by a user who wishes to change a parameter
     //initialize proposal to change a parameter
@@ -476,16 +493,15 @@ contract Registry {
             return false;
         }
     }
-
     
      // private function to initialize a snapshot of parameters for each proposal
      function initializeSnapshotParam(bytes32 _hash) private {
-        paramSnapshots[_hash].minDeposit = get("minDeposit");
-        paramSnapshots[_hash].challengeLen = get("challengeLen");
-        paramSnapshots[_hash].commitVoteLen = get("commitVoteLen");
-        paramSnapshots[_hash].revealVoteLen = get("revealVoteLen");
-        paramSnapshots[_hash].majority = get("majority");
-        paramSnapshots[_hash].dispensationPct = get("dispensationPct");
+        paramSnapshots[_hash].minDeposit = Parameters[MINDEPOSIT_h];
+        paramSnapshots[_hash].challengeLen = Parameters[CHALLENGELEN_h];
+        paramSnapshots[_hash].commitVoteLen = Parameters[COMMITVOTELEN_h];
+        paramSnapshots[_hash].revealVoteLen = Parameters[REVEALVOTELEN_h];
+        paramSnapshots[_hash].majority = Parameters[MAJORITY_h];
+        paramSnapshots[_hash].dispensationPct = Parameters[DISPENSATIONPCT_h];
     }
 
     // interface for retrieving config parameter from hashmapping
