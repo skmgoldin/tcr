@@ -8,7 +8,7 @@ var Token = artifacts.require("./HumanStandardToken.sol")
 
 contract('Registry', function(accounts) {
   
-  it ("should get a current parameter valie", function(){
+  it ("should get a current parameter value", function(){
     let registry;
     return Registry.deployed()
     .then(function(_registry) {
@@ -714,6 +714,7 @@ it("should let account 9 claim reward", function(){
   let originalBalance;
   return registry.claimReward(1,0, {from: accounts[9]})
     .then(function(){
+        console.log("hi");
       return token.balanceOf.call(accounts[9]);
     })
     .then(function(balance){

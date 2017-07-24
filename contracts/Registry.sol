@@ -344,7 +344,7 @@ contract Registry {
         uint256 reward = pollInfo[_pollID].remainder / (MULTIPLIER);
         reward = reward / totalTokens;
         pollInfo[_pollID].remainder = pollInfo[_pollID].remainder - reward * MULTIPLIER;
-        require(token.transfer(pollInfo[_pollID].claimer, reward));
+        token.transfer(pollInfo[_pollID].claimer, reward);//dont "require " this statement because it will return false if value = 0
     }
 
 
@@ -487,14 +487,18 @@ contract Registry {
             pollInfo[_pollID].claimer = appPool[parameterHash].owner;
             // setting the value of parameter
             Parameters[sha3(parameter)] = value;
-            // give tokens to applicant
+            // give winning tokens to applicant
             giveWinnerReward(parameterHash, appPool[parameterHash].owner);
+            //give back minDeposit to applicant
+            token.transfer(appPool[parameterHash].owner, paramSnapshots[parameterHash].minDeposit);
             return true;
         }
         else {
             pollInfo[_pollID].claimer = appPool[parameterHash].challenger;
-            // give tokens to challenger
+            // give winning tokens to challenger
             giveWinnerReward(parameterHash, appPool[parameterHash].challenger);
+            //give back minDeposit to challenger
+            token.transfer(appPool[parameterHash].challenger, paramSnapshots[parameterHash].minDeposit);
             return false;
         }
     }
