@@ -238,7 +238,7 @@ contract Registry {
         appPool[_hash].challenger = _challenger;
     }
     
-    // helper function to the challenge() function. 
+    // helper function to challenge() 
     // initialize vote through the voting contract. Return poll id
     function callVote(string _proposalString, 
         uint _majority, 
@@ -293,7 +293,7 @@ contract Registry {
 
     // ISSUE WITH OVERLAP
 
-    // helper function to moveToRegistry()
+    // helper function to moveToRegistry() and processResult()
     // add a domain to whitelist or update renewal attributes
     function add(bytes32 _domainHash, address _owner) private {
         uint expiration = paramSnapshots[_domainHash].registryLen;
@@ -325,7 +325,7 @@ contract Registry {
     }
 
     // called by voter to claim reward for each completed vote
-    function claimReward(uint _pollID, uint _salt) {
+    function claimReward(uint _pollID, uint _salt) public {
         // ensure voter has not already claimed tokens
         require(voterInfo[msg.sender][_pollID] == false);
         uint reward = giveTokens(_pollID, _salt, msg.sender);
@@ -359,7 +359,7 @@ contract Registry {
 
     // gives reminder tokens from poll to a designated claimer
     // the claimer is the winner of the challenge
-    function claimExtraReward(uint _pollID) {
+    function claimExtraReward(uint _pollID) public {
         uint256 totalTokens = voting.getTotalNumberOfTokensForWinningOption(_pollID);
         uint256 reward = pollInfo[_pollID].remainder / (MULTIPLIER);
         reward = reward / totalTokens;
@@ -453,19 +453,6 @@ contract Registry {
         idToHash[pollID] = parameterHash;
         return pollID;
     }
-    
-    // called to change parameter
-    // iff the proposal's challenge period has passed without a challenge
-    function setParams(string _parameter, uint _value) public {
-        bytes32 parameterHash = sha3(_parameter, _value);
-        require(appPool[parameterHash].challengeTime < now); 
-        require(appPool[parameterHash].challenged == false);
-        // prevents moving a domain to the registry without ever applying
-        require(appPool[parameterHash].owner != 0);
-        // prevent applicant from moving to registry multiple times
-        Parameters[sha3(_parameter)] = _value;
-        delete appPool[parameterHash].owner;
-    }
 
     // a one-time function for each completed vote
     // if proposal won: new parameter value is set, and applicant is rewarded tokens, return true
@@ -498,6 +485,19 @@ contract Registry {
             token.transfer(appPool[parameterHash].challenger, paramSnapshots[parameterHash].minParamDeposit);
             return false;
         }
+    }
+    
+    // called to change parameter
+    // iff the proposal's challenge period has passed without a challenge
+    function setParams(string _parameter, uint _value) public {
+        bytes32 parameterHash = sha3(_parameter, _value);
+        require(appPool[parameterHash].challengeTime < now); 
+        require(appPool[parameterHash].challenged == false);
+        // prevents moving a domain to the registry without ever applying
+        require(appPool[parameterHash].owner != 0);
+        // prevent applicant from moving to registry multiple times
+        Parameters[sha3(_parameter)] = _value;
+        delete appPool[parameterHash].owner;
     }
     
 /* Parameter Helper Functions
