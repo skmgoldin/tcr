@@ -14,7 +14,7 @@ module.exports = function(deployer) {
   	return Voting.deployed();
   })
   .then(function(voting){
-   return deployer.deploy(Registry, token.address,voting.address, 50,100,100,100,100,50,50)
+   return deployer.deploy(Registry, token.address,voting.address, 50,50,100,100,100,100,50,50)
   });
 };
 // module.exports = function(deployer) {

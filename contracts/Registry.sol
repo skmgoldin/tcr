@@ -65,6 +65,7 @@ contract Registry {
     struct Params {
         // parameters concerning the whitelist and application pool
         uint minDeposit;
+        uint minParamDeposit;
         uint challengeLen;
         uint registryLen;
 
@@ -91,6 +92,7 @@ contract Registry {
      */
     uint256 constant private MULTIPLIER = 10 ** 18;  // constant used to help represent doubles as ints
     bytes32 constant private MINDEPOSIT_h = sha3("minDeposit");
+    bytes32 constant private MINPARAMDEPOSIT_h = sha3("minParamDeposit");
     bytes32 constant private CHALLENGELEN_h = sha3("challengeLen");
     bytes32 constant private REGISTRYLEN_h = sha3("registryLen");
     bytes32 constant private COMMITVOTELEN_h = sha3("commitVoteLen");
@@ -102,7 +104,8 @@ contract Registry {
     /* 
      * Constructor
      */
-    /// @param _minDeposit      application & challenger deposit amounts
+    /// @param _minDeposit      application & challenger deposit amounts for domains
+    /// @param _minParamDeposit application & challenger deposit amounts for parameters
     /// @param _challengeLen    duration of the challenge period
     /// @param _registryLen     duration of a registration’s validity
     /// @param _commitVoteLen   duration of the commit period in token votes
@@ -112,6 +115,7 @@ contract Registry {
     function Registry(address _token,
         address _voting,
         uint _minDeposit,
+        uint _minParamDeposit,
         uint _challengeLen,
         uint _registryLen,
         uint _commitVoteLen,
@@ -123,6 +127,7 @@ contract Registry {
         voting = PLCRVoting(_voting);
         // initialize values
         Parameters[MINDEPOSIT_h]        = _minDeposit;
+        Parameters[MINPARAMDEPOSIT_h]   = _minParamDeposit;
         Parameters[CHALLENGELEN_h]      = _challengeLen;
         Parameters[REGISTRYLEN_h]       = _registryLen;
         Parameters[COMMITVOTELEN_h]     = _commitVoteLen;
@@ -144,17 +149,16 @@ contract Registry {
         require(appPool[domainHash].owner == 0); //not in appPool
         // initialize with the current values of all parameters
         initializeSnapshot(domainHash);
-        initApplication(domainHash, msg.sender);
+        initApplication(domainHash, paramSnapshots[domainHash].minDeposit, msg.sender);
         appPool[domainHash].domain = _domain;
     }
 
     // helper function to apply() and proposeUpdate()
     // obtain deposit from applicant and initialize challenge end time and owner
-    function initApplication(bytes32 _hash, address _applicant) private {
+    function initApplication(bytes32 _hash, uint deposit, address _applicant) private {
         require(appPool[_hash].owner == 0); // prevent repeat applications
 
-        // applicant must pay the current value of minDeposit
-        uint deposit = paramSnapshots[_hash].minDeposit;
+        // pay deposit
         require(token.transferFrom(_applicant, this, deposit));  
 
         setAppAttr(_hash, _applicant);
@@ -226,7 +230,7 @@ contract Registry {
     // initialize vote to accept/reject a domain to the registry
     function challengeApplication(string _domain) public returns(uint) {
         bytes32 domainHash = sha3(_domain);
-        challenge(domainHash, msg.sender);
+        challenge(domainHash, paramSnapshots[domainHash].minDeposit, msg.sender);
         // start a vote
         uint pollID = callVote(_domain 
         ,paramSnapshots[domainHash].majority
@@ -237,9 +241,8 @@ contract Registry {
     }
 
     // helper function to challengeApplication() and challengeProposal()
-    function challenge(bytes32 _hash, address _challenger) private {
-        // check that registry can take sufficient amount of tokens from the challenger
-        uint deposit = paramSnapshots[_hash].minDeposit;
+    function challenge(bytes32 _hash, uint deposit, address _challenger) private {
+        // take tokens from challenger
         require(token.transferFrom(_challenger, this, deposit));
 
         // prevent someone from challenging an unintialized application, rechallenging,
@@ -437,7 +440,7 @@ contract Registry {
         bytes32 parameterHash = sha3(_parameter, _value);
         // initialize application with a with the current values of all parameters
         initializeSnapshotParam(parameterHash);
-        initApplication(parameterHash, msg.sender);
+        initApplication(parameterHash, paramSnapshots[parameterHash].minParamDeposit, msg.sender);
         appPool[parameterHash].parameter = _parameter;
         appPool[parameterHash].value = _value;
     }
@@ -446,7 +449,7 @@ contract Registry {
     // initialize vote to accept/reject the param change proposal
     function challengeProposal(string _parameter, uint _value) public returns(uint){
         bytes32 parameterHash = sha3(_parameter, _value);
-        challenge(parameterHash, msg.sender);
+        challenge(parameterHash, paramSnapshots[parameterHash].minParamDeposit, msg.sender);
         // start a vote
         uint pollID = callVote(_parameter
         ,paramSnapshots[parameterHash].majority
@@ -489,16 +492,16 @@ contract Registry {
             Parameters[sha3(parameter)] = value;
             // give winning tokens to applicant
             giveWinnerReward(parameterHash, appPool[parameterHash].owner);
-            //give back minDeposit to applicant
-            token.transfer(appPool[parameterHash].owner, paramSnapshots[parameterHash].minDeposit);
+            //give minParamDeposit to applicant
+            token.transfer(appPool[parameterHash].owner, paramSnapshots[parameterHash].minParamDeposit);
             return true;
         }
         else {
             pollInfo[_pollID].claimer = appPool[parameterHash].challenger;
             // give winning tokens to challenger
             giveWinnerReward(parameterHash, appPool[parameterHash].challenger);
-            //give back minDeposit to challenger
-            token.transfer(appPool[parameterHash].challenger, paramSnapshots[parameterHash].minDeposit);
+            //give minParamDeposit to challenger
+            token.transfer(appPool[parameterHash].challenger, paramSnapshots[parameterHash].minParamDeposit);
             return false;
         }
     }
@@ -506,6 +509,7 @@ contract Registry {
      // private function to initialize a snapshot of parameters for each proposal
      function initializeSnapshotParam(bytes32 _hash) private {
         paramSnapshots[_hash].minDeposit = Parameters[MINDEPOSIT_h];
+        paramSnapshots[_hash].minParamDeposit = Parameters[MINPARAMDEPOSIT_h];
         paramSnapshots[_hash].challengeLen = Parameters[CHALLENGELEN_h];
         paramSnapshots[_hash].commitVoteLen = Parameters[COMMITVOTELEN_h];
         paramSnapshots[_hash].revealVoteLen = Parameters[REVEALVOTELEN_h];

@@ -4,6 +4,14 @@
 var Registry = artifacts.require("./Registry.sol");
 var Token = artifacts.require("./HumanStandardToken.sol")
 
+var minDeposit = 50;
+var minParamDeposit = 50;
+var challengeLen = 100;
+var registryLen = 100;
+var commitVoteLen = 100;
+var revealVoteLen = 100;
+var dispensationPct = 50;
+var majority = 50;
 
 
 contract('Registry', function(accounts) {
@@ -146,7 +154,7 @@ contract('Registry', function(accounts) {
     })
     .then(function(result) {
       assert.equal(result[0], depositAmount ,"deposit amount not right");
-      assert.equal(result[1], 100 , "challenge lenth wrong");
+      assert.equal(result[2], 100 , "challenge length wrong");
     })
     .then(function(){
       return token.balanceOf.call(accounts[1]);
@@ -620,7 +628,7 @@ it("should propose a parameter change", function() {
     })
     .then(function(result) {
       assert.equal(result[0], depositAmount ,"deposit amount not right");
-      assert.equal(result[1], 100 , "challenge lenth wrong");
+      assert.equal(result[2], 100 , "challenge length wrong");
     })
     .then(function(){
       return token.balanceOf.call(accounts[1]);
