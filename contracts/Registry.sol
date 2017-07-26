@@ -194,10 +194,10 @@ contract Registry {
         whitelist[domainHash].renewal = true;
     }
 
-    //called by the owner of a domain on the whitelist
-    //renew domain on the whitelist and allow additional renewals
+    //called by the owner of a domain on the whitelist 
+    //renew domain on the whitelist and allow additional renewal
     function activateRenewal(string _domain) public {
-        bytes32 _hash = sha3(_domain);
+        bytes32 _hash = sha3(_domain);  
         if (hasRenewal(_hash) && whitelist[_hash].expTime <= now)
         {
             whitelist[_hash].expTime = whitelist[_hash].nextExpTime;
@@ -297,12 +297,12 @@ contract Registry {
         uint expiration = paramSnapshots[_domainHash].registryLen;
         if (whitelist[_domainHash].renewal == true) 
         {
-            if (whitelist[_domainHash].expTime < now) 
-            {
+            if (whitelist[_domainHash].expTime < now) // if expired off whitelist
+            {//determine the next expiry starting from now
                 whitelist[_domainHash].nextExpTime = now + expiration;
             }
-            else 
-            {
+            else // if domain has not expired
+            {//determine next expiry starting from the end of the current epiry
                 whitelist[_domainHash].nextExpTime = whitelist[_domainHash].expTime + expiration;
             }
             whitelist[_domainHash].nextDeposit = paramSnapshots[_domainHash].minDeposit;
