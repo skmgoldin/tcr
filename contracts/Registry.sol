@@ -9,7 +9,7 @@ import "./Test.sol";
 =======
 
 implement events
-refactor & wrap check & transfer
+refactor & wrap check & transfer ?
 
 */
 
@@ -20,16 +20,16 @@ contract Registry {
 /* Storage
  */
      
-    //Registry storage
+    // Registry storage
     StandardToken public token;
     PLCRVoting public voting;
-    mapping(bytes32 => Publisher) public whitelist; //domainHash => Publisher struct
-    mapping(bytes32 => Application) public appPool; //holds applications for both domain and parameter appPool
+    mapping(bytes32 => Publisher) public whitelist; // domainHash => Publisher struct
+    mapping(bytes32 => Application) public appPool; // holds applications for both domain and parameter appPool
     mapping(bytes32 => Params) public paramSnapshots;
     mapping(uint => VoteInfo) public pollInfo; // holds information on individual polls
     mapping(address => mapping(uint => bool)) public voterInfo; // holds information on voters' token claims
     string domain;
-    //Parameter storage
+    // Parameter storage
     mapping(bytes32 => uint) public Parameters;
     mapping(uint => bytes32) public idToHash;
     string parameter;
@@ -55,7 +55,7 @@ contract Registry {
         address challenger;
         string domain;
 
-        //for parameter changes
+        // for parameter changes
         string parameter;
         uint value;
     }
@@ -288,18 +288,23 @@ contract Registry {
         require(appPool[domainHash].owner != 0);
         // prevent applicant from moving to registry multiple times
         add(domainHash, appPool[domainHash].owner);
-        delete appPool[domainHash].owner; //remove from appPool
+        delete appPool[domainHash].owner; // remove from appPool
     }
-
-    // ISSUE WITH OVERLAP
 
     // helper function to moveToRegistry() and processResult()
     // add a domain to whitelist or update renewal attributes
     function add(bytes32 _domainHash, address _owner) private {
         uint expiration = paramSnapshots[_domainHash].registryLen;
-        if (whitelist[_domainHash].renewal == true)
+        if (whitelist[_domainHash].renewal == true) 
         {
-            whitelist[_domainHash].nextExpTime = whitelist[_domainHash].expTime + expiration;
+            if (whitelist[_domainHash].expTime < now) 
+            {
+                whitelist[_domainHash].nextExpTime = now + expiration;
+            }
+            else 
+            {
+                whitelist[_domainHash].nextExpTime = whitelist[_domainHash].expTime + expiration;
+            }
             whitelist[_domainHash].nextDeposit = paramSnapshots[_domainHash].minDeposit;
         }
         else
@@ -320,7 +325,7 @@ contract Registry {
         uint unlockedTok = whitelist[domainHash].prevDeposit;
         require(msg.sender == whitelist[domainHash].owner);
         require(unlockedTok >= _amount);
-        require(token.transfer(msg.sender, _amount));
+        token.transfer(msg.sender, _amount);
         whitelist[domainHash].prevDeposit = unlockedTok - _amount;
     }
 
@@ -328,16 +333,16 @@ contract Registry {
     function claimReward(uint _pollID, uint _salt) public {
         // ensure voter has not already claimed tokens
         require(voterInfo[msg.sender][_pollID] == false);
-        uint reward = giveTokens(_pollID, _salt, msg.sender);
+        uint reward = calculateTokens(_pollID, _salt, msg.sender);
         // ensures a voter cannot claim tokens again
-        require(token.transfer(msg.sender, reward));
+        token.transfer(msg.sender, reward);
         voterInfo[msg.sender][_pollID] = true;
     }
 
     // helper function to claimReward()
     // number of tokens person used to vote / total number of tokens for winning side
     // scale using distribution number, give the tokens
-    function giveTokens(uint _pollID, uint _salt, address _voter) private returns(uint) {
+    function calculateTokens(uint _pollID, uint _salt, address _voter) private returns(uint) {
         bytes32 hash = idToHash[_pollID];
         uint256 minDeposit = paramSnapshots[hash].minDeposit;
         uint256 dispensationPct = paramSnapshots[hash].dispensationPct;
@@ -345,7 +350,7 @@ contract Registry {
         uint256 voterTokens = voting.getNumPassingTokens(_pollID, _salt, _voter);
 
         uint256 rewardTokens = minDeposit * (100 - dispensationPct)*MULTIPLIER / 100;
-        //what happens if expression does not divide evenly
+        // what happens if expression does not divide evenly
         uint256 numerator = voterTokens * rewardTokens; 
         uint256 denominator = totalTokens * MULTIPLIER;
         uint256 remainder = numerator % denominator;
@@ -364,7 +369,7 @@ contract Registry {
         uint256 reward = pollInfo[_pollID].remainder / (MULTIPLIER);
         reward = reward / totalTokens;
         pollInfo[_pollID].remainder = pollInfo[_pollID].remainder - reward * MULTIPLIER;
-        token.transfer(pollInfo[_pollID].claimer, reward);//dont "require " this statement because it will return false if value = 0
+        token.transfer(pollInfo[_pollID].claimer, reward);
     }
 
     // helper function to processResult() 
@@ -497,6 +502,8 @@ contract Registry {
         require(appPool[parameterHash].owner != 0);
         // prevent applicant from moving to registry multiple times
         Parameters[sha3(_parameter)] = _value;
+        // return proposer's deposit
+        token.transfer(appPool[parameterHash].owner, paramSnapshots[parameterHash].minParamDeposit);
         delete appPool[parameterHash].owner;
     }
     
