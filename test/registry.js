@@ -18,18 +18,18 @@ contract('Registry', (accounts) => {
   
   it ("should get a current parameter value", () => {
     let registry;
-    return Registry.deployed()
-    .then((_registry) => registry = _registry)
-    .then(() => registry.get.call("dispensationPct"))
-    .then((value) => assert.equal(value,50, "value not right") )
+    return Registry.deployed()// get the instance of the deployed registry ,deployed in 2_deploy_contracts.js
+    .then((_registry) => registry = _registry) //store it as variable
+    .then(() => registry.get.call("dispensationPct")) //test get parameter function should return 50
+    .then((value) => assert.equal(value,50, "value not right") ) //see if the returned value is right
   });
 
   it("should verify a domain is not in the whitelist", () => {
-    const domain = 'eth.eth';
+    const domain = 'eth.eth'; //the domain to be tested
     let registry;
     return Registry.deployed()
     .then((_registry) => registry = _registry)
-    .then(() => registry.isInRegistry.call(domain))
+    .then(() => registry.isInRegistry.call(domain)) // test isInRegistry function should return false
     .then((result) => assert.equal(result, false , "Domain is actually added."))
   });
 
@@ -39,15 +39,19 @@ contract('Registry', (accounts) => {
     let allowance = 50;
     return Registry.deployed()
     .then((_registry) => registry = _registry)
-    //get the deployed instance, deployed in 2_deploy_contracts.js
-    //initialized with 10000-
+    //initialized with 10000 for account 0
     .then(() => Token.deployed())
     .then((_token) => token = _token)
+    //account 1 must approve registry address allowance = minDeposit to be able to apply
     .then(() => token.approve(registry.address, allowance, {from: accounts[1]}))
+    //check that allowance is indeed correct
     .then(() => token.allowance.call(accounts[1],registry.address))
     .then((allow) => assert.equal(allow, allowance, "allowance amount is not right"))
+    //check the balance is correct
     .then((allow) => token.balanceOf.call(accounts[1]))
+    //should be zero since all tokens are currently held by account 0
     .then((balance) => assert.equal(balance, 0, "initial balance not 0"))
+    //check that the allowance of an accoun that did not approve is zero
     .then(() => token.allowance.call(accounts[5],registry.address))
     .then((allow) => assert.equal(allow, 0, "should not have any allowance"))
   });
@@ -59,12 +63,13 @@ contract('Registry', (accounts) => {
     .then((_registry) => registry = _registry)
     .then(() => Token.deployed())
     .then((_token) => token = _token)
+    ///check balance of registry address, should be zero since no one applied
     .then(() => token.balanceOf.call(registry.address))
     .then((balance) => assert.equal(balance, 0, "why is there money in my wallet"))
   });
 
   it("should allow a domain to apply", () => {
-    const domain = 'consensys.net'
+    const domain = 'consensys.net' //domain to apply with
     let registry;
     let token;
     let depositAmount = 50;
@@ -72,15 +77,16 @@ contract('Registry', (accounts) => {
     .then((_registry) => registry = _registry)
     .then(() => Token.deployed())
     .then((_token) => token = _token)
-    //transfer 5000 to accounts[1], return true if transfer success
+    //transfer 50 to accounts[1] form account 0
     .then(() => token.transfer(accounts[1], depositAmount, {from: accounts[0]}))
     .then(() => token.approve(registry.address, depositAmount, {from: accounts[1]}))
     //apply with accounts[1]
     .then(() => registry.apply(domain, {from: accounts[1]}))
-    //has the domain so we can identify in appPool
+    //hash the domain so we can identify in appPool
     .then(() => registry.toHash.call(domain))
     //get the struct in the mapping
     .then((hash) => registry.appPool.call(hash))
+    //check that Application is initialized correctly
     .then((result) => {
       assert.equal(result[0], accounts[1] , "owner of application != address that applied");
       assert.equal(result[1], false , "challenged != false");
@@ -88,20 +94,19 @@ contract('Registry', (accounts) => {
       assert.equal(result[3]==0x0000000000000000000000000000000000000000, true , "challenger = zero address");
       assert.equal(result[4]=='consensys.net', true , "domain is not right");
     })
-    //has the domain so we can identify in appPool
     .then(() => registry.toHash.call(domain))
-    //get the struct in the mapping
     .then((hash) => registry.paramSnapshots.call(hash))
+    //check that paramSnapshots is initialized correctly
     .then((result) => {
       assert.equal(result[0], depositAmount ,"deposit amount not right");
       assert.equal(result[2], 100 , "challenge length wrong");
     })
+    //check that now that account 1 has used its 50 tokens to apply, it's again out of tokens
     .then(() => token.balanceOf.call(accounts[1]))
     .then((balance) => assert.equal(balance, 0, "shouldnt be tokens here"))
   });
 
   it("should check that we can't move to registry because challenge time not up", () => {
-    //check that owner is again 0
     let registry;
     const domain = 'consensys.net'
     return Registry.deployed()
@@ -117,8 +122,9 @@ contract('Registry', (accounts) => {
     .then((_registry) => registry = _registry)
     .then(() => Token.deployed())
     .then((_token) => token = _token)
+    //check that after account 1 applied with 50 tokens, the registry address holds the min deposit
     .then(() => token.balanceOf.call(registry.address))
-    .then((balance) => assert.equal(balance, minimalDeposit, "why is there money in my wallet"))
+    .then((balance) => assert.equal(balance, minimalDeposit, "where is my minimal deposit?"))
   });
 
   it("should not let address to apply with domains that are already in appPool", () => {
@@ -130,10 +136,10 @@ contract('Registry', (accounts) => {
     .then((_registry) => registry = _registry)
     .then(() => Token.deployed())
     .then((_token) => token = _token)
-    //transfer 5000 to accounts[1], return true if transfer success
+    //transfer 50 to accounts[1] 
     .then(() => token.transfer(accounts[2], depositAmount, {from: accounts[0]}))
     .then(() => token.approve(registry.address, depositAmount, {from: accounts[2]}))
-    //apply with accounts[1]
+    //apply with accounts[1] with the same domain, should fail since there's an existing application already
     .then(() => registry.apply(domain, {from: accounts[2]}))
     .catch((error) => console.log('Success: failed to reapply domin'))
   });
@@ -146,7 +152,7 @@ contract('Registry', (accounts) => {
     .then(() => Token.deployed())
     .then((_token) => token = _token)
     .then(() => token.balanceOf.call(registry.address))
-    .then((balance) => assert.equal(balance, minimalDeposit, "why is there money in my wallet"))
+    .then((balance) => assert.equal(balance, minimalDeposit, "why is there more money in my wallet"))
   });
   
   it("should allow a address to challenge", () => {
@@ -160,18 +166,18 @@ contract('Registry', (accounts) => {
     .then((_token) => token = _token)
     .then(() => token.transfer(accounts[2], depositAmount, {from: accounts[0]}))
     .then(() => token.approve(registry.address, depositAmount, {from: accounts[2]}))
+    //challenge the current application of "consensys.net" with account 2
     .then(() => registry.challengeApplication(domain, {from: accounts[2]}))
-    //has the domain so we can identify in appPool
     .then(() => registry.toHash.call(domain))
-    //get the struct in the mapping
     .then((hash) => registry.appPool.call(hash))
-    // check if owner = applier
     .then((result) =>
     {
+      //check the applicaiton struct is updated accordingly now that account 2 has challenged
       assert.equal(result[0], accounts[1] , "owner of application != address that applied");
       assert.equal(result[1], true , "challenged != true");
       assert.equal(result[3]==accounts[2], true , "challenger != challenger");
     })
+    //check that account 2 has spent the tokens
     .then((allow) => token.balanceOf.call(accounts[2]))
     .then((balance) => assert.equal(balance, 50, "balance not equal to the 50 from before"))
   });
@@ -187,7 +193,7 @@ contract('Registry', (accounts) => {
     .then((balance) => assert.equal(balance, minimalDeposit, "why is there money in my wallet"))
   });
 
-  it("challenge an already challenged domain", () => {
+  it("should not let people challenge an already challenged domain", () => {
     const domain = 'consensys.net'
     let registry;
     let token;
@@ -209,7 +215,7 @@ contract('Registry', (accounts) => {
     .then(() => Token.deployed())
     .then((_token) => token = _token)
     .then(() => token.balanceOf.call(registry.address))
-    .then((balance) => assert.equal(balance, minimalDeposit, "why is there money in my wallet"))
+    .then((balance) => assert.equal(balance, minimalDeposit, "why is there more money in my wallet"))
   });
 
   it("should check that we can't challenge domain not in appPool", function(){
@@ -233,17 +239,20 @@ contract('Registry', (accounts) => {
     .then((_registry) => registry = _registry)
     .then(() => Token.deployed())
     .then((_token) => token = _token)
+    //process the result of the vote. 1 equals the pollID since it's the first poll
+    //should return true 
     .then(() => registry.processResult(1))
+    //check that it's been automatically moved to the registry
     .then(() => registry.isInRegistry.call(domain))
     .then((result) => assert.equal(result, true , "Domain is not added."))
+    //check that account 1 has recieved a % of account 2's deposit
     .then((allow) => token.balanceOf.call(accounts[1]))
     .then((balance) => assert.equal(balance, 25, "balance not zero"))
     .then(() => registry.toHash.call(domain))
-    //get the struct in the mapping
     .then((hash) => registry.whitelist.call(hash))
+    //check that in the publisher struct, the deposit amount is correct
     .then((publisher) => assert.equal(publisher[2],50, "deposit not right"))
-    .then((hash)=> registry.appPool.call(hash)) //get the struct in the mapping
-    // check if owner = applier
+    .then((hash)=> registry.appPool.call(hash)) 
     .then((result) => assert.equal(result[0], 0x0000000000000000000000000000000000000000 , "owner of application != address that applied"))
   });
 
@@ -256,10 +265,8 @@ contract('Registry', (accounts) => {
     .then((_registry) => registry = _registry)
     .then(() => Token.deployed())
     .then((_token) => token = _token)
-    //transfer 5000 to accounts[1], return true if transfer success
     .then(() => token.transfer(accounts[1], depositAmount, {from: accounts[0]}))
     .then(() => token.approve(registry.address, depositAmount, {from: accounts[1]}))
-    //apply with accounts[1]
     .then(() => registry.apply(domain, {from: accounts[1]}))
   });
 
