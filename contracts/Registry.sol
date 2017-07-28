@@ -39,12 +39,12 @@ contract Registry {
  */
     struct Publisher {
         address owner;
-        uint expTime;
+        uint expTime;     // expiration of whitelist listing + renewal time
+        uint expCurrent;  // expiration of the current whitelist period (tells us when renewal starts)
         uint deposit;
 
-        uint nextExpTime; //
         uint prevDeposit; // total withdrawable amount
-        uint nextDeposit; //
+        uint nextDeposit; // deposit of renewal
         bool renewal; 
     }
 
@@ -200,13 +200,18 @@ contract Registry {
         whitelist[domainHash].renewal = true;
     }
 
-    //called by the owner of a domain on the whitelist 
-    //renew domain on the whitelist and allow additional renewal
+    // called by the owner of a domain on the whitelist 
+    // renew domain on the whitelist and allow additional renewal
+    // without calling this, apply will not let a whitelist member
+    // renew, and claimDeposit will not let them withdraw newly
+    // freed tokens
+    // however, isVerified will still return true without this call
+    // for the renewal period as well as the current (or newly expired) whitelist period
     function activateRenewal(string _domain) public {
         bytes32 _hash = sha3(_domain);  
-        if (hasRenewal(_hash) && whitelist[_hash].expTime <= now)
+        if (hasRenewal(_hash) && whitelist[_hash].expCurrent < now)
         {
-            whitelist[_hash].expTime = whitelist[_hash].nextExpTime;
+            whitelist[_hash].expCurrent = whitelist[_hash].expTime;
             whitelist[_hash].prevDeposit += whitelist[_hash].deposit;
             whitelist[_hash].deposit = whitelist[_hash].nextDeposit;
             whitelist[_hash].renewal = false;
@@ -258,7 +263,7 @@ contract Registry {
     // one-time function for each completed vote
     // if domain won: domain is moved to the whitelist and applicant is rewarded tokens, return true
     // if domain lost: challenger is rewarded tokens, return false
-    function processResult(uint _pollID) returns(bool) {
+    function processResult(uint _pollID) returns (bool) {
         bytes32 domainHash = idToHash[_pollID];
         require(isDomainApp(domainHash));  // processing parameter hash is unintended behavior
         require(pollInfo[_pollID].processed == false);
@@ -303,18 +308,19 @@ contract Registry {
         uint expiration = paramSnapshots[_domainHash].registryLen;
         if (whitelist[_domainHash].renewal == true) 
         {
-            if (whitelist[_domainHash].expTime < now) // if expired off whitelist
-            {//determine the next expiry starting from now
-                whitelist[_domainHash].nextExpTime = now + expiration;
+            if (whitelist[_domainHash].expCurrent < now) // if expired off whitelist
+            { //determine the next expiry starting from now
+                whitelist[_domainHash].expTime = now + expiration;
             }
             else // if domain has not expired
-            {//determine next expiry starting from the end of the current epiry
-                whitelist[_domainHash].nextExpTime = whitelist[_domainHash].expTime + expiration;
+            { //determine next expiry starting from the end of the current expiry
+                whitelist[_domainHash].expTime = whitelist[_domainHash].expCurrent + expiration;
             }
             whitelist[_domainHash].nextDeposit = paramSnapshots[_domainHash].minDeposit;
         }
         else
         {
+            whitelist[_domainHash].expCurrent = now + expiration;
             whitelist[_domainHash].expTime = now + expiration;
             whitelist[_domainHash].deposit = paramSnapshots[_domainHash].minDeposit;
         }
@@ -370,6 +376,8 @@ contract Registry {
 
     // gives reminder tokens from poll to a designated claimer
     // the claimer is the winner of the challenge
+    // for every poll there will be ~0.5 nano AdTokens burned,
+    // since the winner cannot withdraw a decimal amount of nano AdToken 
     function claimExtraReward(uint _pollID) public {
         uint256 totalTokens = voting.getTotalNumberOfTokensForWinningOption(_pollID);
         uint256 reward = pollInfo[_pollID].remainder / (MULTIPLIER);
