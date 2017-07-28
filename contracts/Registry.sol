@@ -42,7 +42,7 @@ contract Registry {
         uint nextExpTime; //
         uint prevDeposit; // total withdrawable amount
         uint nextDeposit; //
-        bool renewal; 
+        bool isValid; 
     }
 
     struct Application {
@@ -241,23 +241,8 @@ contract Registry {
     // add a domain to whitelist or update renewal attributes
     function add(bytes32 _domainHash, address _owner) private {
         uint expiration = paramSnapshots[_domainHash].registryLen;
-        if (whitelist[_domainHash].renewal == true) 
-        {
-            if (whitelist[_domainHash].expTime < now) // if expired off whitelist
-            {//determine the next expiry starting from now
-                whitelist[_domainHash].nextExpTime = now + expiration;
-            }
-            else // if domain has not expired
-            {//determine next expiry starting from the end of the current epiry
-                whitelist[_domainHash].nextExpTime = whitelist[_domainHash].expTime + expiration;
-            }
-            whitelist[_domainHash].nextDeposit = paramSnapshots[_domainHash].minDeposit;
-        }
-        else
-        {
-            whitelist[_domainHash].expTime = now + expiration;
-            whitelist[_domainHash].deposit = paramSnapshots[_domainHash].minDeposit;
-        }
+        whitelist[_domainHash].expTime = now + expiration;
+        whitelist[_domainHash].deposit = paramSnapshots[_domainHash].minDeposit;
         whitelist[_domainHash].owner = _owner;
     }
 
@@ -339,11 +324,6 @@ contract Registry {
 
     // STATIC
 
-    // returns true if a renewal has been initialized
-    function hasRenewal(bytes32 _hash) private constant returns (bool) {
-        return whitelist[_hash].renewal;
-    } 
-
     // returns true if Application is for domain and not parameter
     function isDomainApp(bytes32 _hash) private constant returns(bool){
         return bytes(appPool[_hash].parameter).length == 0;  // checks if param string is initialized
@@ -353,7 +333,7 @@ contract Registry {
     // provided for the user to verify the status of their domain
     function isInRegistry(string _domain) public constant returns (bool) {
         bytes32 domainHash = sha3(_domain);
-        return whitelist[domainHash].expTime > now;
+        return whitelist[domainHash].isValid;
     }
 
     // DYNAMIC
