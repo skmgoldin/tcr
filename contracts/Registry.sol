@@ -8,9 +8,6 @@ import "./Test.sol";
  TO DO
 =======
 
-implement events
-refactor & wrap check & transfer ?
-
 */
 
 
@@ -154,57 +151,6 @@ contract Registry {
         require(appPool[_hash].owner == 0); // prevent repeat applications
         require(token.transferFrom(_applicant, this, deposit)); // pay deposit
         setAppAttr(_hash, _applicant);
-    }
-
-    // called by owner of a domain on the whitelist
-    // make necessary token transfers and initialize application for renewal in the appPool
-    function renew (string _domain) {
-        bytes32 domainHash = sha3(_domain);
-        require(hasRenewal(domainHash) == false); //prevent duplicate renewals
-        require(msg.sender == whitelist[domainHash].owner); // must be the owner of the domain
-        uint minDeposit = Parameters[MINDEPOSIT_h];
-        uint lockedTok = whitelist[domainHash].deposit;
-        uint unlockedTok = whitelist[domainHash].prevDeposit;
-        uint extraNeeded;
-
-        if (lockedTok + unlockedTok >= minDeposit) 
-        {// existing total num tokens is sufficient 
-            if (lockedTok >= minDeposit) 
-            {// have enough locked tok, only take from currently locked deposit
-                whitelist[domainHash].deposit = lockedTok - minDeposit;
-            }
-            else // lockedTok < minDeposit
-            {// not enough locked tok, take entire locked deposit and part of unlocked 
-                extraNeeded = minDeposit - lockedTok;
-                // update num unlocked tokens
-                whitelist[domainHash].prevDeposit = unlockedTok - extraNeeded;
-                whitelist[domainHash].deposit = 0;
-            } 
-        }
-        else 
-        { // existing total num tokens is not sufficient, must send in more tokens
-            extraNeeded = minDeposit - (lockedTok + unlockedTok);
-            require(token.transferFrom(msg.sender, this, extraNeeded));
-            whitelist[domainHash].deposit = 0;
-            whitelist[domainHash].prevDeposit = 0;
-        }
-        // apply
-        initializeSnapshot(domainHash);
-        setAppAttr(domainHash, msg.sender);
-        whitelist[domainHash].renewal = true;
-    }
-
-    //called by the owner of a domain on the whitelist 
-    //renew domain on the whitelist and allow additional renewal
-    function activateRenewal(string _domain) public {
-        bytes32 _hash = sha3(_domain);  
-        if (hasRenewal(_hash) && whitelist[_hash].expTime <= now)
-        {
-            whitelist[_hash].expTime = whitelist[_hash].nextExpTime;
-            whitelist[_hash].prevDeposit += whitelist[_hash].deposit;
-            whitelist[_hash].deposit = whitelist[_hash].nextDeposit;
-            whitelist[_hash].renewal = false;
-        }
     }
 
     // called by adtoken holder to challenge an application

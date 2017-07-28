@@ -420,27 +420,4 @@ contract('Registry', (accounts) => {
     .then((balance) => assert.equal(balance, 26, "balance not right 4"))
   });
 
-  it("should renew existing domain with deposit amount = current minimal deposit", () => {
-    const domain = 'consensys.net'
-    let hash;
-    let depositAmount = 50;
-    return registry.renew(domain, {from: accounts[1]})
-    .then(() => registry.toHash.call(domain))
-    .then((_hash) => hash= _hash)
-    .then(() => registry.appPool.call(hash))
-    .then((result) => {
-      assert.equal(result[0], accounts[1] , "owner of application != address that applied");
-      assert.equal(result[1], false , "challenged != false");
-      assert.equal(result[4]=='consensys.net', true , "domain is not right");
-    })
-    //get the struct in the mapping
-    .then(() => registry.paramSnapshots.call(hash))
-    .then((result) => assert.equal(result[0], depositAmount ,"deposit amount not right"))
-    //get the struct in the mapping
-    .then(() => registry.whitelist.call(hash))
-    .then((result) => {
-      assert.equal(result[6], true ,"renewal != true");
-      assert.equal(result[2], 0, "deposit amount not right")
-    })
-  });
 });
