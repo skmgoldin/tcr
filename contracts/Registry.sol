@@ -150,7 +150,8 @@ contract Registry {
     function initApplication(bytes32 _hash, uint deposit, address _applicant) private {
         require(appPool[_hash].owner == 0); // prevent repeat applications
         require(token.transferFrom(_applicant, this, deposit)); // pay deposit
-        setAppAttr(_hash, _applicant);
+        appPool[_hash].challengeTime = now + paramSnapshots[_hash].challengeLen;
+        appPool[_hash].owner = _applicant;
     }
 
     // called by adtoken holder to challenge an application
@@ -228,22 +229,21 @@ contract Registry {
     // iff the domain's challenge period has passed without a challenge
     function moveToRegistry(string _domain) public {
         bytes32 domainHash = sha3(_domain);
-        require(appPool[domainHash].challengeTime < now); 
+        require(challengePdExpired(domainHash)); 
         require(appPool[domainHash].challenged == false);
         // prevents moving a domain to the registry without ever applying
         require(appPool[domainHash].owner != 0);
-        // prevent applicant from moving to registry multiple times
         add(domainHash, appPool[domainHash].owner);
+        // prevent applicant from moving to registry multiple times
         delete appPool[domainHash].owner; // remove from appPool
     }
 
     // helper function to moveToRegistry() and processResult()
-    // add a domain to whitelist or update renewal attributes
+    // add a domain to whitelist
     function add(bytes32 _domainHash, address _owner) private {
-        uint expiration = paramSnapshots[_domainHash].registryLen;
-        whitelist[_domainHash].expTime = now + expiration;
         whitelist[_domainHash].deposit = paramSnapshots[_domainHash].minDeposit;
         whitelist[_domainHash].owner = _owner;
+        whitelist[_domainHash].isValid = true;
     }
 
 /* Token Distribution Functions
@@ -324,6 +324,12 @@ contract Registry {
 
     // STATIC
 
+    //returns true if challenge period was started and has expired
+    function challengePdExpired(bytes32 _hash) private returns(bool) {
+        return appPool[_hash].challengeTime != 0 
+                && appPool[_hash].challengeTime < now;
+    }
+
     // returns true if Application is for domain and not parameter
     function isDomainApp(bytes32 _hash) private constant returns(bool){
         return bytes(appPool[_hash].parameter).length == 0;  // checks if param string is initialized
@@ -342,13 +348,6 @@ contract Registry {
     function initializeSnapshot(bytes32 _hash) private {
         initializeSnapshotParam(_hash);  // maybe put the two together
         paramSnapshots[_hash].registryLen = Parameters[REGISTRYLEN_h];
-    }
-
-    // set the challenge end time and the owner of an application
-    function setAppAttr(bytes32 _hash, address _applicant) private {
-        delete appPool[_hash].challenged;
-        appPool[_hash].challengeTime = now + paramSnapshots[_hash].challengeLen;
-        appPool[_hash].owner = _applicant;
     }
 
 

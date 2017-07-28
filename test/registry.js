@@ -69,7 +69,7 @@ contract('Registry', (accounts) => {
   });
 
   it("should allow a domain to apply", () => {
-    const domain = 'consensys.net' //domain to apply with
+    const domain = 'nochallenge.net' //domain to apply with
     let registry;
     let token;
     let depositAmount = 50;
@@ -92,7 +92,7 @@ contract('Registry', (accounts) => {
       assert.equal(result[1], false , "challenged != false");
       assert.equal(result[2]*1000> Date.now(), true , "challenge time < now");
       assert.equal(result[3]==0x0000000000000000000000000000000000000000, true , "challenger = zero address");
-      assert.equal(result[4]=='consensys.net', true , "domain is not right");
+      assert.equal(result[4]=='nochallenge.net', true , "domain is not right");
     })
     .then(() => registry.toHash.call(domain))
     .then((hash) => registry.paramSnapshots.call(hash))
@@ -128,7 +128,7 @@ contract('Registry', (accounts) => {
   });
 
   it("should not let address apply with domains that are already in appPool", () => {
-    const domain = 'consensys.net'
+    const domain = 'nochallenge.net'
     let registry;
     let token;
     let depositAmount = 50;
@@ -155,6 +155,55 @@ contract('Registry', (accounts) => {
     .then((balance) => assert.equal(balance, minimalDeposit, "why is there more money in my wallet"))
   });
 
+  it("should add time to evm then not allow to challenge because challenge time passed", () => {
+    const domain = "nochallenge.net";
+    let registry;
+    return new Promise((resolve, reject) => { 
+      return ethRPC.sendAsync({
+        method: 'evm_increaseTime',
+        params: [40000]
+      }, (err, res) => {
+        if (err) reject(err)
+        resolve(res)
+      })
+    })
+    .then(() => {
+      return new Promise((resolve, reject) => { 
+      return ethRPC.sendAsync({
+        method: 'evm_mine',
+        params: []
+      }, (err, res) => {
+        if (err) reject(err)
+        resolve(res)
+      })
+    })
+    })
+    return Registry.deployed()
+    .then((_registry) => registry = _registry)
+    .then(() => Token.deployed())
+    .then((_token) => token = _token)
+    .then(() => token.transfer(accounts[3], depositAmount, {from: accounts[0]}))
+    .then(() => {
+       token.approve(registry.address, depositAmount, {from: accounts[3]})
+       return registry.challengeDomain(domain, {from: accounts[3]}); //should fail! error handle
+    })
+    .catch((error) => console.log('\tSuccess: failed to allow challenge to start'))
+  });
+
+  it("should move to registry when challenge time is over", () => {
+    const domain = "nochallenge.net";
+    let registry;
+    return Registry.deployed()
+    .then((_registry) => registry = _registry)
+    .then(() => registry.moveToRegistry(domain))
+    .then((result) => registry.isInRegistry.call(domain))
+    .then((result) => assert.equal(result, true , "it's not in the registry."))
+    //has the domain so we can identify in appPool
+    .then(() => registry.toHash.call(domain))
+    .then((hash) => registry.appPool.call(hash))
+    .then((result) => assert.equal(result[0], 0x0000000000000000000000000000000000000000 , 
+      "owner of application != address that applied"))
+  });
 
 /*  
   it("should allow a address to challenge", () => {
@@ -272,55 +321,7 @@ contract('Registry', (accounts) => {
     .then(() => registry.apply(domain, {from: accounts[1]}))
   });
 
-  it("should add time to evm then not allow to challenge because challenge time passed", () => {
-    const domain = "nochallenge.net";
-    let registry;
-    return new Promise((resolve, reject) => { 
-      return ethRPC.sendAsync({
-        method: 'evm_increaseTime',
-        params: [40000]
-      }, (err, res) => {
-        if (err) reject(err)
-        resolve(res)
-      })
-    })
-    .then(() => {
-      return new Promise((resolve, reject) => { 
-      return ethRPC.sendAsync({
-        method: 'evm_mine',
-        params: []
-      }, (err, res) => {
-        if (err) reject(err)
-        resolve(res)
-      })
-    })
-    })
-    return Registry.deployed()
-    .then((_registry) => registry = _registry)
-    .then(() => Token.deployed())
-    .then((_token) => token = _token)
-    .then(() => token.transfer(accounts[3], depositAmount, {from: accounts[0]}))
-    .then(() => {
-       token.approve(registry.address, depositAmount, {from: accounts[3]})
-       return registry.challengeDomain(domain, {from: accounts[3]}); //should fail! error handle
-    })
-    .catch((error) => console.log('\tSuccess: failed to allow challenge to start'))
-  });
 
-  it("should move to registry when challenge time is over", () => {
-    const domain = "nochallenge.net";
-    let registry;
-    return Registry.deployed()
-    .then((_registry) => registry = _registry)
-    .then(() => registry.moveToRegistry(domain))
-    .then((result) => registry.isInRegistry.call(domain))
-    .then((result) => assert.equal(result, true , "it's not in the registry."))
-    //has the domain so we can identify in appPool
-    .then(() => registry.toHash.call(domain))
-    .then((hash) => registry.appPool.call(hash))
-    .then((result) => assert.equal(result[0], 0x0000000000000000000000000000000000000000 , 
-      "owner of application != address that applied"))
-  });
 
 // it ("should add more time to evm until expire off the whitelist")
 
