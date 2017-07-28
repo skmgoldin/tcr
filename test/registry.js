@@ -92,7 +92,7 @@ contract('Registry', (accounts) => {
       assert.equal(result[1], false , "challenged != false");
       assert.equal(result[2]*1000> Date.now(), true , "challenge time < now");
       assert.equal(result[3]==0x0000000000000000000000000000000000000000, true , "challenger = zero address");
-      assert.equal(result[4]=='nochallenge.net', true , "domain is not right");
+      assert.equal(result[5]=='nochallenge.net', true , "domain is not right");
     })
     .then(() => registry.toHash.call(domain))
     .then((hash) => registry.paramSnapshots.call(hash))

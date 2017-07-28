@@ -52,6 +52,7 @@ contract Registry {
         bool challenged;
         uint challengeTime; //End of challenge period
         address challenger;
+        uint challengeDeposit;
         string domain;
 
         // for parameter changes
@@ -160,7 +161,14 @@ contract Registry {
     // initialize vote to accept/reject a domain to the registry
     function challengeDomain(string _domain) public returns(uint) {
         bytes32 domainHash = sha3(_domain);
-        challenge(domainHash, paramSnapshots[domainHash].minDeposit, msg.sender);
+        if (whitelist[domainHash].isValid && appPool[domainHash].challengeTime == 0)
+        {//domain is already in the whitelist, use min deposit from parameter mapping
+            rechallenge(domainHash, Parameters[MINDEPOSIT_h], msg.sender);
+        }
+        else 
+        {//domain is not in the whitelist, use min deposit from snapshot
+            challenge(domainHash, paramSnapshots[domainHash].minDeposit, msg.sender);
+        }
         // start a vote
         uint pollID = callVote(_domain 
         ,paramSnapshots[domainHash].majority
@@ -172,24 +180,31 @@ contract Registry {
 
     // helper function to challengeDomain() and challengeProposal()
     // transfer tokens & update application status 
+    // challenge an applicant applying for the first time
     function challenge(bytes32 _hash, uint deposit, address _challenger) private {
         // take tokens from challenger
         require(token.transferFrom(_challenger, this, deposit));
 
-        if (whitelist[_hash].isValid && appPool[_hash].challengeTime == 0)
-        {//domain is already in the registry
-            //set the owner, challenged, challengeTime, challenger
-            appPool[_hash].owner = whitelist[_hash].owner;
-        }
-        else 
-        {
-            // prevent someone from challenging an unintialized application, rechallenging,
-            // or challenging after the challenge period has ended
-            require(appPool[_hash].owner != 0);
-            require(appPool[_hash].challenged == false);
-            require(!challengePdExpired(_hash));
-        }
+        // prevent someone from challenging an unintialized application, rechallenging,
+        // or challenging after the challenge period has ended
+        require(appPool[_hash].owner != 0);
+        require(appPool[_hash].challenged == false);
+        require(!challengePdExpired(_hash));
         
+        // update application status 
+        appPool[_hash].challenged = true;
+        appPool[_hash].challenger = _challenger;
+    }
+
+    // helper function to challengeDomain() and challengeProposal()
+    // transfer tokens & update application status 
+    // challenge an applicant already on the whitelist
+    function rechallenge(bytes32 _hash, uint deposit, address _challenger) private {
+        // take tokens from challenger
+        require(token.transferFrom(_challenger, this, deposit));
+        //set the owner, challenged, challengeTime, challenger
+        appPool[_hash].owner = whitelist[_hash].owner;
+
         // update application status 
         appPool[_hash].challenged = true;
         appPool[_hash].challenger = _challenger;
