@@ -167,7 +167,7 @@ contract('Registry', (accounts) => {
     .then(() => token.transfer(accounts[2], depositAmount, {from: accounts[0]}))
     .then(() => token.approve(registry.address, depositAmount, {from: accounts[2]}))
     //challenge the current application of "consensys.net" with account 2
-    .then(() => registry.challengeApplication(domain, {from: accounts[2]}))
+    .then(() => registry.challengeDomain(domain, {from: accounts[2]}))
     .then(() => registry.toHash.call(domain))
     .then((hash) => registry.appPool.call(hash))
     .then((result) =>
@@ -203,7 +203,7 @@ contract('Registry', (accounts) => {
     .then(() => Token.deployed())
     .then((_token) => token = _token)
     .then(() => token.approve(registry.address, depositAmount, {from: accounts[3]}))
-    .then(() => registry.challengeApplication(domain, {from: accounts[3]})) //should fail! error handle
+    .then(() => registry.challengeDomain(domain, {from: accounts[3]})) //should fail! error handle
     .catch((error) => console.log('\tSuccess: failed to rechallenge'))
   });
 
@@ -228,8 +228,8 @@ contract('Registry', (accounts) => {
     .then(() => Token.deployed())
     .then((_token) => token = _token)
     .then(() => token.approve(registry.address, depositAmount, {from: accounts[3]}))
-    .then(() => registry.challengeApplication(domain, {from: accounts[3]}))
-    .catch((error) => console.log('failed'))
+    .then(() => registry.challengeDomain(domain, {from: accounts[3]}))
+    .catch((error) => console.log('\tSuccess: failed to rechallenge'))
   });
 
   it("should processResult then see that it's on the whitelist", () => {
@@ -300,12 +300,12 @@ contract('Registry', (accounts) => {
     .then(() => token.transfer(accounts[3], depositAmount, {from: accounts[0]}))
     .then(() => {
        token.approve(registry.address, depositAmount, {from: accounts[3]})
-       return registry.challengeApplication(domain, {from: accounts[3]}); //should fail! error handle
+       return registry.challengeDomain(domain, {from: accounts[3]}); //should fail! error handle
     })
-    .catch((error) => console.log('Success: failed to allow challenge to start'))
+    .catch((error) => console.log('\tSuccess: failed to allow challenge to start'))
   });
 
-  it("should move to registry now challenge time is over", () => {
+  it("should move to registry noiw challenge time is over", () => {
     const domain = "nochallenge.net";
     let registry;
     return Registry.deployed()

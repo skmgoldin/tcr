@@ -155,7 +155,7 @@ contract Registry {
 
     // called by adtoken holder to challenge an application
     // initialize vote to accept/reject a domain to the registry
-    function challengeApplication(string _domain) public returns(uint) {
+    function challengeDomain(string _domain) public returns(uint) {
         bytes32 domainHash = sha3(_domain);
         challenge(domainHash, paramSnapshots[domainHash].minDeposit, msg.sender);
         // start a vote
@@ -167,7 +167,7 @@ contract Registry {
         return pollID;
     }
 
-    // helper function to challengeApplication() and challengeProposal()
+    // helper function to challengeDomain() and challengeProposal()
     // transfer tokens update application status 
     function challenge(bytes32 _hash, uint deposit, address _challenger) private {
         // take tokens from challenger
