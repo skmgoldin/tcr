@@ -205,7 +205,31 @@ contract('Registry', (accounts) => {
       "owner of application != address that applied"))
   });
 
-/*  
+  it("should apply with another domain", () => {
+    const domain = 'consensys.net'
+    let registry;
+    let token;
+    let depositAmount = 50;
+    return Registry.deployed()
+    .then((_registry) => registry = _registry)
+    .then(() => Token.deployed())
+    .then((_token) => token = _token)
+    .then(() => token.transfer(accounts[1], depositAmount, {from: accounts[0]}))
+    .then(() => token.approve(registry.address, depositAmount, {from: accounts[1]}))
+    .then(() => registry.apply(domain, {from: accounts[1]}))
+  });
+
+  it("should check that the wallet now has 2x minimal deposit", () => {
+    let token;
+    let minimalDeposit = 50*2;
+    return Registry.deployed()
+    .then((_registry) => registry = _registry)
+    .then(() => Token.deployed())
+    .then((_token) => token = _token)
+    .then(() => token.balanceOf.call(registry.address))
+    .then((balance) => assert.equal(balance, minimalDeposit, balance.toString(10)))
+  }); 
+
   it("should allow a address to challenge", () => {
     const domain = 'consensys.net'
     let registry;
@@ -233,15 +257,15 @@ contract('Registry', (accounts) => {
     .then((balance) => assert.equal(balance, 50, "balance not equal to the 50 from before"))
   });
 
-  it("should check that the wallet now has 2x minimal deposit", () => {
+  it("should check that the wallet now has 3x minimal deposit", () => {
     let token;
-    let minimalDeposit = 50*2;
+    let minimalDeposit = 50*3;
     return Registry.deployed()
     .then((_registry) => registry = _registry)
     .then(() => Token.deployed())
     .then((_token) => token = _token)
     .then(() => token.balanceOf.call(registry.address))
-    .then((balance) => assert.equal(balance, minimalDeposit, "why is there money in my wallet"))
+    .then((balance) => assert.equal(balance, minimalDeposit, balance.toString(10)))
   });
 
   it("should not let people challenge an already challenged domain", () => {
@@ -260,7 +284,7 @@ contract('Registry', (accounts) => {
 
   it("should check that the wallet balance did not increase due to failed challenge", () => {
     let token;
-    let minimalDeposit = 50*2;
+    let minimalDeposit = 50*3;
     return Registry.deployed()
     .then((_registry) => registry = _registry)
     .then(() => Token.deployed())
@@ -282,7 +306,7 @@ contract('Registry', (accounts) => {
     .then(() => registry.challengeDomain(domain, {from: accounts[3]}))
     .catch((error) => console.log('\tSuccess: failed to rechallenge'))
   });
-
+/*
   it("should processResult then see that it's on the whitelist", () => {
     let registry;
     const domain = "consensys.net"
@@ -306,22 +330,6 @@ contract('Registry', (accounts) => {
     .then((hash)=> registry.appPool.call(hash)) 
     .then((result) => assert.equal(result[0], 0x0000000000000000000000000000000000000000 , "owner of application != address that applied"))
   });
-
-  it("should apply with another domain", () => {
-    const domain = 'nochallenge.net'
-    let registry;
-    let token;
-    let depositAmount = 50;
-    return Registry.deployed()
-    .then((_registry) => registry = _registry)
-    .then(() => Token.deployed())
-    .then((_token) => token = _token)
-    .then(() => token.transfer(accounts[1], depositAmount, {from: accounts[0]}))
-    .then(() => token.approve(registry.address, depositAmount, {from: accounts[1]}))
-    .then(() => registry.apply(domain, {from: accounts[1]}))
-  });
-
-
 
 // it ("should add more time to evm until expire off the whitelist")
 

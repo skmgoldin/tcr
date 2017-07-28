@@ -7,7 +7,10 @@ import "./Test.sol";
 =======
  TO DO
 =======
-
+A challenger's challenge deposit should match the *current* deposit parameter 
+at the time the challenge is made.
+If when a challenge is made the listing's deposit is less than the current 
+deposit parameter, the listing owner must top-up their deposit or they will automatically lose the challenge at the end of the reveal period.
 */
 
 
@@ -36,13 +39,12 @@ contract Registry {
  */
     struct Publisher {
         address owner;
-        uint expTime;
         uint deposit;
+        bool isValid; 
 
         uint nextExpTime; //
         uint prevDeposit; // total withdrawable amount
         uint nextDeposit; //
-        bool isValid; 
     }
 
     struct Application {
@@ -169,17 +171,25 @@ contract Registry {
     }
 
     // helper function to challengeDomain() and challengeProposal()
-    // transfer tokens update application status 
+    // transfer tokens & update application status 
     function challenge(bytes32 _hash, uint deposit, address _challenger) private {
         // take tokens from challenger
         require(token.transferFrom(_challenger, this, deposit));
 
-        // prevent someone from challenging an unintialized application, rechallenging,
-        // or challenging after the challenge period has ended
-        require(appPool[_hash].owner != 0);
-        require(appPool[_hash].challenged == false);
-        require(appPool[_hash].challengeTime > now);
-
+        if (whitelist[_hash].isValid && appPool[_hash].challengeTime == 0)
+        {//domain is already in the registry
+            //set the owner, challenged, challengeTime, challenger
+            appPool[_hash].owner = whitelist[_hash].owner;
+        }
+        else 
+        {
+            // prevent someone from challenging an unintialized application, rechallenging,
+            // or challenging after the challenge period has ended
+            require(appPool[_hash].owner != 0);
+            require(appPool[_hash].challenged == false);
+            require(!challengePdExpired(_hash));
+        }
+        
         // update application status 
         appPool[_hash].challenged = true;
         appPool[_hash].challenger = _challenger;
@@ -235,7 +245,7 @@ contract Registry {
         require(appPool[domainHash].owner != 0);
         add(domainHash, appPool[domainHash].owner);
         // prevent applicant from moving to registry multiple times
-        delete appPool[domainHash].owner; // remove from appPool
+        removeApplication(domainHash);
     }
 
     // helper function to moveToRegistry() and processResult()
@@ -325,9 +335,9 @@ contract Registry {
     // STATIC
 
     //returns true if challenge period was started and has expired
-    function challengePdExpired(bytes32 _hash) private returns(bool) {
-        return appPool[_hash].challengeTime != 0 
-                && appPool[_hash].challengeTime < now;
+    function challengePdExpired(bytes32 _hash) private constant returns(bool) {
+        require(appPool[_hash].challengeTime != 0);
+        return appPool[_hash].challengeTime < now;
     }
 
     // returns true if Application is for domain and not parameter
@@ -346,8 +356,15 @@ contract Registry {
 
     // Initialize snapshot of parameters for each application
     function initializeSnapshot(bytes32 _hash) private {
-        initializeSnapshotParam(_hash);  // maybe put the two together
+        initializeSnapshotParam(_hash); // maybe put the two together
         paramSnapshots[_hash].registryLen = Parameters[REGISTRYLEN_h];
+    }
+
+    //
+    function removeApplication(bytes32 _hash) private {
+        delete appPool[_hash].owner; // remove from appPool
+        delete appPool[_hash].challengeTime;
+        delete appPool[_hash].challenged;
     }
 
 
