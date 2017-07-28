@@ -139,13 +139,19 @@ contract Registry {
     // called by applicant to add to application pool on success
     function apply(string _domain) public {
         bytes32 domainHash = sha3(_domain);
-        // must be a new member of the whitelist
-        require(whitelist[domainHash].owner == 0); //not on whitelist
-        require(appPool[domainHash].owner == 0); //not in appPool
-        // initialize with the current values of all parameters
-        initializeSnapshot(domainHash);
-        initApplication(domainHash, paramSnapshots[domainHash].minDeposit, msg.sender);
-        appPool[domainHash].domain = _domain;
+        require(appPool[domainHash].owner == 0); // not in appPool
+        // check if new applicant or renewal
+        if (whitelist[domainHash].owner == 0)  // new applicant
+        {
+            // initialize with the current values of all parameters
+            initializeSnapshot(domainHash);
+            initApplication(domainHash, paramSnapshots[domainHash].minDeposit, msg.sender);
+            appPool[domainHash].domain = _domain;
+        }
+        else  // renewal
+        {
+            renew(domainHash);
+        }
     }
 
     // helper function to apply() and proposeUpdate()
@@ -158,7 +164,7 @@ contract Registry {
 
     // called by owner of a domain on the whitelist
     // make necessary token transfers and initialize application for renewal in the appPool
-    function renew (string _domain) {
+    function renew (bytes32 _domainHash) private {
         bytes32 domainHash = sha3(_domain);
         require(hasRenewal(domainHash) == false); //prevent duplicate renewals
         require(msg.sender == whitelist[domainHash].owner); // must be the owner of the domain
