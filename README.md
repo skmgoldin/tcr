@@ -34,12 +34,10 @@
 
 ## Reapplication Process
 
-1.  A publisher must call ```renew()``` rather than ```apply()``` if they are already on the whitelist or
-    have ever previously been listed on the whitelist.  It can be called regardless of whether the current listing is 
-    expired or not, and it has two advantages for the publisher - it allows a publisher's locked deposit to be used
-    towards the renewal's deposit before the listing has expired, and it allows a publisher to stack another whitelist
-    listing on top of their current one that can be activated as soon as the current expires.
-
+1.  When publisher calls ```apply()``` if they are already on the whitelist or have ever been on the whitelist, the behavior       is slightly different. It can be called regardless of whether the current listing is expired or not, and it has two 
+    advantages for the publisher - it allows a publisher's locked deposit to be used towards the renewal's deposit before the     listing has expired, and it allows a publisher to stack another whitelist listing on top of their current one that can be 
+    activated as soon as the current expires.
+    
 2.  A publisher can only have one renew application / not activated renewal at once that extends their listing.  This  
     can be checked with ```hasRenewal()```.
 
@@ -50,8 +48,13 @@
     their current listing has expired. 
 
 
-4.  The publisher activates their renewal by calling ```activateRenewal()```, meaning their registry expiry is extended to 
-    nextExpTime and their number of locked tokens becomes the number commited with the renewal application.
+4.  The publisher activates their renewal after the current whitelist period is over by calling ```activateRenewal()```,
+    meaning their registry data is now updated - they can now call ```apply()``` again, or withdraw their newly unlocked
+    tokens through ```claimDeposit()```.  
+
+5.  Even if ```activateRenewal()``` has not been called yet, ```isVerified()``` will still return true until the end of
+    both the current whitelist period and the renewal period so that the publisher will stay on the whitelist through the
+    transition, regardless of how quick they are to call ```activateRenewal()```.
 
 5.  They may now start a new renewal if they wish.
 
