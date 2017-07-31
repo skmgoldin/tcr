@@ -74,10 +74,10 @@ contract('Registry', (accounts) => {
     .then(() => token.approve(registry.address, depositAmount, {from: accounts[1]}))
     //apply with accounts[1]
     .then(() => registry.apply(domain, {from: accounts[1]}))
-    //hash the domain so we can identify in domainMap
+    //hash the domain so we can identify in listingMap
     .then(() => '0x' + abi.soliditySHA3(["string"], [domain]).toString('hex'))
     //get the struct in the mapping
-    .then((hash) => registry.domainMap.call(hash))
+    .then((hash) => registry.listingMap.call(hash))
     //check that Application is initialized correctly
     .then((result) => {
       assert.equal(result[0]*1000> Date.now(), true , "challenge time < now");
@@ -102,7 +102,7 @@ contract('Registry', (accounts) => {
     .then((balance) => assert.equal(balance, minimalDeposit, "where is my minimal deposit?"))
   });
 
-  it("should not let address apply with domains that are already in domainMap", () => {
+  it("should not let address apply with domains that are already in listingMap", () => {
     const domain = 'nochallenge.net'
     let registry;
     let token;
@@ -163,6 +163,20 @@ contract('Registry', (accounts) => {
        return registry.challenge(domain, {from: accounts[3]}); //should fail! error handle
     })
     .catch((error) => console.log('\tSuccess: failed to allow challenge to start'))
+  });
+
+  it("should apply, withdraw, and then get delisted by challenge", async () => {
+    const domain = 'withdraw.net' //domain to apply with
+    let depositAmount = minDeposit;
+    registry = await Registry.deployed()
+    token = await Token.deployed();
+    //transfer 50 to accounts[2] from account[0]
+    await token.transfer(accounts[2], depositAmount, {from: accounts[0]});
+    await token.approve(registry.address, depositAmount, {from: accounts[2]});
+    //apply with accounts[2]
+    await registry.apply(domain, {from: accounts[2]});
+    
+
   });
 
   

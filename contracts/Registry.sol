@@ -2,18 +2,6 @@ pragma solidity ^0.4.11;
 import "./StandardToken.sol";
 import "./PLCRVoting.sol";
 
-/*
-=======
- TO DO
-=======
-A challenger's challenge deposit should match the *current* deposit parameter 
-at the time the challenge is made.
-If when a challenge is made the listing's deposit is less than the current 
-deposit parameter, the listing owner must top-up their deposit or they will automatically lose the challenge at the end of the reveal period.
-*/
-
-
-
 contract Registry {
     
     struct Params {
@@ -34,15 +22,17 @@ contract Registry {
     }
 
     struct Challenge {
-        uint rewardPool;    // pool of tokens distributed amongst winning voters
-        address challenger; // owner of Challenge
+        // uint rewardPool;        // pool of tokens distributed amongst winning voters
+        address challenger;     // owner of Challenge
+        bool resolved;          // indication of if challenge is resolved
+        uint stake;             // number of tokens at risk for either party during challenge
     }
 
     // maps challengeIDs to associated challenge data
     mapping(uint => Challenge) challengeMap; 
 
     // maps domainHashes to associated listing data
-    mapping(bytes32 => Listing) public domainMap;
+    mapping(bytes32 => Listing) public listingMap;
 
     // ------------
     // CONSTRUCTOR:
@@ -82,8 +72,7 @@ contract Registry {
         require(!isWhitelisted(domain));
         require(!appExists(domain));
 
-        bytes32 domainHash = sha3(domain);
-        Listing listing = domainMap[domainHash];
+        Listing listing = listingMap[sha3(domain)];
         listing.owner = msg.sender;
 
         uint minDeposit = canonicalParams.minDeposit;
