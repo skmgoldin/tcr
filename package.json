@@ -1,0 +1,22 @@
+{
+  "name": "AdChainRegistry",
+  "version": "0.0.1",
+  "description": "AdChain node module",
+  "scripts": {
+    "test": "test",
+    "lint": "eslint --fix"
+  },
+  "author": "Irene Lin <irene.lin@consensys.net>, Mira Zeitlin <miranda.zeitlin@consensys.net>, Yorke Rhodes <yorke.rhodesiv@consensys.net>",
+  "license": "ISC",
+  "dependencies": {
+    "bn.js": "4.11.6",
+    "ethereumjs-abi": "0.6.4",
+    "ethjs-provider-http": "^0.1.6",
+    "ethjs-query": "^0.2.6",
+    "ethjs-rpc": "^0.1.5",
+    "ethjs-util": "^0.1.4"
+  },
+  "devDependencies": {
+    "eslint-config-vidroll": "1.0.0"
+  }
+}
