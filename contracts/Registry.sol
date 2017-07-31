@@ -83,19 +83,22 @@ contract Registry {
     }
 
     function deposit(string domain, uint amount) external {
-        bytes32 domainHash = sha3(domain);
-        Listing listing = domainMap[domainHash];
+        Listing listing = listingMap[sha3(domain)];
 
         require(listing.owner == msg.sender);
-        listing.currentDeposit += amount;   
+        require(token.transferFrom(msg.sender, this, amount));
+
+        listing.currentDeposit += amount;
     }
 
     function withdraw(string domain, uint amount) external {
-        bytes32 domainHash = sha3(domain);
-        Listing listing = domainMap[domainHash];
+        Listing listing = listingMap[sha3(domain)];
 
         require(listing.owner == msg.sender);
-        listing.currentDeposit -= amount;   
+        require(amount <= listing.currentDeposit);
+        require(token.transfer(msg.sender, amount));
+
+        listing.currentDeposit -= amount;
     }
 
     // -----------------------
@@ -104,45 +107,83 @@ contract Registry {
 
     function challenge(string domain) external returns (uint challengeID) {
         bytes32 domainHash = sha3(domain);
-        Listing listing = domainMap[domainHash];
+        Listing listing = listingMap[domainHash];
 
-        require(appExists(domain) || listing.whitelisted);
+        require(appExists(domain) || listing.whitelisted);       
+        require(challengeMap[listing.challengeID].resolved);     // prevent multiple challenges
 
-        uint deposit = listing.currentDeposit;
+        if (listing.currentDeposit < canonicalParams.minDeposit) {
+            resetListing(domain);
+            return 0;               // publisher was auto-delisted
+        }
+
+        uint deposit = canonicalParams.minDeposit;
         require(token.transferFrom(msg.sender, this, deposit));
 
-        uint pollID = voting.startPoll(
-            domain, 
+        uint pollID = voting.startPoll(domain, 
             canonicalParams.voteQuorum,
             canonicalParams.commitPeriodLen, 
             canonicalParams.revealPeriodLen
         );
 
-        challengeMap[pollID].challenger = msg.sender;
-        challengeMap[pollID].rewardPool = ((100 - canonicalParams.dispensationPct) * deposit) / 100;
-        
+        challengeMap[pollID] = Challenge({
+            challenger: msg.sender,
+            // rewardPool: ((100 - canonicalParams.dispensationPct) * deposit) / 100 
+            stake: deposit,
+            resolved: false
+        });
+
+        listingMap[domainHash].challengeID = pollID;      // update listing to store most recent challenge
+        listingMap[domainHash].currentDeposit -= deposit; // lock tokens for listing during challenge
+
         return pollID;
     }
 
-    function updateStatus(string domain) public {}
+    function updateStatus(string domain) public {
+        bytes32 domainHash = sha3(domain);
+        uint challengeID = listingMap[domainHash].challengeID;
+        require(!challengeMap[challengeID].resolved);  // require processed flag to be false      
+
+        // IF NO CHALLENGE AFTER APPLY STAGE
+        if (challengeID == 0 && isExpired(listingMap[domainHash].applicationExpiry)) {
+            listingMap[domainHash].whitelisted = true;
+        } else { 
+            uint stake = challengeMap[challengeID].stake;
+
+            if (voting.isPassed(challengeID)) {
+                listingMap[domainHash].whitelisted = true;
+                listingMap[domainHash].currentDeposit += stake; // give stake back to applicant
+            } else {
+                resetListing(domain); // whitelisted = false
+                require(token.transfer(challengeMap[challengeID].challenger, stake)); // give stake to challenger
+            }
+
+            challengeMap[challengeID].resolved = true; // set flag on challenge being processed
+        }
+    }
 
     // --------
     // HELPERS:
     // --------
 
     function isWhitelisted(string domain) constant public returns (bool whitelisted) {
-        return domainMap[sha3(domain)].whitelisted;
+        return listingMap[sha3(domain)].whitelisted;
     } 
 
     function appExists(string domain) constant public returns (bool exists) {
-        return domainMap[sha3(domain)].applicationExpiry > 0;
+        return listingMap[sha3(domain)].applicationExpiry > 0;
     }
 
-    // function updateDeposit(string domain, int amount) internal {
-    //     bytes32 domainHash = sha3(domain);
-    //     Listing listing = domainMap[domainHash];
+    function isExpired(uint termDate) constant public returns (bool expired) {
+        return termDate > block.timestamp;
+    }
 
-    //     require(listing.owner == msg.sender);
-    //     domainMap[domain] += amount;
-    // }
+    function resetListing(string domain) internal {
+        bytes32 domainHash = sha3(domain);
+        Listing listing = listingMap[domainHash];
+
+        require(token.transfer(listing.owner, listing.currentDeposit));
+
+        delete listingMap[domainHash];
+    }
 }
