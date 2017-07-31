@@ -1,0 +1,16 @@
+{
+	"RegistryDefaults": {
+		"minDeposit": 50,
+		"applyStageLength": 50,
+		"commitPeriodLength": 50,
+		"revealPeriodLength": 50,
+		"dispensationPct": 50,
+		"voteQuorum": 50
+	},
+	"TokenArguments": {
+		"totalSupply": 10000,
+		"name": "adtoken",
+		"decimalUnits": 3,
+		"symbol": "ADT"
+	}
+}
