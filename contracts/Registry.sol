@@ -161,9 +161,10 @@ contract Registry {
 
         challengeMap[pollID] = Challenge({
             challenger: msg.sender,
-            // rewardPool: ((100 - canonicalParams.dispensationPct) * deposit) / 100 
+            rewardPool: ((100 - canonicalParams.dispensationPct) * deposit) / 100, 
             stake: deposit,
-            resolved: false
+            resolved: false,
+            remainder: 0
         });
 
         listingMap[domainHash].challengeID = pollID;      // update listing to store most recent challenge
@@ -186,7 +187,7 @@ contract Registry {
             
             // winner gets back their full staked deposit, and dispensationPct*loser's stake
             // (1-dispensationPct)*loser's stake = rewardPool
-            uint stake = 2*challengeMap[challengeID].stake - rewardPool;
+            uint stake = 2*challengeMap[challengeID].stake - challengeMap[challengeID].rewardPool;
 
             if (voting.isPassed(challengeID)) {
                 listingMap[domainHash].whitelisted = true;
@@ -214,9 +215,8 @@ contract Registry {
     // number of tokens person used to vote / total number of tokens for winning side
     // scale using distribution number, give the tokens
     function calculateTokens(uint _challengeID, uint _salt, address _voter) private returns(uint) {
-        uint256 stake = challengeMap[_challengeID].stake;
         uint256 totalTokens = voting.getTotalNumberOfTokensForWinningOption(_challengeID);
-        uint256 voterTokens = voting.getNumPassingTokens(_challengeID, _salt, _voter);
+        uint256 voterTokens = voting.getNumPassingTokens(_voter, _challengeID, _salt);
 
         uint256 rewardPool = challengeMap[_challengeID].rewardPool * MULTIPLIER;
         uint256 numerator = voterTokens * rewardPool; 
