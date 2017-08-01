@@ -3,15 +3,6 @@ import "./StandardToken.sol";
 import "./PLCRVoting.sol";
 
 contract Registry {
-    
-    struct Params {
-        uint minDeposit;        // minimum deposit for listing to be whitelisted  
-        uint applyStage;        // length of period in which applicants wait to be whitelisted
-        uint dispensationPct;   // percentage of losing party's deposit distributed to winning party
-        uint commitPeriodLen;   // length of commit period for voting
-        uint revealPeriodLen;   // length of reveal period for voting
-        uint voteQuorum;        // type of majority out of 100 necessary for vote success
-    }
 
     struct Listing {
         uint applicationExpiry; // expiration date of apply stage
@@ -31,18 +22,25 @@ contract Registry {
 
     // maps challengeIDs to associated challenge data
     mapping(uint => Challenge) challengeMap; 
-
     // maps domainHashes to associated listing data
     mapping(bytes32 => Listing) public listingMap;
-
     // maps challengeIDs and address to token claim data
     mapping(uint => mapping(address => bool)) public tokenClaims;
+    // maps hash of parameter name to parameter value
+    mapping(bytes32 => uint) public Parameters;
 
     // Global Variables
-    Params canonicalParams;
     StandardToken token;
     PLCRVoting voting;
 
+    // Constants
+    bytes32 constant private MINDEPOSIT_h = sha3("minDeposit");
+    bytes32 constant private MINPARAMDEPOSIT_h = sha3("minParamDeposit");
+    bytes32 constant private APPLYSTAGELEN_h = sha3("applyStageLen");
+    bytes32 constant private COMMITPERIODLEN_h = sha3("commitPeriodLen");
+    bytes32 constant private REVEALPERIODLEN_h = sha3("revealPeriodLen");
+    bytes32 constant private DISPENSATIONPCT_h = sha3("dispensationPct");
+    bytes32 constant private VOTEQUORUM_h = sha3("voteQuorum"); 
     uint256 constant private MULTIPLIER = 10 ** 18;  // used to help represent doubles as ints in token rewards
 
     // ------------
@@ -52,23 +50,22 @@ contract Registry {
     function Registry(
         address _tokenAddr,
         uint _minDeposit,
-        uint _applyStageLength,
-        uint _commitPeriodLength,
-        uint _revealPeriodLength,
+        uint _minParamDeposit,
+        uint _applyStageLen,
+        uint _commitPeriodLen,
+        uint _revealPeriodLen,
         uint _dispensationPct,
         uint _voteQuorum
     ) {
         token = StandardToken(_tokenAddr);
         voting = new PLCRVoting(_tokenAddr);
-
-        canonicalParams = Params({
-            minDeposit: _minDeposit,
-            applyStage: _applyStageLength,
-            dispensationPct: _dispensationPct,
-            commitPeriodLen: _commitPeriodLength,
-            revealPeriodLen: _revealPeriodLength,
-            voteQuorum: _voteQuorum
-        });
+        Parameters[MINDEPOSIT_h] = _minDeposit;
+        Parameters[MINPARAMDEPOSIT_h] = _minParamDeposit;
+        Parameters[APPLYSTAGELEN_h] = _applyStageLen;
+        Parameters[DISPENSATIONPCT_h] = _dispensationPct;
+        Parameters[COMMITPERIODLEN_h] = _commitPeriodLen;
+        Parameters[REVEALPERIODLEN_h] = _revealPeriodLen;
+        Parameters[VOTEQUORUM_h] = _voteQuorum;
     }
 
     // --------------------
@@ -82,21 +79,21 @@ contract Registry {
         require(!appExists(domain));
 
         //set owner
-        Listing listing = listingMap[sha3(domain)];
+        Listing storage listing = listingMap[sha3(domain)];
         listing.owner = msg.sender; 
 
         //transfer tokens
-        uint minDeposit = canonicalParams.minDeposit;
+        uint minDeposit = Parameters[MINDEPOSIT_h];
         require(token.transferFrom(listing.owner, this, minDeposit)); 
 
         //set apply stage end time
-        listing.applicationExpiry = block.timestamp + canonicalParams.applyStage; 
+        listing.applicationExpiry = block.timestamp + Parameters[APPLYSTAGELEN_h]; 
         listing.currentDeposit = minDeposit;
     }
 
     //Allow the owner of a domain in the listing to increase their deposit
     function deposit(string domain, uint amount) external {
-        Listing listing = listingMap[sha3(domain)];
+        Listing storage listing = listingMap[sha3(domain)];
 
         require(listing.owner == msg.sender);
         require(token.transferFrom(msg.sender, this, amount));
@@ -108,7 +105,7 @@ contract Registry {
     //tokens not locked in a challenge.
     //The publisher's domain remains whitelisted
     function withdraw(string domain, uint amount) external {
-        Listing listing = listingMap[sha3(domain)];
+        Listing storage listing = listingMap[sha3(domain)];
 
         require(listing.owner == msg.sender);
         require(amount <= listing.currentDeposit);
@@ -120,7 +117,7 @@ contract Registry {
     //Allow the owner of a domain to remove the domain from the whitelist
     //Return all tokens to the owner
     function exit(string domain) external {
-        Listing listing = listingMap[sha3(domain)];
+        Listing storage listing = listingMap[sha3(domain)];
 
         require(isWhitelisted(domain));
         // cannot exit during ongoing challenge
@@ -138,30 +135,30 @@ contract Registry {
     //tokens are taken from the challenger and the publisher's tokens are locked
     function challenge(string domain) external returns (uint challengeID) {
         bytes32 domainHash = sha3(domain);
-        Listing listing = listingMap[domainHash];
+        Listing storage listing = listingMap[domainHash];
 
         //to be challenged, domain must be in apply stage or already on the whitelist
         require(appExists(domain) || listing.whitelisted);       
         require(challengeMap[listing.challengeID].resolved); // prevent multiple challenges
 
-        if (listing.currentDeposit < canonicalParams.minDeposit) {
+        if (listing.currentDeposit < Parameters[MINDEPOSIT_h]) {
             // not enough tokens, publisher auto-delisted
             resetListing(domain);
             return 0;               
         }
         //take tokens from challenger
-        uint deposit = canonicalParams.minDeposit;
+        uint deposit = Parameters[MINDEPOSIT_h];
         require(token.transferFrom(msg.sender, this, deposit));
         //start poll
         uint pollID = voting.startPoll(domain, 
-            canonicalParams.voteQuorum,
-            canonicalParams.commitPeriodLen, 
-            canonicalParams.revealPeriodLen
+            Parameters[VOTEQUORUM_h],
+            Parameters[COMMITPERIODLEN_h], 
+            Parameters[REVEALPERIODLEN_h]
         );
 
         challengeMap[pollID] = Challenge({
             challenger: msg.sender,
-            rewardPool: ((100 - canonicalParams.dispensationPct) * deposit) / 100, 
+            rewardPool: ((100 - Parameters[DISPENSATIONPCT_h]) * deposit) / 100, 
             stake: deposit,
             resolved: false,
             remainder: 0
@@ -270,7 +267,7 @@ contract Registry {
     //delete listing from whitelist and return tokens to owner
     function resetListing(string domain) internal {
         bytes32 domainHash = sha3(domain);
-        Listing listing = listingMap[domainHash];
+        Listing storage listing = listingMap[domainHash];
 
         require(token.transfer(listing.owner, listing.currentDeposit));
 

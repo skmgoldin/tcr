@@ -7,6 +7,7 @@ var Registry = artifacts.require("./Registry.sol");
 var Token = artifacts.require("./HumanStandardToken.sol")
 
 var minDeposit = 50;
+var minParamDeposit = 50;
 var applyStageLength = 50;
 var commitPeriodLength = 50;
 var revealPeriodLength = 50;

@@ -23,6 +23,7 @@ module.exports = function(deployer) {
             Registry,
             Token.address,
             registryConfig.minDeposit,
+            registryConfig.minParamDeposit,
             registryConfig.applyStageLength,
             registryConfig.commitPeriodLength,
             registryConfig.revealPeriodLength,
