@@ -119,8 +119,8 @@ contract Registry {
         require(isWhitelisted(domain));
         // cannot exit during ongoing challenge
         require(challengeMap[listing.challengeID].resolved); 
-        withdraw(domain, listing.currentDeposit);
 
+        //remove domain & return tokens
         resetListing(domain);
     }
 
@@ -128,22 +128,25 @@ contract Registry {
     // TOKEN HOLDER INTERFACE:
     // -----------------------
 
+    //start a poll for a domain in the apply stage or already on the whitelist
+    //tokens are taken from the challenger and the publisher's tokens are locked
     function challenge(string domain) external returns (uint challengeID) {
         bytes32 domainHash = sha3(domain);
         Listing listing = listingMap[domainHash];
 
+        //to be challenged, domain must be in apply stage or already on the whitelist
         require(appExists(domain) || listing.whitelisted);       
-        require(challengeMap[listing.challengeID].resolved);     // prevent multiple challenges
+        require(challengeMap[listing.challengeID].resolved); // prevent multiple challenges
 
         if (listing.currentDeposit < canonicalParams.minDeposit) {
-            // not enough tok, publisher auto-delisted
+            // not enough tokens, publisher auto-delisted
             resetListing(domain);
             return 0;               
         }
-
+        //take tokens from challenger
         uint deposit = canonicalParams.minDeposit;
         require(token.transferFrom(msg.sender, this, deposit));
-
+        //start poll
         uint pollID = voting.startPoll(domain, 
             canonicalParams.voteQuorum,
             canonicalParams.commitPeriodLen, 
@@ -163,6 +166,7 @@ contract Registry {
         return pollID;
     }
 
+    // whitelist domain if apply stage ended without a challenge
     function updateStatus(string domain) public {
         bytes32 domainHash = sha3(domain);
         uint challengeID = listingMap[domainHash].challengeID;
@@ -172,6 +176,7 @@ contract Registry {
         if (challengeID == 0 && isExpired(listingMap[domainHash].applicationExpiry)) {
             listingMap[domainHash].whitelisted = true;
         } else { 
+        // PROCESS THE RESULT OF THE POLL
             uint stake = challengeMap[challengeID].stake;
 
             if (voting.isPassed(challengeID)) {
@@ -190,18 +195,22 @@ contract Registry {
     // HELPERS:
     // --------
 
+    //return true if domain is whitelisted
     function isWhitelisted(string domain) constant public returns (bool whitelisted) {
         return listingMap[sha3(domain)].whitelisted;
     } 
 
+    //return true if apply(domain) was called for this domain
     function appExists(string domain) constant public returns (bool exists) {
         return listingMap[sha3(domain)].applicationExpiry > 0;
     }
 
+    //return true if termDate has passed
     function isExpired(uint termDate) constant public returns (bool expired) {
         return termDate > block.timestamp;
     }
 
+    //delete listing from whitelist and return tokens to owner
     function resetListing(string domain) internal {
         bytes32 domainHash = sha3(domain);
         Listing listing = listingMap[domainHash];
