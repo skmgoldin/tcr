@@ -34,13 +34,14 @@ contract Registry {
     // maps domainHashes to associated listing data
     mapping(bytes32 => Listing) public listingMap;
 
-    // ------------
-    // CONSTRUCTOR:
-    // ------------
-
+    //Global Variables
     Params canonicalParams;
     StandardToken token;
     PLCRVoting voting;
+
+    // ------------
+    // CONSTRUCTOR:
+    // ------------
 
     function Registry(
         address _tokenAddr,
@@ -82,6 +83,7 @@ contract Registry {
         listing.currentDeposit = minDeposit;
     }
 
+    //Allows the owner of a domain in the listing to increase their deposit
     function deposit(string domain, uint amount) external {
         Listing listing = listingMap[sha3(domain)];
 
@@ -91,14 +93,29 @@ contract Registry {
         listing.currentDeposit += amount;
     }
 
+    //Allows the owner of a domain in the listing to withdraw unlocked tokens
+    //The publisher's domain remains whitelisted
     function withdraw(string domain, uint amount) external {
         Listing listing = listingMap[sha3(domain)];
 
         require(listing.owner == msg.sender);
-        require(amount <= listing.currentDeposit);
+        //must maintain at least minDeposit number of tokens locked
+        require(amount <= listing.currentDeposit - canonicalParams.minDeposit);
         require(token.transfer(msg.sender, amount));
 
         listing.currentDeposit -= amount;
+    }
+
+    //Allows the owner of a domain to remove the domain from the whitelist
+    //Returns all tokens to the owner
+    function exit(string domain) external {
+        Listing listing = listingMap[sha3(domain)];
+
+        require(isWhitelisted(domain));
+        require(listing.owner == msg.sender);
+        require(token.transfer(msg.sender, listing.currentDeposit));
+
+        resetListing(domain);
     }
 
     // -----------------------
