@@ -1,6 +1,6 @@
 # AdChainRegistry
 
-![alt text](https://github.com/mzeitlin8/AdChainRegistry/blob/master/Registry.png)
+![alt text](https://github.com/mzeitlin8/AdChainRegistry/blob/indefiniteListing/Registry.png)
 
 
 ## Application Process
