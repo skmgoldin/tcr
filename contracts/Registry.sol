@@ -69,21 +69,26 @@ contract Registry {
     // PUBLISHER INTERFACE:
     // --------------------
 
+    //Allow a user to start an application
+    //take tokens from user and set apply stage end time
     function apply(string domain) external {
         require(!isWhitelisted(domain));
         require(!appExists(domain));
 
+        //set owner
         Listing listing = listingMap[sha3(domain)];
-        listing.owner = msg.sender;
+        listing.owner = msg.sender; 
 
+        //transfer tokens
         uint minDeposit = canonicalParams.minDeposit;
-        require(token.transferFrom(listing.owner, this, minDeposit));
-        
-        listing.applicationExpiry = block.timestamp + canonicalParams.applyStage;
+        require(token.transferFrom(listing.owner, this, minDeposit)); 
+
+        //set apply stage end time
+        listing.applicationExpiry = block.timestamp + canonicalParams.applyStage; 
         listing.currentDeposit = minDeposit;
     }
 
-    //Allows the owner of a domain in the listing to increase their deposit
+    //Allow the owner of a domain in the listing to increase their deposit
     function deposit(string domain, uint amount) external {
         Listing listing = listingMap[sha3(domain)];
 
@@ -93,27 +98,28 @@ contract Registry {
         listing.currentDeposit += amount;
     }
 
-    //Allows the owner of a domain in the listing to withdraw unlocked tokens
+    //Allow the owner of a domain in the listing to withdraw
+    //tokens not locked in a challenge.
     //The publisher's domain remains whitelisted
     function withdraw(string domain, uint amount) external {
         Listing listing = listingMap[sha3(domain)];
 
         require(listing.owner == msg.sender);
-        //must maintain at least minDeposit number of tokens locked
-        require(amount <= listing.currentDeposit - canonicalParams.minDeposit);
+        require(amount <= listing.currentDeposit);
         require(token.transfer(msg.sender, amount));
 
         listing.currentDeposit -= amount;
     }
 
-    //Allows the owner of a domain to remove the domain from the whitelist
-    //Returns all tokens to the owner
+    //Allow the owner of a domain to remove the domain from the whitelist
+    //Return all tokens to the owner
     function exit(string domain) external {
         Listing listing = listingMap[sha3(domain)];
 
         require(isWhitelisted(domain));
-        require(listing.owner == msg.sender);
-        require(token.transfer(msg.sender, listing.currentDeposit));
+        // cannot exit during ongoing challenge
+        require(challengeMap[listing.challengeID].resolved); 
+        withdraw(domain, listing.currentDeposit);
 
         resetListing(domain);
     }
@@ -130,8 +136,9 @@ contract Registry {
         require(challengeMap[listing.challengeID].resolved);     // prevent multiple challenges
 
         if (listing.currentDeposit < canonicalParams.minDeposit) {
+            // not enough tok, publisher auto-delisted
             resetListing(domain);
-            return 0;               // publisher was auto-delisted
+            return 0;               
         }
 
         uint deposit = canonicalParams.minDeposit;
