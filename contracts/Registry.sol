@@ -272,7 +272,7 @@ contract Registry {
 
     //return true if termDate has passed
     function isExpired(uint termDate) constant public returns (bool expired) {
-        return termDate > block.timestamp;
+        return termDate < block.timestamp;
     }
 
     //delete listing from whitelist and return tokens to owner
