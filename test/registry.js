@@ -26,41 +26,6 @@ contract('Registry', (accounts) => {
     .then((result) => assert.equal(result, false , "Domain is actually added."))
   });
 
-  it("check for appropriate amount of allowance and starting balance", () => {
-    let registry;
-    let token;
-    let allowance = 50;
-    return Registry.deployed()
-    .then((_registry) => registry = _registry)
-    //initialized with 10000 for account 0
-    .then(() => Token.deployed())
-    .then((_token) => token = _token)
-    //account 1 must approve registry address allowance = minDeposit to be able to apply
-    .then(() => token.approve(registry.address, allowance, {from: accounts[1]}))
-    //check that allowance is indeed correct
-    .then(() => token.allowance.call(accounts[1],registry.address))
-    .then((allow) => assert.equal(allow, allowance, "allowance amount is not right"))
-    //check the balance is correct
-    .then((allow) => token.balanceOf.call(accounts[1]))
-    //should be zero since all tokens are currently held by account 0
-    .then((balance) => assert.equal(balance, 0, "initial balance not 0"))
-    //check that the allowance of an accoun that did not approve is zero
-    .then(() => token.allowance.call(accounts[5],registry.address))
-    .then((allow) => assert.equal(allow, 0, "should not have any allowance"))
-  });
-
-  it("should check that the wallet starts with zero money", () => {
-    let token;
-    let registry;
-    return Registry.deployed()
-    .then((_registry) => registry = _registry)
-    .then(() => Token.deployed())
-    .then((_token) => token = _token)
-    ///check balance of registry address, should be zero since no one applied
-    .then(() => token.balanceOf.call(registry.address))
-    .then((balance) => assert.equal(balance, 0, "why is there money in my wallet"))
-  });
-
   it("should allow a domain to apply", () => {
     const domain = 'nochallenge.net' //domain to apply with
     let registry;
@@ -70,9 +35,6 @@ contract('Registry', (accounts) => {
     .then((_registry) => registry = _registry)
     .then(() => Token.deployed())
     .then((_token) => token = _token)
-    //transfer 50 to accounts[1] from account[0]
-    .then(() => token.transfer(accounts[1], depositAmount, {from: accounts[0]}))
-    .then(() => token.approve(registry.address, depositAmount, {from: accounts[1]}))
     //apply with accounts[1]
     .then(() => registry.apply(domain, {from: accounts[1]}))
     //hash the domain so we can identify in listingMap
@@ -86,49 +48,26 @@ contract('Registry', (accounts) => {
       assert.equal(result[2], accounts[1] , "owner of application != address that applied");
       assert.equal(result[3], depositAmount , "incorrect currentDeposit");
     })
-    //check that now that account 1 has used its 50 tokens to apply, it's again out of tokens
-    .then(() => token.balanceOf.call(accounts[1]))
-    .then((balance) => assert.equal(balance, 0, "shouldnt be tokens here"))
-  });
-
-  it("should check that the wallet now has minimal deposit", () => {
-    let token;
-    let minimalDeposit = 50;
-    return Registry.deployed()
-    .then((_registry) => registry = _registry)
-    .then(() => Token.deployed())
-    .then((_token) => token = _token)
-    //check that after account 1 applied with 50 tokens, the registry address holds the min deposit
-    .then(() => token.balanceOf.call(registry.address))
-    .then((balance) => assert.equal(balance, minimalDeposit, "where is my minimal deposit?"))
+    
   });
 
   it("should not let address apply with domains that are already in listingMap", () => {
     const domain = 'nochallenge.net'
     let registry;
     let token;
+    let initalAmt;
     let depositAmount = 50;
     return Registry.deployed()
     .then((_registry) => registry = _registry)
     .then(() => Token.deployed())
     .then((_token) => token = _token)
-    //transfer 50 to accounts[1] 
-    .then(() => token.transfer(accounts[2], depositAmount, {from: accounts[0]}))
-    .then(() => token.approve(registry.address, depositAmount, {from: accounts[2]}))
+    .then(() => token.balanceOf.call(registry.address))
+    .then((result) => initalAmt = result)
     //apply with accounts[1] with the same domain, should fail since there's an existing application already
     .then(() => registry.apply(domain, {from: accounts[2]}))
     .catch((error) => console.log('\tSuccess: failed to reapply domain'))
-  });
-
-  it("should check that the wallet balance did not increase due to failed application", () => {
-    let token;
-    let minimalDeposit = 50;
-    return Registry.deployed()
-    .then((_registry) => registry = _registry)
-    .then(() => Token.deployed())
-    .then((_token) => token = _token)
     .then(() => token.balanceOf.call(registry.address))
-    .then((balance) => assert.equal(balance, minimalDeposit, "why is there more money in my wallet"))
+    .then((balance) => assert.equal(balance.toString(), initalAmt.toString(), "why did my wallet balance change"))
   });
 
   it("should add time to evm then not allow to challenge because challenge time passed", () => {
@@ -175,19 +114,34 @@ contract('Registry', (accounts) => {
     assert.equal(result, true, "domain didn't get whitelisted")
   });
 
-  it("should apply, withdraw, and then get delisted by challenge", async () => {
-    const domain = 'withdraw.net' //domain to apply with
-    let depositAmount = minDeposit;
+  it("should withdraw, and then get delisted by challenge", async () => {
+    const domain = "nochallenge.net"
+    const owner = accounts[1] //owner of nochallenge.net
+    let depositAmount = minDeposit
     registry = await Registry.deployed();
-    token = await Token.deployed();
-    //transfer 50 to accounts[2] from account[0]
-    await token.transfer(accounts[2], depositAmount, {from: accounts[0]});
-    await token.approve(registry.address, depositAmount, {from: accounts[2]});
-    //apply with accounts[2]
-    await registry.apply(domain, {from: accounts[2]});
-    
-
+    whitelisted = await registry.isWhitelisted.call(domain)
+    assert.equal(result, true, "domain didn't get whitelisted")
+    await registry.withdraw(domain, 20, {from:owner});
+    //challenge with accounts[3]
+    await registry.challenge(domain, {from: accounts[3]})
+    whitelisted = await registry.isWhitelisted.call(domain)
+    assert.equal(whitelisted, false, "domain is still whitelisted")
   });
+
+  // it("should apply and get challenged", async () => {
+  //   const domain = 'passChallenge.net' //domain to apply with
+  //   let depositAmount = minDeposit;
+  //   registry = await Registry.deployed();
+  //   token = await Token.deployed();
+  //   //apply with accounts[2]
+  //   await registry.apply(domain, {from: accounts[2]});
+  //   console.log(1)
+  //   //challenge with accounts[3]
+  //   await registry.challenge(domain, {from: accounts[3]})
+  //   console.log(2)
+  // });
+
+
 
   
 });
