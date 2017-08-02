@@ -13,11 +13,11 @@ contract Registry {
     }
 
     struct Challenge {
-        uint rewardPool;        // pool of tokens distributed amongst winning voters
+        uint rewardPool;        // (remaining) pool of tokens distributed amongst winning voters
         address challenger;     // owner of Challenge
         bool resolved;          // indication of if challenge is resolved
         uint stake;             // number of tokens at risk for either party during challenge
-        uint remainder;         // remainder tokens from flooring rewards to be claimed by the winner
+        uint totalTokens;       // (remaining) amount of tokens used for voting by the winning side
     }
 
     // maps challengeIDs to associated challenge data
@@ -169,7 +169,7 @@ contract Registry {
             rewardPool: ((100 - Parameters[DISPENSATIONPCT_h]) * deposit) / 100, 
             stake: deposit,
             resolved: false,
-            remainder: 0
+            totalTokens: 0
         });
 
         listingMap[domainHash].challengeID = pollID;      // update listing to store most recent challenge
@@ -194,6 +194,7 @@ contract Registry {
             // (1-dispensationPct)*loser's stake = rewardPool
             uint stake = 2*challengeMap[challengeID].stake - challengeMap[challengeID].rewardPool;
 
+            // if voting is not yet over, isPassed will throw
             if (voting.isPassed(challengeID)) {
                 listingMap[domainHash].whitelisted = true;
                 listingMap[domainHash].currentDeposit += stake; // give stake back to applicant
@@ -203,6 +204,10 @@ contract Registry {
             }
 
             challengeMap[challengeID].resolved = true; // set flag on challenge being processed
+
+
+            // store the total tokens used for voting by the winning side for reward purposes
+            challengeMap[challengeID].totalTokens = voting.getTotalNumberOfTokensForWinningOption(challengeID);
         }
     }
 
@@ -211,50 +216,33 @@ contract Registry {
     // ----------------
 
     // called by voter to claim reward for each completed vote
+    // someone must call updateStatus() before this can be called
     function claimReward(uint _challengeID, uint _salt) public {
-        // ensure voter has not already claimed tokens
+        // ensure voter has not already claimed tokens and challenge results have been processed
         require(tokenClaims[_challengeID][msg.sender] == false);
+        require(challengeMap[_challengeID].resolved = true);
+
         uint reward = calculateTokens(_challengeID, _salt, msg.sender);
+        require(token.transfer(msg.sender, reward));
+        
         // ensures a voter cannot claim tokens again
-        token.transfer(msg.sender, reward);
         tokenClaims[_challengeID][msg.sender] = true;
     }
 
     // helper function to claimReward()
-    // number of tokens person used to vote / total number of tokens for winning side
-    // scale using distribution number, give the tokens
-    function calculateTokens(uint _challengeID, uint _salt, address _voter) private returns(uint) {
-        uint256 totalTokens = voting.getTotalNumberOfTokensForWinningOption(_challengeID);
-        uint256 voterTokens = voting.getNumPassingTokens(_voter, _challengeID, _salt);
+    function calculateTokens(uint _challengeID, uint _salt, address _voter) private returns (uint) {
+        uint totalTokens = challengeMap[_challengeID].totalTokens;
+        uint rewardPool = challengeMap[_challengeID].rewardPool;
+        uint voterTokens = voting.getNumPassingTokens(_voter, _challengeID, _salt);
 
-        uint256 rewardPool = challengeMap[_challengeID].rewardPool * MULTIPLIER;
-        uint256 numerator = voterTokens * rewardPool; 
-        uint256 denominator = totalTokens * MULTIPLIER;
-        uint256 remainder = numerator % denominator;
+        uint reward = (voterTokens * rewardPool) / totalTokens;
 
-        // save remainder tokens in the form of decimal numbers with 18 places represented
-        // as a uint256
-        challengeMap[_challengeID].remainder += remainder;
-        
-        return numerator / denominator;
-    }
+        // subtract voter's information to preserve the participation ratios of other voters
+        // compared to the remaining pool of rewards
+        challengeMap[_challengeID].totalTokens -= voterTokens;
+        challengeMap[_challengeID].rewardPool -= reward;
 
-    // gives reminder tokens from poll to a designated claimer
-    // the claimer is the winner of the challenge
-    // for every poll there will be ~0.5 nano AdTokens burned,
-    // since the winner cannot withdraw a decimal amount of nano AdToken 
-    function claimExtraReward(uint _challengeID, string _domain) public {
-        // uint256 totalTokens = voting.getTotalNumberOfTokensForWinningOption(_challengeID);
-        uint256 reward = challengeMap[_challengeID].remainder / (MULTIPLIER);
-        // reward = reward / totalTokens; // should this be here?
-        challengeMap[_challengeID].remainder -= (reward * MULTIPLIER);
-        if (voting.isPassed(_challengeID)) {
-            // if challenger won, transfer tokens to challenger
-            token.transfer(challengeMap[_challengeID].challenger, reward);
-        } else {
-            // if publisher won, give tokens to the domain's deposit
-            listingMap[sha3(_domain)].currentDeposit += reward;
-        }
+        return reward;
     }
 
     // --------
