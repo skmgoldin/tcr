@@ -166,10 +166,19 @@ contract('Registry', (accounts) => {
     .catch((error) => console.log('\tSuccess: failed to allow challenge to start'))
   });
 
+  it("should update domain status to whitelisted because domain was not challenged", async () => {
+    const domain = "nochallenge.net"
+    registry = await Registry.deployed()
+    token = await Token.deployed()
+    await registry.updateStatus(domain)
+    result = await registry.isWhitelisted(domain)
+    assert.equal(result, true, "domain didn't get whitelisted")
+  });
+
   it("should apply, withdraw, and then get delisted by challenge", async () => {
     const domain = 'withdraw.net' //domain to apply with
     let depositAmount = minDeposit;
-    registry = await Registry.deployed()
+    registry = await Registry.deployed();
     token = await Token.deployed();
     //transfer 50 to accounts[2] from account[0]
     await token.transfer(accounts[2], depositAmount, {from: accounts[0]});
