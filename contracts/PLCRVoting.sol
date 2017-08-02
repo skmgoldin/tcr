@@ -185,7 +185,7 @@ contract PLCRVoting {
     function isPassed(uint pollID) constant public returns (bool passed) {
         require(pollEnded(pollID));
 
-        Poll poll = pollMap[pollID];
+        Poll storage poll = pollMap[pollID];
         return (100 * poll.votesFor) > poll.voteQuorum * (poll.votesFor + poll.votesAgainst);
     }
 

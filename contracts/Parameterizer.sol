@@ -83,7 +83,7 @@ contract Parameterizer {
 
 	// updates canonical mapping with evaluation of poll result
 	function processProposal(uint pollID) {
-		ParamProposal prop = proposalMap[pollID];
+		ParamProposal storage prop = proposalMap[pollID];
 		// check isPassed ==> update params mapping using set
 		if (voting.isPassed(pollID)) {
 			set(prop.name, prop.value);
