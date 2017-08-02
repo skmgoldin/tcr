@@ -54,7 +54,7 @@ contract Registry {
     ) {
         token = StandardToken(_tokenAddr);
         parameterizer = Parameterizer(_paramAddr);
-        voting = PLCRVoting(_tokenAddr);
+        voting = PLCRVoting(_votingAddr);
     }
 
     // --------------------
