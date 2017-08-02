@@ -9,7 +9,7 @@
 		"voteQuorum": 50
 	},
 	"TokenArguments": {
-		"totalSupply": 10000,
+		"totalSupply": 100000,
 		"name": "adtoken",
 		"decimalUnits": 3,
 		"symbol": "ADT"

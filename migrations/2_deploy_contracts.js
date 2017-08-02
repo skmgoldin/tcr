@@ -30,23 +30,7 @@ module.exports = (deployer, network, accounts) => {
             Token.address
         );
     })
-    .then(async () => {
-        let token = await Token.deployed();
-        let voting = await Voting.deployed();
-
-        console.log("  Distributing tokens to users...");
-
-        return await Promise.all(
-            users.map(async (user, idx) => {
-                let tokenAmt = voteTokenConfig.userAmounts[idx];
-                if (tokenAmt != 0) {
-                    await token.transfer(user, tokenAmt, {from: owner}) 
-                    await token.approve(Voting.address, tokenAmt, {from: user})
-                    await voting.requestVotingRights(tokenAmt, {from: user})
-                }
-            })
-        );
-    })
+    
     .then(() => {
         return deployer.deploy(
             Parameterizer,
@@ -67,6 +51,24 @@ module.exports = (deployer, network, accounts) => {
             Token.address,
             Parameterizer.address,
             Voting.address
+        );
+    })
+    .then(async () => {
+        let token = await Token.deployed();
+        let voting = await Voting.deployed();
+
+        console.log("  Distributing tokens to users...");
+
+        return await Promise.all(
+            users.map(async (user, idx) => {
+                let tokenAmt = voteTokenConfig.userAmounts[idx];
+                if (tokenAmt != 0) {
+                    await token.transfer(user, 2*tokenAmt, {from: owner}) 
+                    await token.approve(Voting.address, tokenAmt, {from: user})
+                    await voting.requestVotingRights(tokenAmt, {from: user})
+                    await token.approve(Registry.address, tokenAmt, {from: user})
+                }
+            })
         );
     });
 };
