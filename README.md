@@ -63,26 +63,9 @@
 ## Reparameterization Process
 
 1.  To propose a new value for a parameter, a user calls ```changeParameter()``` and puts down a deposit of AdToken with the
-    parameter and the new value they want to introduce. The apply stage for the reparametriztion begins, and it is
-    either challenged or left unchallenged.
+    parameter and the new value they want to introduce. A vote to make or disregard the proposed change is started immediately. 
+    The deposit will be returned to the user upon completion of the poll.
 
-    The reparametrization is challenged:
+2. After voters have committed and revealed their votes within the vote contract, anyone calls ```processProposal()``` to evaluate the results of the vote. Deposited tokens are returned to the user who proposed the parameter change. If the results show that the proposed change is approved, the parameter value in the params mapping is changed. 
 
-    1.  A challenger calls ```challengeParameter()``` by putting down a deposit that matches the proposer's.
-
-    2.  A vote starts (see Voter and Reward Process).
-
-    3.  After the results are in, the winner calls ```processProposal()```.  
-        
-        If the proposer won, the parameter is assigned the new value, they recieve their deposit back, and they
-        recieve a portion of the challenger's deposit.
-
-        If the challenger won, their deposit is returned and they recieve a portion of the proposer's deposit as a 
-        reward.
-
-    The reparametrization goes unchallenged:
-
-    1.  At the end of the challenge period, the proposer calls ```setParams()```, which assigns the parameter to the proposed
-        value.  The proposer's deposit is returned.
-
-2.  To check the value of parameters, a user calls ```get()``` with the string keyword of the parameter.
+3.  To check the value of parameters, a user calls ```get()``` with the string keyword of the parameter.
