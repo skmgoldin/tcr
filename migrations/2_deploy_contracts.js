@@ -5,10 +5,14 @@ var Parameterizer = artifacts.require("./Parameterizer.sol");
 
 const fs = require("fs");
 
-module.exports = function(deployer) {
+module.exports = (deployer, network, accounts) => {
+    const owner = accounts[0];
+    const users = accounts.slice(1, 10);
+
     let adchainConfig = JSON.parse(fs.readFileSync('./conf/config.json'));
     let tokenConfig = adchainConfig.TokenArguments;
     let parameterizerConfig = adchainConfig.RegistryDefaults;
+    let voteTokenConfig = adchainConfig.VoteTokenDistribution;
 
     // console.log("token", tokenConfig);
     // console.log("registry", registryConfig);
@@ -19,10 +23,28 @@ module.exports = function(deployer) {
         tokenConfig.name,
         tokenConfig.decimalUnits,
         tokenConfig.symbol
-    ).then(() => {
+    )
+    .then(() => {
         return deployer.deploy(
             Voting,
             Token.address
+        );
+    })
+    .then(async () => {
+        let token = await Token.deployed();
+        let voting = await Voting.deployed();
+
+        console.log("  Distributing tokens to users...");
+
+        return await Promise.all(
+            users.map(async (user, idx) => {
+                let tokenAmt = voteTokenConfig.userAmounts[idx];
+                if (tokenAmt != 0) {
+                    await token.transfer(user, tokenAmt, {from: owner}) 
+                    await token.approve(Voting.address, tokenAmt, {from: user})
+                    await voting.requestVotingRights(tokenAmt, {from: user})
+                }
+            })
         );
     })
     .then(() => {
@@ -48,7 +70,3 @@ module.exports = function(deployer) {
         );
     });
 };
-// module.exports = function(deployer) {
-//     deployer.deploy(Token);
-//     deployer.deploy(Registry)
-// };

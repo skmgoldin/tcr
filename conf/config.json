@@ -13,5 +13,8 @@
 		"name": "adtoken",
 		"decimalUnits": 3,
 		"symbol": "ADT"
+	},
+	"VoteTokenDistribution": {
+		"userAmounts": [500, 500, 500, 500, 500, 500, 500, 500, 500]
 	}
 }
