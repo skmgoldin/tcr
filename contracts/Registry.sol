@@ -1,6 +1,8 @@
 pragma solidity ^0.4.11;
+
 import "./StandardToken.sol";
 import "./PLCRVoting.sol";
+import "./Parameterizer.sol";
 
 contract Registry {
 
@@ -26,12 +28,11 @@ contract Registry {
     mapping(bytes32 => Listing) public listingMap;
     // maps challengeIDs and address to token claim data
     mapping(uint => mapping(address => bool)) public tokenClaims;
-    // maps hash of parameter name to parameter value
-    mapping(bytes32 => uint) public Parameters;
 
     // Global Variables
-    StandardToken token;
-    PLCRVoting voting;
+    StandardToken public token;
+    PLCRVoting public voting;
+    Parameterizer public parameterizer;
 
     // Constants
     bytes32 constant private MINDEPOSIT_h = sha3("minDeposit");
@@ -46,34 +47,15 @@ contract Registry {
     // ------------
     // CONSTRUCTOR:
     // ------------
-    
-    /// @param _minDeposit      minimum deposit for listing to be whitelisted  
-    /// @param _minParamDeposit minimum deposit to propose a parameter change 
-    /// @param _applyStageLen   length of period in which applicants wait to be whitelisted
-    /// @param _dispensationPct percentage of losing party's deposit distributed to winning party
-    /// @param _commitPeriodLen length of commit period for voting
-    /// @param _revealPeriodLen length of reveal period for voting
-    /// @param _voteQuorum      type of majority out of 100 necessary for vote success
 
     function Registry(
         address _tokenAddr,
-        uint _minDeposit,
-        uint _minParamDeposit,
-        uint _applyStageLen,
-        uint _commitPeriodLen,
-        uint _revealPeriodLen,
-        uint _dispensationPct,
-        uint _voteQuorum
+        address _paramAddr,
+        address _votingAddr
     ) {
         token = StandardToken(_tokenAddr);
-        voting = new PLCRVoting(_tokenAddr);
-        Parameters[MINDEPOSIT_h] = _minDeposit;
-        Parameters[MINPARAMDEPOSIT_h] = _minParamDeposit;
-        Parameters[APPLYSTAGELEN_h] = _applyStageLen;
-        Parameters[DISPENSATIONPCT_h] = _dispensationPct;
-        Parameters[COMMITPERIODLEN_h] = _commitPeriodLen;
-        Parameters[REVEALPERIODLEN_h] = _revealPeriodLen;
-        Parameters[VOTEQUORUM_h] = _voteQuorum;
+        parameterizer = Parameterizer(_paramAddr);
+        voting = PLCRVoting(_tokenAddr);
     }
 
     // --------------------
@@ -91,11 +73,11 @@ contract Registry {
         listing.owner = msg.sender; 
 
         //transfer tokens
-        uint minDeposit = Parameters[MINDEPOSIT_h];
+        uint minDeposit = parameterizer.params(MINDEPOSIT_h);
         require(token.transferFrom(listing.owner, this, minDeposit)); 
 
         //set apply stage end time
-        listing.applicationExpiry = block.timestamp + Parameters[APPLYSTAGELEN_h]; 
+        listing.applicationExpiry = block.timestamp + parameterizer.params(APPLYSTAGELEN_h); 
         listing.currentDeposit = minDeposit;
     }
 
@@ -149,24 +131,24 @@ contract Registry {
         require(appExists(domain) || listing.whitelisted);       
         require(challengeMap[listing.challengeID].resolved); // prevent multiple challenges
 
-        if (listing.currentDeposit < Parameters[MINDEPOSIT_h]) {
+        if (listing.currentDeposit < parameterizer.params(MINDEPOSIT_h)) {
             // not enough tokens, publisher auto-delisted
             resetListing(domain);
             return 0;               
         }
         //take tokens from challenger
-        uint deposit = Parameters[MINDEPOSIT_h];
+        uint deposit = parameterizer.params(MINDEPOSIT_h);
         require(token.transferFrom(msg.sender, this, deposit));
         //start poll
         uint pollID = voting.startPoll(domain, 
-            Parameters[VOTEQUORUM_h],
-            Parameters[COMMITPERIODLEN_h], 
-            Parameters[REVEALPERIODLEN_h]
+            parameterizer.params(VOTEQUORUM_h),
+            parameterizer.params(COMMITPERIODLEN_h), 
+            parameterizer.params(REVEALPERIODLEN_h)
         );
 
         challengeMap[pollID] = Challenge({
             challenger: msg.sender,
-            rewardPool: ((100 - Parameters[DISPENSATIONPCT_h]) * deposit) / 100, 
+            rewardPool: ((100 - parameterizer.params(DISPENSATIONPCT_h)) * deposit) / 100, 
             stake: deposit,
             resolved: false,
             remainder: 0
