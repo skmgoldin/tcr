@@ -125,11 +125,10 @@ contract Registry {
     function challenge(string domain) external returns (uint challengeID) {
         bytes32 domainHash = sha3(domain);
         Listing storage listing = listingMap[domainHash];
-
         //to be challenged, domain must be in apply stage or already on the whitelist
-        require(appExists(domain) || listing.whitelisted);       
-        require(challengeMap[listing.challengeID].resolved); // prevent multiple challenges
-
+        require(appExists(domain) || listing.whitelisted); 
+        // prevent multiple challenges
+        require(listing.challengeID == 0 || challengeMap[listing.challengeID].resolved);
         if (listing.currentDeposit < parameterizer.params(MINDEPOSIT_h)) {
             // not enough tokens, publisher auto-delisted
             resetListing(domain);
@@ -139,7 +138,7 @@ contract Registry {
         uint deposit = parameterizer.params(MINDEPOSIT_h);
         require(token.transferFrom(msg.sender, this, deposit));
         //start poll
-        uint pollID = voting.startPoll(domain, 
+        uint pollID = voting.startPoll(domain,
             parameterizer.params(VOTEQUORUM_h),
             parameterizer.params(COMMITPERIODLEN_h), 
             parameterizer.params(REVEALPERIODLEN_h)
