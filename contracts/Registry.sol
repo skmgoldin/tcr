@@ -43,12 +43,13 @@ contract Registry {
     bytes32 constant private VOTEQUORUM_h = sha3("voteQuorum"); 
     uint256 constant private MULTIPLIER = 10 ** 18;  // used to help represent doubles as ints in token rewards
 
-// ------------
-// CONSTRUCTOR:
-// ------------
+    // ------------
+    // CONSTRUCTOR:
+    // ------------
+    
     /// @param _minDeposit      minimum deposit for listing to be whitelisted  
     /// @param _minParamDeposit minimum deposit to propose a parameter change 
-    /// @param _applyStage      length of period in which applicants wait to be whitelisted
+    /// @param _applyStageLen   length of period in which applicants wait to be whitelisted
     /// @param _dispensationPct percentage of losing party's deposit distributed to winning party
     /// @param _commitPeriodLen length of commit period for voting
     /// @param _revealPeriodLen length of reveal period for voting
@@ -75,9 +76,9 @@ contract Registry {
         Parameters[VOTEQUORUM_h] = _voteQuorum;
     }
 
-// --------------------
-// PUBLISHER INTERFACE:
-// --------------------
+    // --------------------
+    // PUBLISHER INTERFACE:
+    // --------------------
 
     //Allow a user to start an application
     //take tokens from user and set apply stage end time
@@ -134,9 +135,9 @@ contract Registry {
         resetListing(domain);
     }
 
-// -----------------------
-// TOKEN HOLDER INTERFACE:
-// -----------------------
+    // -----------------------
+    // TOKEN HOLDER INTERFACE:
+    // -----------------------
 
     //start a poll for a domain in the apply stage or already on the whitelist
     //tokens are taken from the challenger and the publisher's tokens are locked
@@ -205,9 +206,9 @@ contract Registry {
         }
     }
 
-// -----------------------
-// TOKEN FUNCTIONS:
-// -----------------------
+    // ----------------
+    // TOKEN FUNCTIONS:
+    // ----------------
 
     // called by voter to claim reward for each completed vote
     function claimReward(uint _challengeID, uint _salt) public {
@@ -256,9 +257,9 @@ contract Registry {
         }
     }
 
-// --------
-// HELPERS:
-// --------
+    // --------
+    // HELPERS:
+    // --------
 
     //return true if domain is whitelisted
     function isWhitelisted(string domain) constant public returns (bool whitelisted) {
