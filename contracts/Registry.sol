@@ -41,7 +41,6 @@ contract Registry {
     bytes32 constant private REVEALPERIODLEN_h = sha3("revealPeriodLen");
     bytes32 constant private DISPENSATIONPCT_h = sha3("dispensationPct");
     bytes32 constant private VOTEQUORUM_h = sha3("voteQuorum"); 
-    uint256 constant private MULTIPLIER = 10 ** 18;  // used to help represent doubles as ints in token rewards
 
     // ------------
     // CONSTRUCTOR:
