@@ -198,7 +198,7 @@ contract Registry {
         require(tokenClaims[_challengeID][msg.sender] == false);
         uint reward = calculateTokens(_challengeID, _salt, msg.sender);
         // ensures a voter cannot claim tokens again
-        token.transfer(msg.sender, reward);
+        require(token.transfer(msg.sender, reward));
         tokenClaims[_challengeID][msg.sender] = true;
     }
 
