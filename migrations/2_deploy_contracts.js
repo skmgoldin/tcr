@@ -1,6 +1,6 @@
 var Registry = artifacts.require("./Registry.sol");
 var Token = artifacts.require("./HumanStandardToken.sol");
-var Voting = artifacts.require("./PLCRVoting.sol");
+var PLCRVoting = artifacts.require("./PLCRVoting.sol");
 var Parameterizer = artifacts.require("./Parameterizer.sol");
 
 const fs = require("fs");
@@ -14,9 +14,6 @@ module.exports = (deployer, network, accounts) => {
     let parameterizerConfig = adchainConfig.RegistryDefaults;
     let voteTokenConfig = adchainConfig.VoteTokenDistribution;
 
-    // console.log("token", tokenConfig);
-    // console.log("registry", registryConfig);
-
     deployer.deploy(
         Token,
         tokenConfig.totalSupply,
@@ -26,16 +23,8 @@ module.exports = (deployer, network, accounts) => {
     )
     .then(() => {
         return deployer.deploy(
-            Voting,
-            Token.address
-        );
-    })
-    
-    .then(() => {
-        return deployer.deploy(
-            Parameterizer,
+            Registry,
             Token.address,
-            Voting.address,
             parameterizerConfig.minDeposit,
             parameterizerConfig.minParamDeposit,
             parameterizerConfig.applyStageLength,
@@ -45,17 +34,12 @@ module.exports = (deployer, network, accounts) => {
             parameterizerConfig.voteQuorum
         );
     })
-    .then(() => {
-        return deployer.deploy(
-            Registry,
-            Token.address,
-            Parameterizer.address,
-            Voting.address
-        );
-    })
     .then(async () => {
         let token = await Token.deployed();
-        let voting = await Voting.deployed();
+        let registry = await Registry.deployed();
+        let votingAddr = await registry.voting.call();
+        let voting = await PLCRVoting.at(votingAddr);
+        let paramAddr = await registry.parameterizer.call();
 
         console.log("  Distributing tokens to users...");
 
@@ -63,10 +47,11 @@ module.exports = (deployer, network, accounts) => {
             users.map(async (user, idx) => {
                 let tokenAmt = voteTokenConfig.userAmounts[idx];
                 if (tokenAmt != 0) {
-                    await token.transfer(user, 2*tokenAmt, {from: owner}) 
-                    await token.approve(Voting.address, tokenAmt, {from: user})
+                    await token.transfer(user, 3 * tokenAmt, {from: owner}) 
+                    await token.approve(votingAddr, tokenAmt, {from: user})
                     await voting.requestVotingRights(tokenAmt, {from: user})
                     await token.approve(Registry.address, tokenAmt, {from: user})
+                    await token.approve(paramAddr, tokenAmt, {from: user})
                 }
             })
         );

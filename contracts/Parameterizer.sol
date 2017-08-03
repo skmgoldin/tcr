@@ -5,9 +5,7 @@ import "./StandardToken.sol";
 
 contract Parameterizer {
 	mapping(bytes32 => uint) public params;
-	PLCRVoting voting;
-	StandardToken token;
-
+	
 	struct ParamProposal {
 		string name;
 		uint value;
@@ -17,6 +15,9 @@ contract Parameterizer {
 
 	// maps pollIDs to intended data change if poll passes
 	mapping(uint => ParamProposal) public proposalMap; 
+
+	PLCRVoting voting;
+	StandardToken token;
 
 	/// @param _minDeposit      minimum deposit for listing to be whitelisted  
     /// @param _minParamDeposit minimum deposit to propose a parameter change 
@@ -39,14 +40,14 @@ contract Parameterizer {
     ) {
 		token = StandardToken(tokenAddr);
 		voting = PLCRVoting(votingAddr);
-		
+
 		set("minDeposit", _minDeposit);
-		set("minParamDeposit", _minParamDeposit);
-		set("applyStageLen", _applyStageLen);
-		set("commitPeriodLen", _commitPeriodLen);
-		set("revealPeriodLen", _revealPeriodLen);
-		set("dispensationPct", _dispensationPct);
-		set("voteQuorum", _voteQuorum);
+        set("minParamDeposit", _minParamDeposit);
+        set("applyStageLen", _applyStageLen);
+        set("commitPeriodLen", _commitPeriodLen);
+        set("revealPeriodLen", _revealPeriodLen);
+        set("dispensationPct", _dispensationPct);
+        set("voteQuorum", _voteQuorum);
 	}
 
 	// changes parameter within canonical mapping

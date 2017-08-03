@@ -49,12 +49,27 @@ contract Registry {
 
     function Registry(
         address _tokenAddr,
-        address _paramAddr,
-        address _votingAddr
+        uint _minDeposit,
+        uint _minParamDeposit,
+        uint _applyStageLen,
+        uint _commitPeriodLen,
+        uint _revealPeriodLen,
+        uint _dispensationPct,
+        uint _voteQuorum
     ) {
         token = StandardToken(_tokenAddr);
-        parameterizer = Parameterizer(_paramAddr);
-        voting = PLCRVoting(_votingAddr);
+        voting = new PLCRVoting(_tokenAddr);
+        parameterizer = new Parameterizer(
+            _tokenAddr, 
+            voting,
+            _minDeposit,
+            _minParamDeposit,
+            _applyStageLen,
+            _commitPeriodLen,
+            _revealPeriodLen,
+            _dispensationPct,
+            _voteQuorum
+        );
     }
 
     // --------------------
@@ -72,11 +87,11 @@ contract Registry {
         listing.owner = msg.sender; 
 
         //transfer tokens
-        uint minDeposit = parameterizer.params(MINDEPOSIT_h);
+        uint minDeposit = parameterizer.get("minDeposit");
         require(token.transferFrom(listing.owner, this, minDeposit)); 
 
         //set apply stage end time
-        listing.applicationExpiry = block.timestamp + parameterizer.params(APPLYSTAGELEN_h); 
+        listing.applicationExpiry = block.timestamp + parameterizer.get("applyStageLen"); 
         listing.currentDeposit = minDeposit;
     }
 
@@ -129,24 +144,24 @@ contract Registry {
         require(appExists(domain) || listing.whitelisted); 
         // prevent multiple challenges
         require(listing.challengeID == 0 || challengeMap[listing.challengeID].resolved);
-        if (listing.currentDeposit < parameterizer.params(MINDEPOSIT_h)) {
+        uint deposit = parameterizer.get("minDeposit");
+        if (listing.currentDeposit < deposit) {
             // not enough tokens, publisher auto-delisted
             resetListing(domain);
             return 0;               
         }
         //take tokens from challenger
-        uint deposit = parameterizer.params(MINDEPOSIT_h);
         require(token.transferFrom(msg.sender, this, deposit));
         //start poll
         uint pollID = voting.startPoll(domain,
-            parameterizer.params(VOTEQUORUM_h),
-            parameterizer.params(COMMITPERIODLEN_h), 
-            parameterizer.params(REVEALPERIODLEN_h)
+            parameterizer.get("voteQuorum"),
+            parameterizer.get("commitPeriodLen"), 
+            parameterizer.get("revealPeriodLen")
         );
 
         challengeMap[pollID] = Challenge({
             challenger: msg.sender,
-            rewardPool: ((100 - parameterizer.params(DISPENSATIONPCT_h)) * deposit) / 100, 
+            rewardPool: ((100 - parameterizer.get("dispensationPct")) * deposit) / 100, 
             stake: deposit,
             resolved: false,
             totalTokens: 0
