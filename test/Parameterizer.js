@@ -19,37 +19,76 @@ var voteQuorum = 50;
 
 contract('Parameterizer', (accounts) => {
 
-    async function getParameterizer () {
-        let registry = await Registry.deployed()
-        let paramAddr = await registry.parameterizer.call()
-        let param = await Parameterizer.at(paramAddr)
-        return param
+     // increases time
+    async function increaseTime(seconds) {
+        return new Promise((resolve, reject) => { 
+            return ethRPC.sendAsync({
+                method: 'evm_increaseTime',
+                params: [seconds]
+            }, (err) => {
+                if (err) reject(err)
+                resolve()
+            })
+        })
+            .then(() => {
+                return new Promise((resolve, reject) => { 
+                    return ethRPC.sendAsync({
+                        method: 'evm_mine',
+                        params: []
+                    }, (err) => {
+                        if (err) reject(err)
+                        resolve()
+                    })
+                })
+            })
     }
 
-    async function getVoting() {
-        let registry = await Registry.deployed()
-        let votingAddr = await registry.voting.call()
+    async function getParamVoting() {
+        let param = await Parameterizer.deployed()
+        let votingAddr = await param.voting.call()
         let voting = await PLCRVoting.at(votingAddr)
         return voting
     }
 
+    async function getSecretHash(salt, voteOption) {
+        return "0x" + abi.soliditySHA3([ "uint", "uint" ],
+            [ voteOption, salt ]).toString('hex'); 
+    }
+
     it("should get a parameter", async() => {
-        let param = await getParameterizer()
+        let param = await Parameterizer.deployed()
         result = await param.get.call("minDeposit")
         assert.equal(result, minDeposit, "minDeposit param has wrong value")
     });
 
     it("should fail to change parameter", async() => {
-        let param = await getParameterizer()
+        let param = await Parameterizer.deployed()
+        let voting = await getParamVoting()
+        let salt = 1
+        let voteOption = 0
+
         //changeParameter()
-        //vote against
+        let pollID = await param.changeParameter("minDeposit", 20, {from: accounts[1]})
+        
+        //vote against with accounts[1:4]
+        
+        // commit
+        // await voting.commitVote(pollID, secretHash, numTokens, prevID);
+        let hash = await getSecretHash(salt, voteOption)
+        await voting.commitVote(pollID, hash, 100, 0, 0,{from: accounts[2]})
+        
+        // await increaseTime(50)
+        
+        // reveal
+        // await voting.revealVote(pollID, salt, voteOption, {from: accounts[1]});
         //processProposal
+
         //should be no change to params
 
     });
 
     it("should change parameter", async() => {
-        let param = await getParameterizer()
+        let param = await Parameterizer.deployed()
         //changeParameter()
         //vote for
         //processProposal
