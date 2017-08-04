@@ -49,27 +49,12 @@ contract Registry {
 
     function Registry(
         address _tokenAddr,
-        uint _minDeposit,
-        uint _minParamDeposit,
-        uint _applyStageLen,
-        uint _commitPeriodLen,
-        uint _revealPeriodLen,
-        uint _dispensationPct,
-        uint _voteQuorum
+        address _paramsAddr
     ) {
         token = StandardToken(_tokenAddr);
+        parameterizer = Parameterizer(_paramsAddr);
+
         voting = new PLCRVoting(_tokenAddr);
-        parameterizer = new Parameterizer(
-            _tokenAddr, 
-            voting,
-            _minDeposit,
-            _minParamDeposit,
-            _applyStageLen,
-            _commitPeriodLen,
-            _revealPeriodLen,
-            _dispensationPct,
-            _voteQuorum
-        );
     }
 
     // --------------------

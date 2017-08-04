@@ -16,7 +16,7 @@ contract Parameterizer {
 	// maps pollIDs to intended data change if poll passes
 	mapping(uint => ParamProposal) public proposalMap; 
 
-	PLCRVoting voting;
+	PLCRVoting public voting;
 	StandardToken token;
 
 	/// @param _minDeposit      minimum deposit for listing to be whitelisted  
@@ -29,7 +29,6 @@ contract Parameterizer {
 
 	function Parameterizer( 
 		address tokenAddr,
-		address votingAddr,
 		uint _minDeposit,
         uint _minParamDeposit,
         uint _applyStageLen,
@@ -39,7 +38,7 @@ contract Parameterizer {
         uint _voteQuorum
     ) {
 		token = StandardToken(tokenAddr);
-		voting = PLCRVoting(votingAddr);
+		voting = new PLCRVoting(tokenAddr);
 
 		set("minDeposit", _minDeposit);
         set("minParamDeposit", _minParamDeposit);

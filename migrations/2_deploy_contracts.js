@@ -23,7 +23,7 @@ module.exports = (deployer, network, accounts) => {
     )
     .then(() => {
         return deployer.deploy(
-            Registry,
+            Parameterizer,
             Token.address,
             parameterizerConfig.minDeposit,
             parameterizerConfig.minParamDeposit,
@@ -32,6 +32,13 @@ module.exports = (deployer, network, accounts) => {
             parameterizerConfig.revealPeriodLength,
             parameterizerConfig.dispensationPct,
             parameterizerConfig.voteQuorum
+        );
+    })
+    .then(() => {
+        return deployer.deploy(
+            Registry,
+            Token.address,
+            Parameterizer.address
         );
     })
     .then(async () => {
