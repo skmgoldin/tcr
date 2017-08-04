@@ -17,6 +17,13 @@ var voteQuorum = 50;
 
 contract('Registry', (accounts) => {
 
+  async function getVoting() {
+        let registry = await Registry.deployed()
+        let votingAddr = await registry.voting.call()
+        let voting = await PLCRVoting.at(votingAddr)
+        return voting
+    }
+
   it("should verify a domain is not in the whitelist", () => {
     const domain = 'eth.eth'; //the domain to be tested
     let registry;
@@ -128,20 +135,16 @@ contract('Registry', (accounts) => {
     assert.equal(whitelisted, false, "domain is still whitelisted")
   });
 
-  // it("should apply and get challenged", async () => {
-  //   const domain = 'passChallenge.net' //domain to apply with
-  //   let depositAmount = minDeposit;
-  //   registry = await Registry.deployed();
-  //   token = await Token.deployed();
-  //   //apply with accounts[2]
-  //   await registry.apply(domain, {from: accounts[2]});
-  //   console.log(1)
-  //   //challenge with accounts[3]
-  //   await registry.challenge(domain, {from: accounts[3]})
-  //   console.log(2)
-  // });
-
-
+  it("should apply and get challenged", async () => {
+    const domain = 'passChallenge.net' //domain to apply with
+    let depositAmount = minDeposit;
+    registry = await Registry.deployed();
+    token = await Token.deployed();
+    //apply with accounts[2]
+    await registry.apply(domain, {from: accounts[2]});
+    //challenge with accounts[3]
+    await registry.challenge(domain, {from: accounts[3]})
+  });
 
   
 });
