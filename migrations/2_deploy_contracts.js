@@ -43,10 +43,14 @@ module.exports = (deployer, network, accounts) => {
     })
     .then(async () => {
         let token = await Token.deployed();
+
         let registry = await Registry.deployed();
         let votingAddr = await registry.voting.call();
         let voting = await PLCRVoting.at(votingAddr);
-        let paramAddr = await registry.parameterizer.call();
+
+        let param = await Parameterizer.deployed();
+        let votingParamAddr = await param.voting.call();
+        let votingParam = await PLCRVoting.at(votingParamAddr);
 
         console.log("  Distributing tokens to users...");
 
@@ -54,11 +58,16 @@ module.exports = (deployer, network, accounts) => {
             users.map(async (user, idx) => {
                 let tokenAmt = voteTokenConfig.userAmounts[idx];
                 if (tokenAmt != 0) {
+                    //transfer adtok
                     await token.transfer(user, 3 * tokenAmt, {from: owner}) 
                     await token.approve(votingAddr, tokenAmt, {from: user})
+                    await token.approve(votingParamAddr, tokenAmt, {from: user})
+                    //request voting rights
                     await voting.requestVotingRights(tokenAmt, {from: user})
+                    await votingParam.requestVotingRights(tokenAmt, {from: user})
+                    //approve voting rights
                     await token.approve(Registry.address, tokenAmt, {from: user})
-                    await token.approve(paramAddr, tokenAmt, {from: user})
+                    await token.approve(Parameterizer.address, tokenAmt, {from: user})
                 }
             })
         );
