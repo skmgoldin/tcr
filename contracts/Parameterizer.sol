@@ -16,8 +16,9 @@ contract Parameterizer {
 	// maps pollIDs to intended data change if poll passes
 	mapping(uint => ParamProposal) public proposalMap; 
 
-	PLCRVoting public voting;
-	StandardToken token;
+	// Global Variables
+    StandardToken public token;
+    PLCRVoting public voting;
 
 	/// @param _minDeposit      minimum deposit for listing to be whitelisted  
     /// @param _minParamDeposit minimum deposit to propose a parameter change 
