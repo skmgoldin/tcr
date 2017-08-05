@@ -66,23 +66,24 @@ contract('Parameterizer', (accounts) => {
         let voting = await getParamVoting()
         let salt = 1
         let voteOption = 0
+        let token = Token.deployed()
 
         //changeParameter()
-        let pollID = await param.changeParameter("minDeposit", 20, {from: accounts[1]})
-        
+        await param.changeParameter("minDeposit", 20, {from: accounts[1]})
         //vote against with accounts[1:4]
         
         // commit
         // await voting.commitVote(pollID, secretHash, numTokens, prevID);
+        let pollID = 1
         let hash = await getSecretHash(salt, voteOption)
-        await voting.commitVote(pollID, hash, 100, 0, 0,{from: accounts[2]})
-        
-        // await increaseTime(50)
-        
+        res = await voting.voteTokenBalance.call(accounts[1])
+        await voting.commitVote(pollID, hash, 1, 0, {from: accounts[1]})
+        await increaseTime(commitPeriodLength+10)
+
         // reveal
         // await voting.revealVote(pollID, salt, voteOption, {from: accounts[1]});
+        // await increaseTime(revealPeriodLength+1)
         //processProposal
-
         //should be no change to params
 
     });
