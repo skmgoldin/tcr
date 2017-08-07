@@ -163,17 +163,14 @@ contract Registry {
         bytes32 domainHash = sha3(domain);
         uint challengeID = listingMap[domainHash].challengeID;
         require(!challengeMap[challengeID].resolved);  // require processed flag to be false      
-
         // IF NO CHALLENGE AFTER APPLY STAGE
         if (challengeID == 0 && isExpired(listingMap[domainHash].applicationExpiry)) {
             listingMap[domainHash].whitelisted = true;
         } else { 
         // PROCESS THE RESULT OF THE POLL
-            
             // winner gets back their full staked deposit, and dispensationPct*loser's stake
             // (1-dispensationPct)*loser's stake = rewardPool
             uint stake = 2*challengeMap[challengeID].stake - challengeMap[challengeID].rewardPool;
-
             // if voting is not yet over, isPassed will throw
             if (voting.isPassed(challengeID)) {
                 listingMap[domainHash].whitelisted = true;
@@ -184,7 +181,6 @@ contract Registry {
             }
 
             challengeMap[challengeID].resolved = true; // set flag on challenge being processed
-
 
             // store the total tokens used for voting by the winning side for reward purposes
             challengeMap[challengeID].totalTokens = voting.getTotalNumberOfTokensForWinningOption(challengeID);
@@ -248,9 +244,9 @@ contract Registry {
     function resetListing(string domain) internal {
         bytes32 domainHash = sha3(domain);
         Listing storage listing = listingMap[domainHash];
-
-        require(token.transfer(listing.owner, listing.currentDeposit));
-
+        //transfer any remaining balance back to the owner
+        if (listing.currentDeposit > 0)
+            require(token.transfer(listing.owner, listing.currentDeposit));
         delete listingMap[domainHash];
     }
 }
