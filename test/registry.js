@@ -3,16 +3,16 @@ const EthRPC = require('ethjs-rpc')
 const ethRPC = new EthRPC(new HttpProvider ('http://localhost:8545'))
 const abi = require("ethereumjs-abi")
 
-var Registry = artifacts.require("./Registry.sol")
 var Token = artifacts.require("./HumanStandardToken.sol")
 
-var minDeposit = 50
-var minParamDeposit = 50
-var applyStageLength = 50
-var commitPeriodLength = 50
-var revealPeriodLength = 50
-var dispensationPct = 50
-var voteQuorum = 50
+const PLCRVoting = artifacts.require("./PLCRVoting.sol")
+const Registry = artifacts.require("./Registry.sol")
+const Parameterizer = artifacts.require("./Parameterizer.sol")
+
+const fs = require("fs")
+
+let adchainConfig = JSON.parse(fs.readFileSync('./conf/config.json'))
+let paramConfig = adchainConfig.RegistryDefaults
 
 
 contract('Registry', (accounts) => {
@@ -23,6 +23,35 @@ contract('Registry', (accounts) => {
         let voting = await PLCRVoting.at(votingAddr)
         return voting
     }
+
+  // increases time
+  async function increaseTime(seconds) {
+      return new Promise((resolve, reject) => { 
+          return ethRPC.sendAsync({
+              method: 'evm_increaseTime',
+              params: [seconds]
+          }, (err) => {
+              if (err) reject(err)
+              resolve()
+          })
+      })
+          .then(() => {
+              return new Promise((resolve, reject) => { 
+                  return ethRPC.sendAsync({
+                      method: 'evm_mine',
+                      params: []
+                  }, (err) => {
+                      if (err) reject(err)
+                      resolve()
+                  })
+              })
+          })
+  }
+
+  function getSecretHash(vote, salt) {
+      return "0x" + abi.soliditySHA3([ "uint", "uint" ],
+          [ vote, salt ]).toString('hex'); 
+  }
 
   it("should verify a domain is not in the whitelist", () => {
     const domain = 'eth.eth'; //the domain to be tested
@@ -37,7 +66,6 @@ contract('Registry', (accounts) => {
     const domain = 'nochallenge.net' //domain to apply with
     let registry;
     let token;
-    let depositAmount = minDeposit;
     return Registry.deployed()
     .then((_registry) => registry = _registry)
     .then(() => Token.deployed())
@@ -53,7 +81,7 @@ contract('Registry', (accounts) => {
       assert.equal(result[0]*1000> Date.now(), true , "challenge time < now");
       assert.equal(result[1], false , "challenged != false");
       assert.equal(result[2], accounts[1] , "owner of application != address that applied");
-      assert.equal(result[3], depositAmount , "incorrect currentDeposit");
+      assert.equal(result[3], paramConfig.minDeposit , "incorrect currentDeposit");
     })
     
   });
@@ -124,7 +152,6 @@ contract('Registry', (accounts) => {
   it("should withdraw, and then get delisted by challenge", async () => {
     const domain = "nochallenge.net"
     const owner = accounts[1] //owner of nochallenge.net
-    let depositAmount = minDeposit
     registry = await Registry.deployed();
     whitelisted = await registry.isWhitelisted.call(domain)
     assert.equal(result, true, "domain didn't get whitelisted")
@@ -135,14 +162,111 @@ contract('Registry', (accounts) => {
     assert.equal(whitelisted, false, "domain is still whitelisted")
   });
 
-  it("should apply and get challenged", async () => {
-    const domain = 'passChallenge.net' //domain to apply with
-    let depositAmount = minDeposit;
-    registry = await Registry.deployed();
+  it("should apply, fail challenge, and reject domain", async () => {
+    const domain = 'failChallenge.net' //domain to apply with
+    let registry = await Registry.deployed();
     //apply with accounts[2]
     await registry.apply(domain, {from: accounts[2]});
     //challenge with accounts[1]
-    await registry.challenge(domain, {from: accounts[1]})
+    let result = await registry.challenge(domain, {from: accounts[1]})
+    let pollID = result.receipt.logs[1].data
+    let voting = await getVoting()
+
+    let salt = 1
+    let voteOption = 0
+    let hash = getSecretHash(voteOption, salt)
+
+    //vote against with accounts[1:3]
+
+    //commit
+    let tokensArg = 10;
+    let cpa = await voting.commitPeriodActive.call(pollID)
+    assert.equal(cpa, true, "commit period should be active")
+
+    await voting.commitVote(pollID, hash, tokensArg, pollID-1, {from: accounts[1]})
+    let numTokens = await voting.getNumTokens(pollID, {from: accounts[1]})
+    assert.equal(numTokens, tokensArg, "wrong num tok committed")
+    
+    // await voting.commitVote(pollID, hash, tokensArg, pollID-1, {from: accounts[2]})
+    // numTokens = await voting.getNumTokens(pollID, {from: accounts[2]})
+    // assert.equal(numTokens, tokensArg, "wrong num tok committed")
+    
+    // //inc time
+    await increaseTime(paramConfig.commitPeriodLength+1)
+    let rpa = await voting.revealPeriodActive.call(pollID)
+    assert.equal(rpa, true, "reveal period should be active")
+
+    // // reveal
+    await voting.revealVote(pollID, salt, voteOption, {from: accounts[1]});
+    // await voting.revealVote(pollID, salt, voteOption, {from: accounts[2]});
+
+    // //inc time
+    await increaseTime(paramConfig.commitPeriodLength+1)
+    rpa = await voting.revealPeriodActive.call(pollID)
+    assert.equal(rpa, false, "reveal period should not be active")
+
+    // //updateStatus
+    let pollResult = await voting.isPassed.call(pollID)
+    assert.equal(pollResult, false, "poll should not have passed")
+    await registry.updateStatus(domain)
+
+    //should not have been added to whitelist
+    result = await registry.isWhitelisted(domain)
+    assert.equal(result, false, "domain should not be whitelisted")
+  });
+
+  it("should apply, pass challenge, and whitelist domain", async () => {
+    const domain = 'failChallenge.net' //domain to apply with
+    let registry = await Registry.deployed();
+    //apply with accounts[2]
+    await registry.apply(domain, {from: accounts[2]});
+    //challenge with accounts[1]
+    let result = await registry.challenge(domain, {from: accounts[1]})
+    let pollID = result.receipt.logs[1].data
+    let voting = await getVoting()
+
+    let salt = 1
+    let voteOption = 1
+    let hash = getSecretHash(voteOption, salt)
+
+    //vote against with accounts[1:3]
+
+    //commit
+    let tokensArg = 10;
+    let cpa = await voting.commitPeriodActive.call(pollID)
+    assert.equal(cpa, true, "commit period should be active")
+
+    await voting.commitVote(pollID, hash, tokensArg, pollID-1, {from: accounts[1]})
+    let numTokens = await voting.getNumTokens(pollID, {from: accounts[1]})
+    assert.equal(numTokens, tokensArg, "wrong num tok committed")
+    
+    await voting.commitVote(pollID, hash, tokensArg, pollID-1, {from: accounts[2]})
+    numTokens = await voting.getNumTokens(pollID, {from: accounts[2]})
+    assert.equal(numTokens, tokensArg, "wrong num tok committed")
+    
+    //inc time
+    await increaseTime(paramConfig.commitPeriodLength+1)
+    let rpa = await voting.revealPeriodActive.call(pollID)
+    assert.equal(rpa, true, "reveal period should be active")
+
+    // reveal
+    await voting.revealVote(pollID, salt, voteOption, {from: accounts[1]});
+    await voting.revealVote(pollID, salt, voteOption, {from: accounts[2]});
+
+    //inc time
+    await increaseTime(paramConfig.commitPeriodLength+1)
+    rpa = await voting.revealPeriodActive.call(pollID)
+    assert.equal(rpa, false, "reveal period should not be active")
+
+    //updateStatus
+    let pollResult = await voting.isPassed.call(pollID)
+    assert.equal(pollResult, true, "poll should have passed")
+    await registry.updateStatus(domain)
+
+    //should not have been added to whitelist
+    result = await registry.isWhitelisted(domain)
+    assert.equal(result, true, "domain should be whitelisted")
+
   });
 
   
