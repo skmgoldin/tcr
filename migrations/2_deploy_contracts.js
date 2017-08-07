@@ -7,7 +7,7 @@ const fs = require("fs");
 
 module.exports = (deployer, network, accounts) => {
     const owner = accounts[0];
-    const users = accounts.slice(1, 10);
+    const users = accounts.slice(1, 3);
 
     let adchainConfig = JSON.parse(fs.readFileSync('./conf/config.json'));
     let tokenConfig = adchainConfig.TokenArguments;
@@ -58,14 +58,15 @@ module.exports = (deployer, network, accounts) => {
             users.map(async (user, idx) => {
                 let tokenAmt = voteTokenConfig.userAmounts[idx];
                 if (tokenAmt != 0) {
-                    //transfer adtok
-                    await token.transfer(user, 3 * tokenAmt, {from: owner}) 
+                    // distribute adtoken from owner to users
+                    await token.transfer(user, 3 * tokenAmt, {from: owner})
+                    // allow each instance of PLCRvoting an allotment of user's adtoken 
                     await token.approve(votingAddr, tokenAmt, {from: user})
                     await token.approve(votingParamAddr, tokenAmt, {from: user})
-                    //request voting rights
+                    // exchange user's adtoken for voting rights in each instance of PLCRvoting
                     await voting.requestVotingRights(tokenAmt, {from: user})
                     await votingParam.requestVotingRights(tokenAmt, {from: user})
-                    //approve voting rights
+                    // allow Registry and Parameterizer to take deposits
                     await token.approve(Registry.address, tokenAmt, {from: user})
                     await token.approve(Parameterizer.address, tokenAmt, {from: user})
                 }
