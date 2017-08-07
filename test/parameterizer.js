@@ -60,50 +60,103 @@ contract('Parameterizer', (accounts) => {
 
     it("should fail to change parameter", async() => {
         let param = await Parameterizer.deployed()
+        let votingAddr = await param.voting.call()
         let voting = await getParamVoting()
-        // console.log("voting contract instance", voting)
         let salt = 1
-        let voteOption = 1
+        let voteOption = 0
 
         //changeParameter()
         let result = await param.changeParameter("minDeposit", 20, {from: accounts[1]})
         let pollID = result.receipt.logs[1].data
-        console.log("pollID", pollID)
-
         let hash = getSecretHash(voteOption, salt)
-        console.log("hash", hash)
-        // //vote against with accounts[1:4]
+
+        //vote against with accounts[1:3]
         
         // commit
         let tokensArg = 10;
-        await voting.commitVote(pollID, hash, tokensArg, 0, {from: accounts[2]})
-        let numTokens = await voting.getNumTokens(pollID, {from: accounts[2]})
-        console.log("numTokens", numTokens)
         let cpa = await voting.commitPeriodActive.call(pollID)
-        console.log("commitPeriodActive", cpa)
-        await increaseTime(paramConfig.commitPeriodLength+1)
-        console.log("increaseTime", paramConfig.commitPeriodLength+1)
-        cpa = await voting.commitPeriodActive.call(pollID)
-        console.log("commitPeriodActive", cpa)
+        assert.equal(cpa, true, "commit period should be active")
 
+        await voting.commitVote(pollID, hash, tokensArg, pollID-1, {from: accounts[1]})
+        let numTokens = await voting.getNumTokens(pollID, {from: accounts[1]})
+        assert.equal(numTokens, tokensArg, "wrong num tok committed")
+
+        await voting.commitVote(pollID, hash, tokensArg, pollID-1, {from: accounts[2]})
+        numTokens = await voting.getNumTokens(pollID, {from: accounts[2]})
+        assert.equal(numTokens, tokensArg, "wrong num tok committed")
+        
+        //inc time
+        await increaseTime(paramConfig.commitPeriodLength+1)
         let rpa = await voting.revealPeriodActive.call(pollID)
-        console.log("revealPeriodActive", rpa)
+        assert.equal(rpa, true, "reveal period should be active")
 
         // reveal
+        await voting.revealVote(pollID, salt, voteOption, {from: accounts[1]});
         await voting.revealVote(pollID, salt, voteOption, {from: accounts[2]});
-        let pollArr = await voting.pollMap.call(pollID)
-        console.log("pollArr", pollArr)
 
+        //inc time
         await increaseTime(paramConfig.commitPeriodLength+1)
-        console.log("increaseTime", paramConfig.revealPeriodLength+1)
-
         rpa = await voting.revealPeriodActive.call(pollID)
-        console.log("revealPeriodActive", rpa)
+        assert.equal(rpa, false, "reveal period should not be active")
 
-        let pollResult = await voting.isPassed.call(pollID)
-        console.log("pollResult", pollResult)
         //processProposal
+        let pollResult = await voting.isPassed.call(pollID)
+        assert.equal(pollResult, false, "poll should not have passed")
+        await param.processProposal(pollID)
         //should be no change to params
-
+        result = await param.get.call("minDeposit")
+        assert.equal(parseInt(result.toString()), paramConfig.minDeposit, "minDeposit should not change")
     });
+
+    it("should fail to change parameter", async() => {
+        let param = await Parameterizer.deployed()
+        let votingAddr = await param.voting.call()
+        let voting = await getParamVoting()
+        let salt = 1
+        let voteOption = 1
+
+        //changeParameter()
+        let newMinDeposit = 20
+        let result = await param.changeParameter("minDeposit", newMinDeposit, {from: accounts[1]})
+        let pollID = result.receipt.logs[1].data
+        let hash = getSecretHash(voteOption, salt)
+
+        //vote for with accounts[1:3]
+        
+        // commit
+        let tokensArg = 10;
+        let cpa = await voting.commitPeriodActive.call(pollID)
+        assert.equal(cpa, true, "commit period should be active")
+
+        await voting.commitVote(pollID, hash, tokensArg, pollID-1, {from: accounts[1]})
+        let numTokens = await voting.getNumTokens(pollID, {from: accounts[1]})
+        assert.equal(numTokens, tokensArg, "wrong num tok committed")
+        
+        await voting.commitVote(pollID, hash, tokensArg, pollID-1, {from: accounts[2]})
+        numTokens = await voting.getNumTokens(pollID, {from: accounts[2]})
+        assert.equal(numTokens, tokensArg, "wrong num tok committed")
+        
+        //inc time
+        await increaseTime(paramConfig.commitPeriodLength+1)
+        let rpa = await voting.revealPeriodActive.call(pollID)
+        assert.equal(rpa, true, "reveal period should be active")
+
+        // reveal
+        await voting.revealVote(pollID, salt, voteOption, {from: accounts[1]});
+        await voting.revealVote(pollID, salt, voteOption, {from: accounts[2]});
+
+        //inc time
+        await increaseTime(paramConfig.commitPeriodLength+1)
+        rpa = await voting.revealPeriodActive.call(pollID)
+        assert.equal(rpa, false, "reveal period should not be active")
+
+        //processProposal
+        let pollResult = await voting.isPassed.call(pollID)
+        assert.equal(pollResult, true, "poll should not have passed")
+        await param.processProposal(pollID)
+        //should be no change to params
+        result = await param.get.call("minDeposit")
+        assert.equal(parseInt(result.toString()), newMinDeposit, "minDeposit should not change")
+    });
+
 });

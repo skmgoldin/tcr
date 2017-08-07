@@ -1,18 +1,18 @@
-const HttpProvider = require('ethjs-provider-http');
-const EthRPC = require('ethjs-rpc');
-const ethRPC = new EthRPC(new HttpProvider ('http://localhost:8545'));
-const abi = require("ethereumjs-abi");
+const HttpProvider = require('ethjs-provider-http')
+const EthRPC = require('ethjs-rpc')
+const ethRPC = new EthRPC(new HttpProvider ('http://localhost:8545'))
+const abi = require("ethereumjs-abi")
 
-var Registry = artifacts.require("./Registry.sol");
+var Registry = artifacts.require("./Registry.sol")
 var Token = artifacts.require("./HumanStandardToken.sol")
 
-var minDeposit = 50;
-var minParamDeposit = 50;
-var applyStageLength = 50;
-var commitPeriodLength = 50;
-var revealPeriodLength = 50;
-var dispensationPct = 50;
-var voteQuorum = 50;
+var minDeposit = 50
+var minParamDeposit = 50
+var applyStageLength = 50
+var commitPeriodLength = 50
+var revealPeriodLength = 50
+var dispensationPct = 50
+var voteQuorum = 50
 
 
 contract('Registry', (accounts) => {
@@ -139,11 +139,10 @@ contract('Registry', (accounts) => {
     const domain = 'passChallenge.net' //domain to apply with
     let depositAmount = minDeposit;
     registry = await Registry.deployed();
-    token = await Token.deployed();
     //apply with accounts[2]
     await registry.apply(domain, {from: accounts[2]});
-    //challenge with accounts[3]
-    await registry.challenge(domain, {from: accounts[3]})
+    //challenge with accounts[1]
+    await registry.challenge(domain, {from: accounts[1]})
   });
 
   
