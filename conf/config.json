@@ -15,6 +15,6 @@
 		"symbol": "ADT"
 	},
 	"VoteTokenDistribution": {
-		"userAmounts": [500, 500, 500, 500, 500, 500, 500, 500, 500]
+		"userAmounts": [1000, 1000, 1000, 1000]
 	}
 }
