@@ -108,9 +108,8 @@ contract('Parameterizer', (accounts) => {
         assert.equal(parseInt(result.toString()), paramConfig.minDeposit, "minDeposit should not change")
     });
 
-    it("should fail to change parameter", async() => {
+    it("should change parameter", async() => {
         let param = await Parameterizer.deployed()
-        let votingAddr = await param.voting.call()
         let voting = await getParamVoting()
         let salt = 1
         let voteOption = 1
