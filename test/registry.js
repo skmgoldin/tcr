@@ -53,91 +53,47 @@ contract('Registry', (accounts) => {
           [ vote, salt ]).toString('hex'); 
   }
 
-  it("should verify a domain is not in the whitelist", () => {
+  it("should verify a domain is not in the whitelist", async() => {
     const domain = 'eth.eth'; //the domain to be tested
-    let registry;
-    return Registry.deployed()
-    .then((_registry) => registry = _registry)
-    .then(() => registry.isWhitelisted.call(domain)) // test isWhitelisted() function should return false
-    .then((result) => assert.equal(result, false , "Domain is actually added."))
+    let registry = await Registry.deployed()
+    result = await registry.isWhitelisted.call(domain)
+    assert.equal(result, false , "Domain should not be whitelisted")
   });
 
-  it("should allow a domain to apply", () => {
-    const domain = 'nochallenge.net' //domain to apply with
-    let registry;
-    let token;
-    return Registry.deployed()
-    .then((_registry) => registry = _registry)
-    .then(() => Token.deployed())
-    .then((_token) => token = _token)
-    //apply with accounts[1]
-    .then(() => registry.apply(domain, {from: accounts[1]}))
-    //hash the domain so we can identify in listingMap
-    .then(() => '0x' + abi.soliditySHA3(["string"], [domain]).toString('hex'))
-    //get the struct in the mapping
-    .then((hash) => registry.listingMap.call(hash))
-    //check that Application is initialized correctly
-    .then((result) => {
-      assert.equal(result[0]*1000> Date.now(), true , "challenge time < now");
-      assert.equal(result[1], false , "challenged != false");
-      assert.equal(result[2], accounts[1] , "owner of application != address that applied");
-      assert.equal(result[3], paramConfig.minDeposit , "incorrect currentDeposit");
-    })
-    
-  });
-
-  it("should not let address apply with domains that are already in listingMap", () => {
+  it("should allow a domain to apply", async() => {
     const domain = 'nochallenge.net'
-    let registry;
-    let token;
-    let initalAmt;
-    let depositAmount = 50;
-    return Registry.deployed()
-    .then((_registry) => registry = _registry)
-    .then(() => Token.deployed())
-    .then((_token) => token = _token)
-    .then(() => token.balanceOf.call(registry.address))
-    .then((result) => initalAmt = result)
-    //apply with accounts[1] with the same domain, should fail since there's an existing application already
-    .then(() => registry.apply(domain, {from: accounts[2]}))
-    .catch((error) => console.log('\tSuccess: failed to reapply domain'))
-    .then(() => token.balanceOf.call(registry.address))
-    .then((balance) => assert.equal(balance.toString(), initalAmt.toString(), "why did my wallet balance change"))
+    let registry = await Registry.deployed()
+    //apply with accounts[1]
+    await registry.apply(domain, {from: accounts[1]})
+    //hash the domain so we can identify in listingMap
+    hash ='0x' + abi.soliditySHA3(["string"], [domain]).toString('hex')
+    //get the struct in the mapping
+    result = await registry.listingMap.call(hash)
+    //check that Application is initialized correctly
+    assert.equal(result[0]*1000> Date.now(), true , "challenge time < now")
+    assert.equal(result[1], false , "challenged != false")
+    assert.equal(result[2], accounts[1] , "owner of application != address that applied")
+    assert.equal(result[3], paramConfig.minDeposit , "incorrect currentDeposit")    
   });
 
-  it("should add time to evm then not allow to challenge because challenge time passed", () => {
-    const domain = "nochallenge.net";
-    let registry;
-    return new Promise((resolve, reject) => { 
-      return ethRPC.sendAsync({
-        method: 'evm_increaseTime',
-        params: [60]
-      }, (err, res) => {
-        if (err) reject(err)
-        resolve(res)
-      })
-    })
-    .then(() => {
-      return new Promise((resolve, reject) => { 
-      return ethRPC.sendAsync({
-        method: 'evm_mine',
-        params: []
-      }, (err, res) => {
-        if (err) reject(err)
-        resolve(res)
-      })
-    })
-    })
-    return Registry.deployed()
-    .then((_registry) => registry = _registry)
-    .then(() => Token.deployed())
-    .then((_token) => token = _token)
-    .then(() => token.transfer(accounts[3], depositAmount, {from: accounts[0]}))
-    .then(() => {
-       token.approve(registry.address, depositAmount, {from: accounts[3]})
-       return registry.challenge(domain, {from: accounts[3]}); //should fail! error handle
-    })
-    .catch((error) => console.log('\tSuccess: failed to allow challenge to start'))
+  it("should not let address apply with domains that are already in listingMap", async() => {
+    const domain = 'nochallenge.net'
+    let registry = await Registry.deployed()
+    let token = await Token.deployed()
+    let initalAmt = await token.balanceOf.call(registry.address)
+    //apply with accounts[1] with the same domain, should fail since there's an existing application already
+    try {await registry.apply(domain, {from: accounts[2]})}
+    catch(error) {console.log('\tSuccess: failed to reapply domain')}
+    let finalAmt = await token.balanceOf.call(registry.address)
+    assert.equal(parseInt(finalAmt), parseInt(initalAmt), "why did my wallet balance change")
+  });
+
+  it("should add time to evm then not allow to challenge because challenge time passed", async() => {
+    const domain = "nochallenge.net"
+    await increaseTime(60)
+    let registry = await Registry.deployed()
+    try {await registry.challenge(domain, {from: accounts[3]})}
+    catch(error) {console.log('\tSuccess: failed to allow challenge to start')}
   });
 
   it("should update domain status to whitelisted because domain was not challenged", async () => {
