@@ -1,6 +1,6 @@
 # AdChainRegistry
 
-![alt text](https://github.com/mzeitlin8/AdChainRegistry/blob/indefiniteListing/Registry.png)
+![alt text](https://github.com/mzeitlin8/AdChainRegistry/blob/master/Registry.png)
 
 
 ## Application Process
@@ -54,9 +54,7 @@
     to claim a portion of the loser's (either the applicant's or the challenger's) deposit proportional to the amount of
     AdToken they contributed to the vote.
 
-3.  Since the tokens can only be distributed in integer values, there may be a decimal amount of tokens that the voter
-    cannot recieve.  This decimal amount is saved for each vote by the registry, creating a pool of leftover tokens that
-    the winner (either the challenger or the applicant) can withdraw from at any time by calling ```claimExtraReward()```.
+3.  No tokens are ever lost or burned because the reward pool of tokens is repartitioned every time ```claimReward()``` is called. 
 
 
 
