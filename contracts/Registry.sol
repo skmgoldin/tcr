@@ -23,7 +23,7 @@ contract Registry {
     }
 
     // maps challengeIDs to associated challenge data
-    mapping(uint => Challenge) challengeMap; 
+    mapping(uint => Challenge) public challengeMap; 
     // maps domainHashes to associated listing data
     mapping(bytes32 => Listing) public listingMap;
     // maps challengeIDs and address to token claim data
@@ -33,15 +33,6 @@ contract Registry {
     StandardToken public token;
     PLCRVoting public voting;
     Parameterizer public parameterizer;
-
-    // Constants
-    bytes32 constant private MINDEPOSIT_h = sha3("minDeposit");
-    bytes32 constant private MINPARAMDEPOSIT_h = sha3("minParamDeposit");
-    bytes32 constant private APPLYSTAGELEN_h = sha3("applyStageLen");
-    bytes32 constant private COMMITPERIODLEN_h = sha3("commitPeriodLen");
-    bytes32 constant private REVEALPERIODLEN_h = sha3("revealPeriodLen");
-    bytes32 constant private DISPENSATIONPCT_h = sha3("dispensationPct");
-    bytes32 constant private VOTEQUORUM_h = sha3("voteQuorum"); 
 
     // ------------
     // CONSTRUCTOR:
