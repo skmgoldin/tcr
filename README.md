@@ -1,7 +1,8 @@
 # AdChainRegistry
 
-![alt text](https://github.com/mzeitlin8/AdChainRegistry/blob/master/Registry.png)
+[ ![Codeship Status for AdChain/AdChainRegistry](https://app.codeship.com/projects/3bdda690-6405-0135-6105-4ab105608534/status?branch=master)](https://app.codeship.com/projects/240253)
 
+A token-curated registry listing the domains of high-quality web publishers with authentic human audiences.
 
 ## Application Process
 
