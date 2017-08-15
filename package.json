@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "description": "AdChain node module",
   "scripts": {
-    "test": "test",
+    "test": "if [ -e rpc_pid.txt ] ; then kill `cat rpc_pid.txt` ; fi \n nohup testrpc > /dev/null 2>&1 & \n echo $! > rpc_pid.txt \n truffle test \n if [ $? != 0 ] ; then exit 1 ; fi \n kill `cat rpc_pid.txt` \n rm rpc_pid.txt",
     "lint": "eslint --fix"
   },
   "author": "Irene Lin <irene.lin@consensys.net>, Mira Zeitlin <miranda.zeitlin@consensys.net>, Yorke Rhodes <yorke.rhodesiv@consensys.net>",
