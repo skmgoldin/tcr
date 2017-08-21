@@ -21,7 +21,7 @@ module.exports = (deployer, network, accounts) => {
     tokenConfig.totalSupply,
     tokenConfig.name,
     tokenConfig.decimalUnits,
-    tokenConfig.symbol,
+    tokenConfig.symbol
   )
     .then(() => deployer.deploy(
       Parameterizer,
@@ -32,12 +32,12 @@ module.exports = (deployer, network, accounts) => {
       parameterizerConfig.commitPeriodLength,
       parameterizerConfig.revealPeriodLength,
       parameterizerConfig.dispensationPct,
-      parameterizerConfig.voteQuorum,
+      parameterizerConfig.voteQuorum
     ))
     .then(() => deployer.deploy(
       Registry,
       Token.address,
-      Parameterizer.address,
+      Parameterizer.address
     ))
     .then(async () => {
       const token = await Token.deployed();
@@ -58,7 +58,7 @@ module.exports = (deployer, network, accounts) => {
           if (tokenAmt !== 0) {
             // distribute adtoken from owner to users
             await token.transfer(user, 3 * tokenAmt, { from: owner });
-            // allow each instance of PLCRvoting an allotment of user's adtoken 
+            // allow each instance of PLCRvoting an allotment of user's adtoken
             await token.approve(votingAddr, tokenAmt, { from: user });
             await token.approve(votingParamAddr, tokenAmt, { from: user });
             // exchange user's adtoken for voting rights in each instance of PLCRvoting
@@ -68,7 +68,7 @@ module.exports = (deployer, network, accounts) => {
             await token.approve(Registry.address, tokenAmt, { from: user });
             await token.approve(Parameterizer.address, tokenAmt, { from: user });
           }
-        }),
+        })
       );
     });
 };
