@@ -21,7 +21,7 @@ module.exports = (deployer, network, accounts) => {
     tokenConfig.totalSupply,
     tokenConfig.name,
     tokenConfig.decimalUnits,
-    tokenConfig.symbol
+    tokenConfig.symbol,
   )
     .then(() => deployer.deploy(
       Parameterizer,
@@ -32,12 +32,12 @@ module.exports = (deployer, network, accounts) => {
       parameterizerConfig.commitPeriodLength,
       parameterizerConfig.revealPeriodLength,
       parameterizerConfig.dispensationPct,
-      parameterizerConfig.voteQuorum
+      parameterizerConfig.voteQuorum,
     ))
     .then(() => deployer.deploy(
       Registry,
       Token.address,
-      Parameterizer.address
+      Parameterizer.address,
     ))
     .then(async () => {
       const token = await Token.deployed();
@@ -68,7 +68,7 @@ module.exports = (deployer, network, accounts) => {
             await token.approve(Registry.address, tokenAmt, { from: user });
             await token.approve(Parameterizer.address, tokenAmt, { from: user });
           }
-        })
+        }),
       );
     });
 };
