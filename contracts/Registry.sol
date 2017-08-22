@@ -6,6 +6,15 @@ import "./Parameterizer.sol";
 
 contract Registry {
 
+    // ------
+    // EVENTS
+    // ------
+
+    event _Application(string domain, uint deposit);
+    event _Challenge(string domain, uint deposit, uint pollID);
+    event _Deposit(string domain, uint added, uint newTotal);
+    event _Withdrawal(string domain, uint withdrew, uint newTotal);
+
     struct Listing {
         uint applicationExpiry; // expiration date of apply stage
         bool whitelisted;       // indicates registry status
@@ -68,6 +77,8 @@ contract Registry {
         //set apply stage end time
         listing.applicationExpiry = block.timestamp + parameterizer.get("applyStageLen"); 
         listing.currentDeposit = minDeposit;
+
+        _Application(domain, minDeposit);
     }
 
     //Allow the owner of a domain in the listing to increase their deposit
@@ -78,6 +89,8 @@ contract Registry {
         require(token.transferFrom(msg.sender, this, amount));
 
         listing.currentDeposit += amount;
+
+        _Deposit(domain, amount, listing.currentDeposit);
     }
 
     //Allow the owner of a domain in the listing to withdraw
@@ -91,6 +104,8 @@ contract Registry {
         require(token.transfer(msg.sender, amount));
 
         listing.currentDeposit -= amount;
+
+        _Withdrawal(domain, amount, listing.currentDeposit);
     }
 
     //Allow the owner of a domain to remove the domain from the whitelist
@@ -145,6 +160,7 @@ contract Registry {
         listingMap[domainHash].challengeID = pollID;      // update listing to store most recent challenge
         listingMap[domainHash].currentDeposit -= deposit; // lock tokens for listing during challenge
 
+        _Challenge(domain, deposit, pollID);
         return pollID;
     }
 
