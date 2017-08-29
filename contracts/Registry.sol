@@ -62,23 +62,23 @@ contract Registry {
 
     //Allow a user to start an application
     //take tokens from user and set apply stage end time
-    function apply(string domain) external {
+    function apply(string domain, uint amount) external {
         require(!isWhitelisted(domain));
         require(!appExists(domain));
+        require(amount >= parameterizer.get("minDeposit"));
 
         //set owner
         Listing storage listing = listingMap[sha3(domain)];
         listing.owner = msg.sender; 
 
         //transfer tokens
-        uint minDeposit = parameterizer.get("minDeposit");
-        require(token.transferFrom(listing.owner, this, minDeposit)); 
+        require(token.transferFrom(listing.owner, this, amount)); 
 
         //set apply stage end time
         listing.applicationExpiry = block.timestamp + parameterizer.get("applyStageLen"); 
-        listing.currentDeposit = minDeposit;
+        listing.currentDeposit = amount;
 
-        _Application(domain, minDeposit);
+        _Application(domain, amount);
     }
 
     //Allow the owner of a domain in the listing to increase their deposit

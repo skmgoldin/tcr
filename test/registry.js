@@ -57,7 +57,7 @@ contract('Registry', (accounts) => {
     const domain = 'nochallenge.net';
     const registry = await Registry.deployed();
     // apply with accounts[1]
-    await registry.apply(domain, { from: accounts[1] });
+    await registry.apply(domain, paramConfig.minDeposit, { from: accounts[1] });
     // hash the domain so we can identify in listingMap
     const hash = `0x${abi.soliditySHA3(['string'], [domain]).toString('hex')}`;
     // get the struct in the mapping
@@ -76,7 +76,7 @@ contract('Registry', (accounts) => {
     const initalAmt = await token.balanceOf.call(registry.address);
     // apply with accounts[1] with the same domain, should fail since there's
     // an existing application already
-    try { await registry.apply(domain, { from: accounts[2] }); } catch (error) { console.log('\tSuccess: failed to reapply domain'); }
+    try { await registry.apply(domain, paramConfig.minDeposit, { from: accounts[2] }); } catch (error) { console.log('\tSuccess: failed to reapply domain'); }
     const finalAmt = await token.balanceOf.call(registry.address);
     assert.equal(finalAmt.toString(10), initalAmt.toString(10), 'why did my wallet balance change');
   });
@@ -113,7 +113,7 @@ contract('Registry', (accounts) => {
     const domain = 'failChallenge.net'; // domain to apply with
     const registry = await Registry.deployed();
     // apply with accounts[2]
-    await registry.apply(domain, { from: accounts[2] });
+    await registry.apply(domain, paramConfig.minDeposit, { from: accounts[2] });
     // challenge with accounts[1]
     let result = await registry.challenge(domain, { from: accounts[1] });
     const pollID = result.receipt.logs[1].data;
@@ -166,7 +166,7 @@ contract('Registry', (accounts) => {
     const domain = 'failChallenge.net'; // domain to apply with
     const registry = await Registry.deployed();
     // apply with accounts[2]
-    await registry.apply(domain, { from: accounts[2] });
+    await registry.apply(domain, paramConfig.minDeposit, { from: accounts[2] });
     // challenge with accounts[1]
     let result = await registry.challenge(domain, { from: accounts[1] });
     const pollID = result.receipt.logs[1].data;
