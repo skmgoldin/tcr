@@ -113,6 +113,7 @@ contract Registry {
     function exit(string domain) external {
         Listing storage listing = listingMap[sha3(domain)];
 
+        require(msg.sender == listing.owner);
         require(isWhitelisted(domain));
         // cannot exit during ongoing challenge
         require(listing.challengeID == 0 || challengeMap[listing.challengeID].resolved);

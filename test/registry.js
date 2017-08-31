@@ -16,7 +16,7 @@ const adchainConfig = JSON.parse(fs.readFileSync('./conf/config.json'));
 const paramConfig = adchainConfig.RegistryDefaults;
 
 contract('Registry', (accounts) => {
-  const [applicant, challenger] = accounts.slice(1);
+  const [applicant, challenger, voter] = accounts.slice(1);
 
   async function getVoting() {
     const registry = await Registry.deployed();
@@ -278,8 +278,31 @@ contract('Registry', (accounts) => {
           'the applicant\'s tokens were returned in spite of failing to exit',
         );
       }
+
+      // Clean up state, remove consensys.net from application stage
+      await increaseTime(paramConfig.commitPeriodLength + paramConfig.revealPeriodLength + 1);
+      await registry.updateStatus(domain);
     });
 
-    it('should not allow a listing to be exited by someone who doesn\'t own it');
+    it('should not allow a listing to be exited by someone who doesn\'t own it', async () => {
+      const registry = await Registry.deployed();
+      const domain = 'consensys.net';
+
+      await registry.apply(domain, paramConfig.minDeposit, { from: applicant });
+      await increaseTime(paramConfig.applyStageLength + 1);
+      await registry.updateStatus(domain);
+
+      try {
+        await registry.exit(domain, { from: voter });
+      } catch (err) {
+        // TODO: Check if is EVM error
+        const isWhitelistedAfterExit = await registry.isWhitelisted(domain);
+        assert.strictEqual(
+          isWhitelistedAfterExit,
+          true,
+          'the domain was exited by someone other than its owner',
+        );
+      }
+    });
   });
 });
