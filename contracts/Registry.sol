@@ -115,7 +115,7 @@ contract Registry {
 
         require(isWhitelisted(domain));
         // cannot exit during ongoing challenge
-        require(challengeMap[listing.challengeID].resolved); 
+        require(listing.challengeID == 0 || challengeMap[listing.challengeID].resolved);
 
         //remove domain & return tokens
         resetListing(domain);
