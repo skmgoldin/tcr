@@ -277,4 +277,5 @@ contract('Registry', (accounts) => {
     }
   });
 
+  it('should not allow a listing to be exited by someone who doesn\'t own it');
 });
