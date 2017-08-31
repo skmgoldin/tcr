@@ -229,12 +229,12 @@ contract('Registry', (accounts) => {
       await increaseTime(paramConfig.applyStageLength + 1);
       await registry.updateStatus(domain);
 
-      const isWhitelisted = await registry.isWhitelisted(domain);
+      const isWhitelisted = await registry.isWhitelisted.call(domain);
       assert.strictEqual(isWhitelisted, true, 'the domain was not added to the registry');
 
       await registry.exit(domain, { from: applicant });
 
-      const isWhitelistedAfterExit = await registry.isWhitelisted(domain);
+      const isWhitelistedAfterExit = await registry.isWhitelisted.call(domain);
       assert.strictEqual(isWhitelistedAfterExit, false, 'the domain was not removed on exit');
 
       const finalApplicantTokenHoldings = await token.balanceOf.call(applicant);
@@ -256,7 +256,7 @@ contract('Registry', (accounts) => {
       await increaseTime(paramConfig.applyStageLength + 1);
       await registry.updateStatus(domain);
 
-      const isWhitelisted = await registry.isWhitelisted(domain);
+      const isWhitelisted = await registry.isWhitelisted.call(domain);
       assert.strictEqual(isWhitelisted, true, 'the domain was not added to the registry');
 
       await registry.challenge(domain, { from: challenger });
@@ -264,7 +264,7 @@ contract('Registry', (accounts) => {
         await registry.exit(domain, { from: applicant });
       } catch (err) {
         // TODO: Check if is EVM error
-        const isWhitelistedAfterExit = await registry.isWhitelisted(domain);
+        const isWhitelistedAfterExit = await registry.isWhitelisted.call(domain);
         assert.strictEqual(
           isWhitelistedAfterExit,
           true,
@@ -296,7 +296,7 @@ contract('Registry', (accounts) => {
         await registry.exit(domain, { from: voter });
       } catch (err) {
         // TODO: Check if is EVM error
-        const isWhitelistedAfterExit = await registry.isWhitelisted(domain);
+        const isWhitelistedAfterExit = await registry.isWhitelisted.call(domain);
         assert.strictEqual(
           isWhitelistedAfterExit,
           true,
