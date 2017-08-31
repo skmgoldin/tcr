@@ -262,6 +262,7 @@ contract('Registry', (accounts) => {
       await registry.challenge(domain, { from: challenger });
       try {
         await registry.exit(domain, { from: applicant });
+        assert(false, 'exit succeeded when it should have failed');
       } catch (err) {
         // TODO: Check if is EVM error
         const isWhitelistedAfterExit = await registry.isWhitelisted.call(domain);
@@ -294,6 +295,7 @@ contract('Registry', (accounts) => {
 
       try {
         await registry.exit(domain, { from: voter });
+        assert(false, 'exit succeeded when it should have failed');
       } catch (err) {
         // TODO: Check if is EVM error
         const isWhitelistedAfterExit = await registry.isWhitelisted.call(domain);
