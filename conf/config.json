@@ -1,10 +1,10 @@
 {
 	"RegistryDefaults": {
-		"minDeposit": 50,
-		"minParamDeposit": 50,
-		"applyStageLength": 50,
-		"commitPeriodLength": 50,
-		"revealPeriodLength": 50,
+		"minDeposit": 5000,
+		"minParamDeposit": 500000,
+		"applyStageLength": 14400,
+		"commitPeriodLength": 14400,
+		"revealPeriodLength": 14400,
 		"dispensationPct": 50,
 		"voteQuorum": 50
 	},
