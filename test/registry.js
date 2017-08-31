@@ -217,65 +217,69 @@ contract('Registry', (accounts) => {
     assert.equal(result, true, 'domain should be whitelisted');
   });
 
-  it('should allow a listing to exit when no challenge exists', async () => {
-    const registry = await Registry.deployed();
-    const token = await Token.deployed();
-    const domain = 'consensys.net';
+  describe('function: exit', () => {
+    it('should allow a listing to exit when no challenge exists', async () => {
+      const registry = await Registry.deployed();
+      const token = await Token.deployed();
+      const domain = 'consensys.net';
 
-    const initialApplicantTokenHoldings = await token.balanceOf.call(applicant);
+      const initialApplicantTokenHoldings = await token.balanceOf.call(applicant);
 
-    await registry.apply(domain, paramConfig.minDeposit, { from: applicant });
-    await increaseTime(paramConfig.applyStageLength + 1);
-    await registry.updateStatus(domain);
+      await registry.apply(domain, paramConfig.minDeposit, { from: applicant });
+      await increaseTime(paramConfig.applyStageLength + 1);
+      await registry.updateStatus(domain);
 
-    const isWhitelisted = await registry.isWhitelisted(domain);
-    assert.strictEqual(isWhitelisted, true, 'the domain was not added to the registry');
+      const isWhitelisted = await registry.isWhitelisted(domain);
+      assert.strictEqual(isWhitelisted, true, 'the domain was not added to the registry');
 
-    await registry.exit(domain, { from: applicant });
-
-    const isWhitelistedAfterExit = await registry.isWhitelisted(domain);
-    assert.strictEqual(isWhitelistedAfterExit, false, 'the domain was not removed on exit');
-
-    const finalApplicantTokenHoldings = await token.balanceOf.call(applicant);
-    assert.strictEqual(
-      initialApplicantTokenHoldings.toString(10),
-      finalApplicantTokenHoldings.toString(10),
-      'the applicant\'s tokens were not returned to them after exiting the registry',
-    );
-  });
-
-  it('should not allow a listing to exit when a challenge does exist', async () => {
-    const registry = await Registry.deployed();
-    const token = await Token.deployed();
-    const domain = 'consensys.net';
-
-    const initialApplicantTokenHoldings = await token.balanceOf.call(applicant);
-
-    await registry.apply(domain, paramConfig.minDeposit, { from: applicant });
-    await increaseTime(paramConfig.applyStageLength + 1);
-    await registry.updateStatus(domain);
-
-    const isWhitelisted = await registry.isWhitelisted(domain);
-    assert.strictEqual(isWhitelisted, true, 'the domain was not added to the registry');
-
-    await registry.challenge(domain, { from: challenger });
-    try {
       await registry.exit(domain, { from: applicant });
-    } catch (err) {
-      // TODO: Check if is EVM error
+
       const isWhitelistedAfterExit = await registry.isWhitelisted(domain);
-      assert.strictEqual(
-        isWhitelistedAfterExit,
-        true,
-        'the domain was able to exit while a challenge was active',
-      );
+      assert.strictEqual(isWhitelistedAfterExit, false, 'the domain was not removed on exit');
 
       const finalApplicantTokenHoldings = await token.balanceOf.call(applicant);
-      assert(initialApplicantTokenHoldings.toString(10) > finalApplicantTokenHoldings.toString(10),
-        'the applicant\'s tokens were returned in spite of failing to exit',
+      assert.strictEqual(
+        initialApplicantTokenHoldings.toString(10),
+        finalApplicantTokenHoldings.toString(10),
+        'the applicant\'s tokens were not returned to them after exiting the registry',
       );
-    }
-  });
+    });
 
-  it('should not allow a listing to be exited by someone who doesn\'t own it');
+    it('should not allow a listing to exit when a challenge does exist', async () => {
+      const registry = await Registry.deployed();
+      const token = await Token.deployed();
+      const domain = 'consensys.net';
+
+      const initialApplicantTokenHoldings = await token.balanceOf.call(applicant);
+
+      await registry.apply(domain, paramConfig.minDeposit, { from: applicant });
+      await increaseTime(paramConfig.applyStageLength + 1);
+      await registry.updateStatus(domain);
+
+      const isWhitelisted = await registry.isWhitelisted(domain);
+      assert.strictEqual(isWhitelisted, true, 'the domain was not added to the registry');
+
+      await registry.challenge(domain, { from: challenger });
+      try {
+        await registry.exit(domain, { from: applicant });
+      } catch (err) {
+        // TODO: Check if is EVM error
+        const isWhitelistedAfterExit = await registry.isWhitelisted(domain);
+        assert.strictEqual(
+          isWhitelistedAfterExit,
+          true,
+          'the domain was able to exit while a challenge was active',
+        );
+
+        const finalApplicantTokenHoldings = await token.balanceOf.call(applicant);
+        assert(
+          initialApplicantTokenHoldings.toString(10) >
+          finalApplicantTokenHoldings.toString(10),
+          'the applicant\'s tokens were returned in spite of failing to exit',
+        );
+      }
+    });
+
+    it('should not allow a listing to be exited by someone who doesn\'t own it');
+  });
 });
