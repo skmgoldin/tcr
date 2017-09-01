@@ -3,7 +3,7 @@ const fs = require('fs');
 const BN = require('bn.js');
 
 module.exports = (deployer, network, accounts) => {
-  if (network === 'development') {
+  if (network != 'mainnet') {
     const saleConf = JSON.parse(fs.readFileSync('./conf/historical/sale.json'));
     const tokenConf = JSON.parse(fs.readFileSync('./conf/historical/token.json'));
     const preBuyersConf = JSON.parse(fs.readFileSync('./conf/historical/preBuyers.json'));

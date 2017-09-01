@@ -12,7 +12,7 @@ module.exports = (deployer, network) => {
   let tokenAddress = adchainConfig.TokenAddress;
 
   return deployer.then(async () => {
-    if (network === 'development') {
+    if (network !== 'mainnet') {
       const sale = await Sale.deployed();
       tokenAddress = await sale.token.call();
     }
