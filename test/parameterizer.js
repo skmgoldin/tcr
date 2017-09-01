@@ -1,13 +1,13 @@
 /* eslint-env mocha */
 /* global artifacts assert contract */
 
-const HttpProvider = require('ethjs-provider-http');
-const EthRPC = require('ethjs-rpc');
+// const HttpProvider = require('ethjs-provider-http');
+// const EthRPC = require('ethjs-rpc');
 
-const ethRPC = new EthRPC(new HttpProvider('http://localhost:8545'));
-const abi = require('ethereumjs-abi');
+// const ethRPC = new EthRPC(new HttpProvider('http://localhost:8545'));
+// const abi = require('ethereumjs-abi');
 
-const PLCRVoting = artifacts.require('./PLCRVoting.sol');
+// const PLCRVoting = artifacts.require('./PLCRVoting.sol');
 const Parameterizer = artifacts.require('./Parameterizer.sol');
 
 const fs = require('fs');
@@ -15,8 +15,8 @@ const fs = require('fs');
 const adchainConfig = JSON.parse(fs.readFileSync('./conf/config.json'));
 const paramConfig = adchainConfig.RegistryDefaults;
 
-contract('Parameterizer', (accounts) => {
-  // increases time
+contract('Parameterizer', () => {
+  /*
   async function increaseTime(seconds) {
     return new Promise((resolve, reject) => ethRPC.sendAsync({
       method: 'evm_increaseTime',
@@ -45,6 +45,7 @@ contract('Parameterizer', (accounts) => {
     return `0x${abi.soliditySHA3(['uint', 'uint'],
       [vote, salt]).toString('hex')}`;
   }
+  */
 
   it('should get a parameter', async () => {
     const param = await Parameterizer.deployed();
@@ -52,6 +53,7 @@ contract('Parameterizer', (accounts) => {
     assert.equal(result, paramConfig.minDeposit, 'minDeposit param has wrong value');
   });
 
+  /*
   it('should fail to change parameter', async () => {
     const param = await Parameterizer.deployed();
     const voting = await getParamVoting();
@@ -150,4 +152,5 @@ contract('Parameterizer', (accounts) => {
     result = await param.get.call('minDeposit');
     assert.equal(result.toString(10), newMinDeposit, 'minDeposit should not change');
   });
+  */
 });
