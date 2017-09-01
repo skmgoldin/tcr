@@ -1,21 +1,12 @@
 {
 	"RegistryDefaults": {
-		"minDeposit": 5000,
+		"minDeposit": 50000,
 		"minParamDeposit": 500000,
-		"applyStageLength": 14400,
-		"commitPeriodLength": 14400,
-		"revealPeriodLength": 14400,
+		"applyStageLength": 600,
+		"commitPeriodLength": 600,
+		"revealPeriodLength": 600,
 		"dispensationPct": 50,
 		"voteQuorum": 50
-	},
-	"TokenArguments": {
-		"totalSupply": 1000000,
-		"name": "adtoken",
-		"decimalUnits": 3,
-		"symbol": "ADT"
-	},
-	"VoteTokenDistribution": {
-		"userAmounts": [1000, 1000, 1000, 1000]
 	},
 	"TokenAddress": "0x337cDDa6D41A327c5ad456166CCB781a9722AFf9"
 }
