@@ -10,6 +10,7 @@
   "author": "Irene Lin <irene.lin@consensys.net>, Mira Zeitlin <miranda.zeitlin@consensys.net>, Yorke Rhodes <yorke.rhodesiv@consensys.net>",
   "license": "ISC",
   "dependencies": {
+    "aws-sdk": "2.107.0",
     "bn.js": "4.11.6",
     "ethereumjs-abi": "0.6.4",
     "ethjs-provider-http": "^0.1.6",
