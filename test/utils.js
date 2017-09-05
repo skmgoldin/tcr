@@ -11,9 +11,6 @@ const Sale = artifacts.require('historical/Sale.sol');
 
 let registry;
 let token;
-let applicant;
-let challenger;
-let voter;
 
 const utils = {
   getVoting: async () => {
@@ -72,6 +69,10 @@ const utils = {
     }
     registry = await Registry.deployed();
     token = Token.at(await registry.token.call());
+
+    let applicant;
+    let challenger;
+    let voter;
 
     [applicant, challenger, voter] = accounts.slice(1);
 
