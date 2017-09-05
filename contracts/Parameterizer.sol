@@ -1,7 +1,7 @@
 pragma solidity^0.4.11;
 
 import "./PLCRVoting.sol";
-import "./StandardToken.sol";
+import "./historical/StandardToken.sol";
 
 contract Parameterizer {
 	mapping(bytes32 => uint) public params;

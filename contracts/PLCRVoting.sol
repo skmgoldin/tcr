@@ -1,5 +1,5 @@
 pragma solidity ^0.4.8;
-import "./HumanStandardToken.sol";
+import "./historical/HumanStandardToken.sol";
 
 /**
 @title Partial-Lock-Commit-Reveal Voting scheme with ERC20 tokens 
