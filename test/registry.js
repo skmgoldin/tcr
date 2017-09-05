@@ -1,20 +1,13 @@
 /* eslint-env mocha */
 /* global artifacts assert contract */
 
-const HttpProvider = require('ethjs-provider-http');
-const EthRPC = require('ethjs-rpc');
-
-const ethRPC = new EthRPC(new HttpProvider('http://localhost:8545'));
 const abi = require('ethereumjs-abi');
 const fs = require('fs');
 
-const Token = artifacts.require('./HumanStandardToken.sol');
-const PLCRVoting = artifacts.require('./PLCRVoting.sol');
-const Registry = artifacts.require('./Registry.sol');
-const Sale = artifacts.require('historical/Sale.sol');
-
 const adchainConfig = JSON.parse(fs.readFileSync('./conf/config.json'));
 const paramConfig = adchainConfig.RegistryDefaults;
+
+const utils = require('./utils.js');
 
 let registry;
 let token;
@@ -22,11 +15,9 @@ let applicant;
 let challenger;
 let voter;
 
-// call utils
-
 contract('Registry', (accounts) => {
   before(async () => {
-    await setupForTests(accounts);
+    [registry, token, applicant, challenger, voter] = await utils.setupForTests(accounts);
   });
 
   describe('Function: isWhitelisted', () => {
@@ -40,7 +31,7 @@ contract('Registry', (accounts) => {
 
 contract('Registry', (accounts) => {
   before(async () => {
-    await setupForTests(accounts);
+    await utils.setupForTests(accounts);
   });
 
   describe('Function: apply', () => {
@@ -79,7 +70,7 @@ contract('Registry', (accounts) => {
 
     it('should update domain status to whitelisted because domain was not challenged', async () => {
       const domain = 'nochallenge.net';
-      await increaseTime(paramConfig.applyStageLength + 1);
+      await utils.increaseTime(paramConfig.applyStageLength + 1);
       await registry.updateStatus(domain);
       const result = await registry.isWhitelisted.call(domain);
       assert.equal(result, true, "domain didn't get whitelisted");
@@ -89,7 +80,7 @@ contract('Registry', (accounts) => {
 
 contract('Registry', (accounts) => {
   before(async () => {
-    await setupForTests(accounts);
+    await utils.setupForTests(accounts);
   });
 
   describe('Function: challenge', () => {
@@ -111,7 +102,7 @@ contract('Registry', (accounts) => {
 
 contract('Registry', (accounts) => {
   before(async () => {
-    await setupForTests(accounts);
+    await utils.setupForTests(accounts);
   });
 
   describe('Function: exit', () => {
@@ -121,7 +112,7 @@ contract('Registry', (accounts) => {
       const initialApplicantTokenHoldings = await token.balanceOf.call(applicant);
 
       await registry.apply(domain, paramConfig.minDeposit, { from: applicant });
-      await increaseTime(paramConfig.applyStageLength + 1);
+      await utils.increaseTime(paramConfig.applyStageLength + 1);
       await registry.updateStatus(domain);
 
       const isWhitelisted = await registry.isWhitelisted.call(domain);
@@ -146,7 +137,7 @@ contract('Registry', (accounts) => {
       const initialApplicantTokenHoldings = await token.balanceOf.call(applicant);
 
       await registry.apply(domain, paramConfig.minDeposit, { from: applicant });
-      await increaseTime(paramConfig.applyStageLength + 1);
+      await utils.increaseTime(paramConfig.applyStageLength + 1);
       await registry.updateStatus(domain);
 
       const isWhitelisted = await registry.isWhitelisted.call(domain);
@@ -175,7 +166,7 @@ contract('Registry', (accounts) => {
       );
 
       // Clean up state, remove consensys.net from application stage
-      await increaseTime(paramConfig.commitPeriodLength + paramConfig.revealPeriodLength + 1);
+      await utils.increaseTime(paramConfig.commitPeriodLength + paramConfig.revealPeriodLength + 1);
       await registry.updateStatus(domain);
     });
 
@@ -183,7 +174,7 @@ contract('Registry', (accounts) => {
       const domain = 'consensys.net';
 
       await registry.apply(domain, paramConfig.minDeposit, { from: applicant });
-      await increaseTime(paramConfig.applyStageLength + 1);
+      await utils.increaseTime(paramConfig.applyStageLength + 1);
       await registry.updateStatus(domain);
 
       try {
@@ -204,7 +195,7 @@ contract('Registry', (accounts) => {
 
 contract('Registry', (accounts) => {
   before(async () => {
-    await setupForTests(accounts);
+    await utils.setupForTests(accounts);
   });
   describe('User stories', () => {
     it('should apply, fail challenge, and reject domain', async () => {
@@ -214,7 +205,7 @@ contract('Registry', (accounts) => {
       // challenge with accounts[1]
       await registry.challenge(domain, { from: challenger });
 
-      await increaseTime(paramConfig.revealPeriodLength + paramConfig.commitPeriodLength + 1);
+      await utils.increaseTime(paramConfig.revealPeriodLength + paramConfig.commitPeriodLength + 1);
       await registry.updateStatus(domain);
 
       // should not have been added to whitelist
@@ -229,11 +220,11 @@ contract('Registry', (accounts) => {
       // challenge with accounts[1]
       const receipt = await registry.challenge(domain, { from: challenger });
       const pollID = receipt.logs[0].args.pollID;
-      const voting = await getVoting();
+      const voting = await utils.getVoting();
 
       const salt = 420;
       const voteOption = 1;
-      const hash = getSecretHash(voteOption, salt);
+      const hash = utils.getSecretHash(voteOption, salt);
 
       // commit
       const tokensArg = 10;
@@ -247,13 +238,13 @@ contract('Registry', (accounts) => {
       assert.equal(numTokens, tokensArg, 'wrong num tok committed');
 
       // reveal
-      await increaseTime(paramConfig.commitPeriodLength + 1);
+      await utils.increaseTime(paramConfig.commitPeriodLength + 1);
       let rpa = await voting.revealPeriodActive.call(pollID);
       assert.equal(rpa, true, 'reveal period should be active');
       await voting.revealVote(pollID, salt, voteOption, { from: voter });
 
       // inc time
-      await increaseTime(paramConfig.revealPeriodLength + 1);
+      await utils.increaseTime(paramConfig.revealPeriodLength + 1);
       rpa = await voting.revealPeriodActive.call(pollID);
       assert.equal(rpa, false, 'reveal period should not be active');
 
