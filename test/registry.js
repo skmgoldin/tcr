@@ -1,5 +1,5 @@
 /* eslint-env mocha */
-/* global artifacts assert contract */
+/* global assert contract */
 
 const abi = require('ethereumjs-abi');
 const fs = require('fs');
@@ -31,7 +31,7 @@ contract('Registry', (accounts) => {
 
 contract('Registry', (accounts) => {
   before(async () => {
-    await utils.setupForTests(accounts);
+    [registry, token, applicant, challenger, voter] = await utils.setupForTests(accounts);
   });
 
   describe('Function: apply', () => {
@@ -80,7 +80,7 @@ contract('Registry', (accounts) => {
 
 contract('Registry', (accounts) => {
   before(async () => {
-    await utils.setupForTests(accounts);
+    [registry, token, applicant, challenger, voter] = await utils.setupForTests(accounts);
   });
 
   describe('Function: challenge', () => {
@@ -102,7 +102,7 @@ contract('Registry', (accounts) => {
 
 contract('Registry', (accounts) => {
   before(async () => {
-    await utils.setupForTests(accounts);
+    [registry, token, applicant, challenger, voter] = await utils.setupForTests(accounts);
   });
 
   describe('Function: exit', () => {
@@ -195,7 +195,7 @@ contract('Registry', (accounts) => {
 
 contract('Registry', (accounts) => {
   before(async () => {
-    await utils.setupForTests(accounts);
+    [registry, token, applicant, challenger, voter] = await utils.setupForTests(accounts);
   });
   describe('User stories', () => {
     it('should apply, fail challenge, and reject domain', async () => {

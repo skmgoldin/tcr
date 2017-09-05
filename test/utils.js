@@ -1,3 +1,6 @@
+/* eslint-env mocha */
+/* global artifacts */
+
 const HttpProvider = require('ethjs-provider-http');
 const EthRPC = require('ethjs-rpc');
 const abi = require('ethereumjs-abi');
@@ -17,8 +20,8 @@ const utils = {
     const votingAddr = await registry.voting.call();
     return PLCRVoting.at(votingAddr);
   },
-  increaseTime: async (seconds) => {
-    return new Promise((resolve, reject) => ethRPC.sendAsync({
+  increaseTime: async seconds =>
+    new Promise((resolve, reject) => ethRPC.sendAsync({
       method: 'evm_increaseTime',
       params: [seconds],
     }, (err) => {
@@ -31,12 +34,9 @@ const utils = {
       }, (err) => {
         if (err) reject(err);
         resolve();
-      })));
-  },
-  getSecretHash: (vote, salt) => {
-    return `0x${abi.soliditySHA3(['uint', 'uint'],
-      [vote, salt]).toString('hex')}`;
-  },
+      }))),
+  getSecretHash: (vote, salt) => '0x' +
+    `${abi.soliditySHA3(['uint', 'uint'], [vote, salt]).toString('hex')}`,
   buyTokens: async (address, etherAmount) => {
     const sale = await Sale.deployed();
     await sale.purchaseTokens({ from: address, value: etherAmount });
@@ -70,18 +70,14 @@ const utils = {
     registry = await Registry.deployed();
     token = Token.at(await registry.token.call());
 
-    let applicant;
-    let challenger;
-    let voter;
-
-    [applicant, challenger, voter] = accounts.slice(1);
+    const [applicant, challenger, voter] = accounts.slice(1);
 
     await buyTokensFor(accounts.slice(1));
     await approveRegistryFor(accounts.slice(1));
     await approvePLCRFor(accounts.slice(1));
 
-    return [registry, token, applicant, challenger, voter]
-  }
-}
+    return [registry, token, applicant, challenger, voter];
+  },
+};
 
 module.exports = utils;
