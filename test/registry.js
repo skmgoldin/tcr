@@ -24,7 +24,7 @@ contract('Registry', (accounts) => {
     it('should verify a domain is not in the whitelist', async () => {
       const domain = 'eth.eth'; // the domain to be tested
       const result = await registry.isWhitelisted.call(domain);
-      assert.equal(result, false, 'Domain should not be whitelisted');
+      assert.strictEqual(result, false, 'Domain should not be whitelisted');
     });
   });
 });
@@ -44,10 +44,14 @@ contract('Registry', (accounts) => {
       // get the struct in the mapping
       const result = await registry.listingMap.call(hash);
       // check that Application is initialized correctly
-      assert.equal(result[0] * 1000 > Date.now(), true, 'challenge time < now');
-      assert.equal(result[1], false, 'challenged != false');
-      assert.equal(result[2], accounts[1], 'owner of application != address that applied');
-      assert.equal(result[3], paramConfig.minDeposit, 'incorrect currentDeposit');
+      assert.strictEqual(result[0] * 1000 > Date.now(), true, 'challenge time < now');
+      assert.strictEqual(result[1], false, 'challenged != false');
+      assert.strictEqual(result[2], accounts[1], 'owner of application != address that applied');
+      assert.strictEqual(
+        result[3].toString(10),
+        paramConfig.minDeposit.toString(10),
+        'incorrect currentDeposit',
+      );
     });
 
     it('should not let address apply with domains that are already in listingMap', async () => {
@@ -61,7 +65,7 @@ contract('Registry', (accounts) => {
         // TODO: Check if EVM error
       }
       const finalAmt = await token.balanceOf.call(registry.address);
-      assert.equal(
+      assert.strictEqual(
         finalAmt.toString(10),
         initalAmt.toString(10),
         'why did my wallet balance change',
@@ -73,7 +77,7 @@ contract('Registry', (accounts) => {
       await utils.increaseTime(paramConfig.applyStageLength + 1);
       await registry.updateStatus(domain);
       const result = await registry.isWhitelisted.call(domain);
-      assert.equal(result, true, "domain didn't get whitelisted");
+      assert.strictEqual(result, true, "domain didn't get whitelisted");
     });
   });
 });
@@ -89,12 +93,12 @@ contract('Registry', (accounts) => {
       const domain = 'nochallenge.net';
       const owner = accounts[1]; // owner of nochallenge.net
       const result = await registry.isWhitelisted.call(domain);
-      assert.equal(result, true, "domain didn't get whitelisted");
+      assert.strictEqual(result, true, "domain didn't get whitelisted");
       await registry.withdraw(domain, 20, { from: owner });
       // challenge with accounts[3]
       await registry.challenge(domain, { from: accounts[3] });
       const whitelisted = await registry.isWhitelisted.call(domain);
-      assert.equal(whitelisted, false, 'domain is still whitelisted');
+      assert.strictEqual(whitelisted, false, 'domain is still whitelisted');
     });
     */
   });
@@ -210,7 +214,7 @@ contract('Registry', (accounts) => {
 
       // should not have been added to whitelist
       const result = await registry.isWhitelisted(domain);
-      assert.equal(result, false, 'domain should not be whitelisted');
+      assert.strictEqual(result, false, 'domain should not be whitelisted');
     });
 
     it('should apply, pass challenge, and whitelist domain', async () => {
@@ -229,33 +233,33 @@ contract('Registry', (accounts) => {
       // commit
       const tokensArg = 10;
       const cpa = await voting.commitPeriodActive.call(pollID);
-      assert.equal(cpa, true, 'commit period should be active');
+      assert.strictEqual(cpa, true, 'commit period should be active');
 
       // voter has never voted before, use pollID 0
       await voting.requestVotingRights(tokensArg, { from: voter });
       await voting.commitVote(pollID, hash, tokensArg, 0, { from: voter });
       const numTokens = await voting.getNumTokens(pollID, { from: voter });
-      assert.equal(numTokens, tokensArg, 'wrong num tok committed');
+      assert.strictEqual(numTokens.toString(10), tokensArg.toString(10), 'wrong num tok committed');
 
       // reveal
       await utils.increaseTime(paramConfig.commitPeriodLength + 1);
       let rpa = await voting.revealPeriodActive.call(pollID);
-      assert.equal(rpa, true, 'reveal period should be active');
+      assert.strictEqual(rpa, true, 'reveal period should be active');
       await voting.revealVote(pollID, salt, voteOption, { from: voter });
 
       // inc time
       await utils.increaseTime(paramConfig.revealPeriodLength + 1);
       rpa = await voting.revealPeriodActive.call(pollID);
-      assert.equal(rpa, false, 'reveal period should not be active');
+      assert.strictEqual(rpa, false, 'reveal period should not be active');
 
       // updateStatus
       const pollResult = await voting.isPassed.call(pollID);
-      assert.equal(pollResult, true, 'poll should have passed');
+      assert.strictEqual(pollResult, true, 'poll should have passed');
       await registry.updateStatus(domain);
 
       // should have been added to whitelist
       const result = await registry.isWhitelisted(domain);
-      assert.equal(result, true, 'domain should be whitelisted');
+      assert.strictEqual(result, true, 'domain should be whitelisted');
     });
   });
 });
