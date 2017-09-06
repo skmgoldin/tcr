@@ -14,7 +14,12 @@ contract Registry {
     event _Challenge(string domain, uint deposit, uint pollID);
     event _Deposit(string domain, uint added, uint newTotal);
     event _Withdrawal(string domain, uint withdrew, uint newTotal);
-
+    event _NewDomainWhitelisted(string domain);
+    event _ApplicationRemoved(string domain);
+    event _ListingRemoved(string domain);
+    event _ChallengeFailed(uint challengeID);
+    event _ChallengeSucceeded(uint challengeID);
+                
     struct Listing {
         uint applicationExpiry; // expiration date of apply stage
         bool whitelisted;       // indicates registry status
@@ -173,18 +178,31 @@ contract Registry {
         // IF NO CHALLENGE AFTER APPLY STAGE
         if (challengeID == 0 && isExpired(listingMap[domainHash].applicationExpiry)) {
             listingMap[domainHash].whitelisted = true;
+            _NewDomainWhitelisted(domain);
         } else { 
-        // PROCESS THE RESULT OF THE POLL
+            // PROCESS THE RESULT OF THE POLL
             // winner gets back their full staked deposit, and dispensationPct*loser's stake
             // (1-dispensationPct)*loser's stake = rewardPool
             uint stake = 2*challengeMap[challengeID].stake - challengeMap[challengeID].rewardPool;
+            bool wasWhitelisted = isWhitelisted(domain);
             // if voting is not yet over, isPassed will throw
             if (voting.isPassed(challengeID)) {
                 listingMap[domainHash].whitelisted = true;
                 listingMap[domainHash].currentDeposit += stake; // give stake back to applicant
+
+                _ChallengeFailed(challengeID);
+                if (!wasWhitelisted) {
+                  _NewDomainWhitelisted(domain); 
+                }
             } else {
                 resetListing(domain); // whitelisted = false
                 require(token.transfer(challengeMap[challengeID].challenger, stake)); // give stake to challenger
+                _ChallengeSucceeded(challengeID);
+                if (wasWhitelisted) {
+                  _ListingRemoved(domain);
+                } else {
+                  _ApplicationRemoved(domain);
+                }
             }
 
             challengeMap[challengeID].resolved = true; // set flag on challenge being processed
