@@ -21,21 +21,21 @@ contract('Registry', (accounts) => {
 
   describe('Function: deposit', () => {
     it('should increase the deposit for a specific domain in the listing', async () => {
-      // const domain = 'consensys.net';
-      // const incAmount = paramConfig.minDeposit * 2;
-      // const expectedAmount = incAmount + paramConfig.minDeposit;
-      // // apply with accounts[1]
-      // await registry.apply(domain, paramConfig.minDeposit, { from: accounts[1] });
-      // // hash the domain so we can identify in listingMap
-      // // const hash = utils.getDomainHash(domain);
-      // // get the struct in the mapping
-      // // const result = await registry.listingMap.call(hash);
-      // // deposit with accounts[1]
-      // await registry.deposit(domain, incAmount, { from: accounts[1] });
+      const domain = 'consensys.net';
+      await utils.addToWhitelist(domain, paramConfig.minDeposit, applicant);
 
-      // const currentAmount = await registry.currentDeposit;
+      const incAmount = paramConfig.minDeposit / 2;
+      const expectedAmount = incAmount + paramConfig.minDeposit;
+      await utils.as(applicant, registry.deposit, domain, incAmount);
 
-      // assert.strictEqual(currentAmount, expectedAmount, 'deposit failed');
+      // hash the domain so we can identify in listingMap
+      const hash = utils.getDomainHash(domain);
+      // get the struct in the mapping
+      const listing = await registry.listingMap.call(hash);
+      // get the current deposit amount from the listing struct
+      const currentAmount = await listing[3].toString(10);
+
+      assert.strictEqual(currentAmount, expectedAmount.toString(10), 'Current deposit should be equal to the sum of the original + increase amount');
     });
   });
 });
@@ -125,8 +125,10 @@ contract('Registry', (accounts) => {
       // an existing application already
       try {
         await registry.apply(domain, paramConfig.minDeposit, { from: accounts[2] });
-      } catch (error) {
+      } catch (err) {
         // TODO: Check if EVM error
+        const errMsg = err.toString();
+        assert(utils.isEVMException(err), errMsg);
       }
       const finalAmt = await token.balanceOf.call(registry.address);
       assert.strictEqual(
