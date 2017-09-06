@@ -114,6 +114,9 @@ const utils = {
     const sendObject = { from: actor };
     return fn(...args, sendObject);
   },
+  isEVMException: err => (
+    err.toString().includes('invalid opcode')
+  ),
 };
 
 module.exports = utils;
