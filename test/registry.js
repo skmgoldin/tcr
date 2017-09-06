@@ -106,7 +106,17 @@ contract('Registry', (accounts) => {
       );
     });
 
-    it('should not allow a domain to apply which has a pending application');
+    it('should not allow a domain to apply which has a pending application', async () => {
+      const domain = 'doubledomain.net';
+      await utils.as(applicant, registry.apply, domain, paramConfig.minDeposit);
+      try {
+        await utils.as(applicant, registry.apply, domain, paramConfig.minDeposit);
+        assert(false, 'application was made for domain with an already pending application');
+      } catch (err) {
+        const errMsg = err.toString();
+        assert(utils.isEVMException(err), errMsg);
+      }
+    });
 
     it('should not allow a domain to apply which is already listed', async () => {
       const domain = 'nochallenge.net';
@@ -162,9 +172,7 @@ contract('Registry', (accounts) => {
 
       const initialApplicantTokenHoldings = await token.balanceOf.call(applicant);
 
-      await registry.apply(domain, paramConfig.minDeposit, { from: applicant });
-      await utils.increaseTime(paramConfig.applyStageLength + 1);
-      await registry.updateStatus(domain);
+      await utils.addToWhitelist(domain, paramConfig.minDeposit, applicant);
 
       const isWhitelisted = await registry.isWhitelisted.call(domain);
       assert.strictEqual(isWhitelisted, true, 'the domain was not added to the registry');
@@ -187,9 +195,7 @@ contract('Registry', (accounts) => {
 
       const initialApplicantTokenHoldings = await token.balanceOf.call(applicant);
 
-      await registry.apply(domain, paramConfig.minDeposit, { from: applicant });
-      await utils.increaseTime(paramConfig.applyStageLength + 1);
-      await registry.updateStatus(domain);
+      await utils.addToWhitelist(domain, paramConfig.minDeposit, applicant);
 
       const isWhitelisted = await registry.isWhitelisted.call(domain);
       assert.strictEqual(isWhitelisted, true, 'the domain was not added to the registry');
@@ -224,9 +230,7 @@ contract('Registry', (accounts) => {
     it('should not allow a listing to be exited by someone who doesn\'t own it', async () => {
       const domain = 'consensys.net';
 
-      await registry.apply(domain, paramConfig.minDeposit, { from: applicant });
-      await utils.increaseTime(paramConfig.applyStageLength + 1);
-      await registry.updateStatus(domain);
+      await utils.addToWhitelist(domain, paramConfig.minDeposit, applicant);
 
       try {
         await registry.exit(domain, { from: voter });
