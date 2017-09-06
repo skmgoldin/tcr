@@ -35,8 +35,12 @@ const utils = {
         if (err) reject(err);
         resolve();
       }))),
-  getSecretHash: (vote, salt) => '0x' +
-    `${abi.soliditySHA3(['uint', 'uint'], [vote, salt]).toString('hex')}`,
+  getVoteSaltHash: (vote, salt) => (
+    `0x${abi.soliditySHA3(['uint', 'uint'], [vote, salt]).toString('hex')}`
+  ),
+  getDomainHash: domain => (
+    `0x${abi.soliditySHA3(['string'], [domain]).toString('hex')}`
+  ),
   buyTokens: async (address, etherAmount) => {
     const sale = await Sale.deployed();
     await sale.purchaseTokens({ from: address, value: etherAmount });

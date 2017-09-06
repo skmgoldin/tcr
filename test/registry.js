@@ -1,7 +1,6 @@
 /* eslint-env mocha */
 /* global assert contract */
 
-const abi = require('ethereumjs-abi');
 const fs = require('fs');
 
 const adchainConfig = JSON.parse(fs.readFileSync('./conf/config.json'));
@@ -15,8 +14,30 @@ let applicant;
 let challenger;
 let voter;
 
-contract('Registry', () => {
-  describe('Function: deposit', () => {});
+contract('Registry', (accounts) => {
+  before(async () => {
+    [registry, token, applicant, challenger, voter] = await utils.setupForTests(accounts);
+  });
+
+  describe('Function: deposit', () => {
+    it('should increase the deposit for a specific domain in the listing', async () => {
+      // const domain = 'consensys.net';
+      // const incAmount = paramConfig.minDeposit * 2;
+      // const expectedAmount = incAmount + paramConfig.minDeposit;
+      // // apply with accounts[1]
+      // await registry.apply(domain, paramConfig.minDeposit, { from: accounts[1] });
+      // // hash the domain so we can identify in listingMap
+      // // const hash = utils.getDomainHash(domain);
+      // // get the struct in the mapping
+      // // const result = await registry.listingMap.call(hash);
+      // // deposit with accounts[1]
+      // await registry.deposit(domain, incAmount, { from: accounts[1] });
+
+      // const currentAmount = await registry.currentDeposit;
+
+      // assert.strictEqual(currentAmount, expectedAmount, 'deposit failed');
+    });
+  });
 });
 
 contract('Registry', () => {
@@ -66,7 +87,7 @@ contract('Registry', (accounts) => {
       // apply with accounts[1]
       await registry.apply(domain, paramConfig.minDeposit, { from: accounts[1] });
       // hash the domain so we can identify in listingMap
-      const hash = `0x${abi.soliditySHA3(['string'], [domain]).toString('hex')}`;
+      const hash = utils.getDomainHash(domain);
       // get the struct in the mapping
       const result = await registry.listingMap.call(hash);
       // check that Application is initialized correctly
@@ -84,7 +105,7 @@ contract('Registry', (accounts) => {
 
     it('should not allow a domain to apply which is already listed', async () => {
       const domain = 'nochallenge.net';
-      const initalAmt = await token.balanceOf.call(registry.address);
+      const initialAmnt = await token.balanceOf.call(registry.address);
       // apply with accounts[1] with the same domain, should fail since there's
       // an existing application already
       try {
@@ -95,7 +116,7 @@ contract('Registry', (accounts) => {
       const finalAmt = await token.balanceOf.call(registry.address);
       assert.strictEqual(
         finalAmt.toString(10),
-        initalAmt.toString(10),
+        initialAmnt.toString(10),
         'why did my wallet balance change',
       );
     });
@@ -249,7 +270,7 @@ contract('Registry', (accounts) => {
 
       const salt = 420;
       const voteOption = 1;
-      const hash = utils.getSecretHash(voteOption, salt);
+      const hash = utils.getVoteSaltHash(voteOption, salt);
 
       // commit
       const tokensArg = 10;
