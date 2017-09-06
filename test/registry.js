@@ -72,7 +72,12 @@ contract('Registry', (accounts) => {
       assert.strictEqual(result, false, 'Domain should not be whitelisted');
     });
 
-    it('should verify a domain is in the whitelist');
+    it('should verify a domain is in the whitelist', async () => {
+      const domain = 'eth.eth';
+      await utils.addToWhitelist(domain, paramConfig.minDeposit, applicant);
+      const result = await registry.isWhitelisted.call(domain);
+      assert.strictEqual(result, true, 'Domain should have been whitelisted');
+    });
   });
 });
 
