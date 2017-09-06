@@ -15,6 +15,30 @@ let applicant;
 let challenger;
 let voter;
 
+contract('Registry', () => {
+  describe('Function: deposit', () => {});
+});
+
+contract('Registry', () => {
+  describe('Function: withdraw', () => {});
+});
+
+contract('Registry', () => {
+  describe('Function: updateStatus', () => {});
+});
+
+contract('Registry', () => {
+  describe('Function: claimReward', () => {});
+});
+
+contract('Registry', () => {
+  describe('Function: appExists', () => {});
+});
+
+contract('Registry', () => {
+  describe('Function: isExpired', () => {});
+});
+
 contract('Registry', (accounts) => {
   before(async () => {
     [registry, token, applicant, challenger, voter] = await utils.setupForTests(accounts);
@@ -26,6 +50,8 @@ contract('Registry', (accounts) => {
       const result = await registry.isWhitelisted.call(domain);
       assert.strictEqual(result, false, 'Domain should not be whitelisted');
     });
+
+    it('should verify a domain is in the whitelist');
   });
 });
 
@@ -35,7 +61,7 @@ contract('Registry', (accounts) => {
   });
 
   describe('Function: apply', () => {
-    it('should allow a domain to apply', async () => {
+    it('should allow a new domain to apply', async () => {
       const domain = 'nochallenge.net';
       // apply with accounts[1]
       await registry.apply(domain, paramConfig.minDeposit, { from: accounts[1] });
@@ -54,7 +80,9 @@ contract('Registry', (accounts) => {
       );
     });
 
-    it('should not let address apply with domains that are already in listingMap', async () => {
+    it('should not allow a domain to apply which has a pending application');
+
+    it('should not allow a domain to apply which is already listed', async () => {
       const domain = 'nochallenge.net';
       const initalAmt = await token.balanceOf.call(registry.address);
       // apply with accounts[1] with the same domain, should fail since there's
@@ -72,13 +100,14 @@ contract('Registry', (accounts) => {
       );
     });
 
-    it('should update domain status to whitelisted because domain was not challenged', async () => {
-      const domain = 'nochallenge.net';
-      await utils.increaseTime(paramConfig.applyStageLength + 1);
-      await registry.updateStatus(domain);
-      const result = await registry.isWhitelisted.call(domain);
-      assert.strictEqual(result, true, "domain didn't get whitelisted");
-    });
+    it('should add a domain to the whitelist which went unchallenged in its application period',
+      async () => {
+        const domain = 'nochallenge.net';
+        await utils.increaseTime(paramConfig.applyStageLength + 1);
+        await registry.updateStatus(domain);
+        const result = await registry.isWhitelisted.call(domain);
+        assert.strictEqual(result, true, "domain didn't get whitelisted");
+      });
   });
 });
 
@@ -88,19 +117,11 @@ contract('Registry', (accounts) => {
   });
 
   describe('Function: challenge', () => {
-    it('should withdraw, and then get delisted by challenge'); // async () => {
-    /*
-      const domain = 'nochallenge.net';
-      const owner = accounts[1]; // owner of nochallenge.net
-      const result = await registry.isWhitelisted.call(domain);
-      assert.strictEqual(result, true, "domain didn't get whitelisted");
-      await registry.withdraw(domain, 20, { from: owner });
-      // challenge with accounts[3]
-      await registry.challenge(domain, { from: accounts[3] });
-      const whitelisted = await registry.isWhitelisted.call(domain);
-      assert.strictEqual(whitelisted, false, 'domain is still whitelisted');
-    });
-    */
+    it('should successfully challenge an application');
+    it('should successfully challenge a listing');
+    it('should unsuccessfully challenge an application');
+    it('should unsuccessfully challenge a listing');
+    it('should touch-and-remove a listing with a depost below the current minimum');
   });
 });
 
