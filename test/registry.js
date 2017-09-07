@@ -2,6 +2,7 @@
 /* global assert contract */
 
 const fs = require('fs');
+const BN = require('bn.js');
 
 const adchainConfig = JSON.parse(fs.readFileSync('./conf/config.json'));
 const paramConfig = adchainConfig.RegistryDefaults;
@@ -20,33 +21,48 @@ contract('Registry', (accounts) => {
   });
 
   describe('Function: deposit', () => {
+    const minDeposit = paramConfig.minDeposit;
+    const incAmount = minDeposit / 2;
+
     it('should increase the deposit for a specific domain in the listing', async () => {
       const domain = 'specificdomain.net';
-      await utils.addToWhitelist(domain, paramConfig.minDeposit, applicant);
+      await utils.addToWhitelist(domain, minDeposit, applicant);
 
-      const incAmount = paramConfig.minDeposit / 2;
       await utils.as(applicant, registry.deposit, domain, incAmount);
 
       const currentDeposit = await utils.getCurrentDeposit(domain);
-      const expectedAmount = incAmount + paramConfig.minDeposit;
+      const expectedAmount = incAmount + minDeposit;
       assert.strictEqual(currentDeposit, expectedAmount.toString(10), 'Current deposit should be equal to the sum of the original + increase amount');
     });
 
     it('should increase a deposit for a pending application', async () => {
       const domain = 'pendingdomain.net';
-      await utils.as(applicant, registry.apply, domain, paramConfig.minDeposit);
+      await utils.as(applicant, registry.apply, domain, minDeposit);
 
       try {
-        const incAmount = paramConfig.minDeposit / 2;
         await utils.as(applicant, registry.deposit, domain, incAmount);
 
         const currentDeposit = await utils.getCurrentDeposit(domain);
-        const expectedAmount = incAmount + paramConfig.minDeposit;
+        const expectedAmount = incAmount + minDeposit;
         assert.strictEqual(currentDeposit, expectedAmount.toString(10), 'deposit was not made correctly for pending application');
       } catch (err) {
         const errMsg = err.toString();
         assert(utils.isEVMException(err), errMsg);
       }
+    });
+
+    it('should increase deposit for a whitelisted, challenged domain', async () => {
+      const domain = 'challengedomain.net';
+      await utils.addToWhitelist(domain, minDeposit, applicant);
+      const originalDeposit = await utils.getCurrentDeposit(domain);
+
+      // challenge, then increase deposit
+      await utils.as(challenger, registry.challenge, domain);
+      await utils.as(applicant, registry.deposit, domain, incAmount);
+
+      const afterIncDeposit = await utils.getCurrentDeposit(domain);
+      const expectedAmount = (new BN(originalDeposit).add(new BN(incAmount))) - new BN(minDeposit);
+      assert.strictEqual(afterIncDeposit, expectedAmount.toString(10), 'deposit for whitelisted, challenged domain should have been increased');
     });
   });
 });
