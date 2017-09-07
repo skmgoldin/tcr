@@ -21,7 +21,7 @@ contract('Registry', (accounts) => {
 
   describe('Function: deposit', () => {
     it('should increase the deposit for a specific domain in the listing', async () => {
-      const domain = 'consensys.net';
+      const domain = 'specificdomain.net';
       await utils.addToWhitelist(domain, paramConfig.minDeposit, applicant);
 
       const incAmount = paramConfig.minDeposit / 2;
@@ -30,6 +30,23 @@ contract('Registry', (accounts) => {
       const currentDeposit = await utils.getCurrentDeposit(domain);
       const expectedAmount = incAmount + paramConfig.minDeposit;
       assert.strictEqual(currentDeposit, expectedAmount.toString(10), 'Current deposit should be equal to the sum of the original + increase amount');
+    });
+
+    it('should increase a deposit for a pending application', async () => {
+      const domain = 'pendingdomain.net';
+      await utils.as(applicant, registry.apply, domain, paramConfig.minDeposit);
+
+      try {
+        const incAmount = paramConfig.minDeposit / 2;
+        await utils.as(applicant, registry.deposit, domain, incAmount);
+
+        const currentDeposit = await utils.getCurrentDeposit(domain);
+        const expectedAmount = incAmount + paramConfig.minDeposit;
+        assert.strictEqual(currentDeposit, expectedAmount.toString(10), 'deposit was not made correctly for pending application');
+      } catch (err) {
+        const errMsg = err.toString();
+        assert(utils.isEVMException(err), errMsg);
+      }
     });
   });
 });
