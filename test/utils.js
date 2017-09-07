@@ -124,7 +124,7 @@ const utils = {
     const listing = await registry.listingMap.call(hash);
     // get the current deposit amount from the listing struct
     const currentDeposit = await listing[3];
-    return currentDeposit;
+    return currentDeposit.toString();
   },
 };
 

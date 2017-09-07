@@ -32,7 +32,7 @@ contract('Registry', (accounts) => {
 
       const currentDeposit = await utils.getCurrentDeposit(domain);
       const expectedAmount = incAmount + minDeposit;
-      assert.strictEqual(currentDeposit.toString(10), expectedAmount.toString(10), 'Current deposit should be equal to the sum of the original + increase amount');
+      assert.strictEqual(currentDeposit, expectedAmount.toString(10), 'Current deposit should be equal to the sum of the original + increase amount');
     });
 
     it('should increase a deposit for a pending application', async () => {
@@ -44,7 +44,7 @@ contract('Registry', (accounts) => {
 
         const currentDeposit = await utils.getCurrentDeposit(domain);
         const expectedAmount = incAmount + minDeposit;
-        assert.strictEqual(currentDeposit.toString(10), expectedAmount.toString(10), 'Deposit should have increased for pending application');
+        assert.strictEqual(currentDeposit, expectedAmount.toString(10), 'Deposit should have increased for pending application');
       } catch (err) {
         const errMsg = err.toString();
         assert(utils.isEVMException(err), errMsg);
@@ -62,7 +62,8 @@ contract('Registry', (accounts) => {
 
       const afterIncDeposit = await utils.getCurrentDeposit(domain);
       const expectedAmount = (new BN(originalDeposit).add(new BN(incAmount))) - new BN(minDeposit);
-      assert.strictEqual(afterIncDeposit.toString(10), expectedAmount.toString(10), 'Deposit should have increased for whitelisted, challenged domain');
+
+      assert.strictEqual(afterIncDeposit, expectedAmount.toString(10), 'Deposit should have increased for whitelisted, challenged domain');
     });
   });
 });
