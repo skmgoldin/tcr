@@ -25,17 +25,11 @@ contract('Registry', (accounts) => {
       await utils.addToWhitelist(domain, paramConfig.minDeposit, applicant);
 
       const incAmount = paramConfig.minDeposit / 2;
-      const expectedAmount = incAmount + paramConfig.minDeposit;
       await utils.as(applicant, registry.deposit, domain, incAmount);
 
-      // hash the domain so we can identify in listingMap
-      const hash = utils.getDomainHash(domain);
-      // get the struct in the mapping
-      const listing = await registry.listingMap.call(hash);
-      // get the current deposit amount from the listing struct
-      const currentAmount = await listing[3].toString(10);
-
-      assert.strictEqual(currentAmount, expectedAmount.toString(10), 'Current deposit should be equal to the sum of the original + increase amount');
+      const currentDeposit = await utils.getCurrentDeposit(domain);
+      const expectedAmount = incAmount + paramConfig.minDeposit;
+      assert.strictEqual(currentDeposit, expectedAmount.toString(10), 'Current deposit should be equal to the sum of the original + increase amount');
     });
   });
 });
