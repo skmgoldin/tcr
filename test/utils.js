@@ -117,6 +117,15 @@ const utils = {
   isEVMException: err => (
     err.toString().includes('invalid opcode')
   ),
+  getCurrentDeposit: async (domain) => {
+    // hash the domain so we can identify in listingMap
+    const hash = utils.getDomainHash(domain);
+    // get the struct in the mapping
+    const listing = await registry.listingMap.call(hash);
+    // get the current deposit amount from the listing struct
+    const currentDeposit = await listing[3].toString(10);
+    return currentDeposit;
+  },
 };
 
 module.exports = utils;
