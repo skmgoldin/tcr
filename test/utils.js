@@ -123,7 +123,7 @@ const utils = {
     // get the struct in the mapping
     const listing = await registry.listingMap.call(hash);
     // get the current deposit amount from the listing struct
-    const currentDeposit = await listing[3].toString(10);
+    const currentDeposit = await listing[3];
     return currentDeposit;
   },
 };
