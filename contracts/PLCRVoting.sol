@@ -312,6 +312,28 @@ contract PLCRVoting {
     function getLockedTokens(address voter) constant public returns (uint numTokens) {
         return getNumTokens(voter, getLastNode(voter));
     }
+
+    /**
+    @dev Gets the prevNode a new node should be inserted after given the sort factor
+    @param voter The voter whose DLL will be searched
+    @param numTokens The value for the numTokens attribute in the node to be inserted
+    @return the node which the propoded node should be inserted after
+    */
+    function getInsertPointForNumTokens(address voter, uint numTokens)
+    constant public returns (uint prevNode) {
+      uint nodeID = getLastNode(voter);
+      uint tokensInNode = getNumTokens(voter, nodeID);
+
+      while(tokensInNode != 0) {
+        tokensInNode = getNumTokens(voter, nodeID);
+        if(tokensInNode < numTokens) {
+          return nodeID;
+        }
+        nodeID = dllMap[voter].getPrev(nodeID);
+      }
+
+      return nodeID;
+    }
  
     // ----------------
     // GENERAL HELPERS:
