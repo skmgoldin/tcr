@@ -19,6 +19,7 @@ contract Registry {
     event _ListingRemoved(string domain);
     event _ChallengeFailed(uint challengeID);
     event _ChallengeSucceeded(uint challengeID);
+    event _RewardClaimed(address voter, uint challengeID, uint reward);
                 
     struct Listing {
         uint applicationExpiry; // expiration date of apply stage
@@ -229,6 +230,8 @@ contract Registry {
         // ensures a voter cannot claim tokens again
 
         tokenClaims[_challengeID][msg.sender] = true;
+
+        _RewardClaimed(msg.sender, _challengeID, reward);
     }
 
     // helper function to claimReward()
