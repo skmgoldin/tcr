@@ -1,5 +1,7 @@
 /* eslint-env mocha */
-/* global assert contract */
+/* global assert contract artifacts */
+const Registry = artifacts.require('Registry.sol');
+const Token = artifacts.require('Token.sol');
 
 const fs = require('fs');
 const BN = require('bn.js');
@@ -9,33 +11,27 @@ const paramConfig = adchainConfig.RegistryDefaults;
 
 const utils = require('./utils.js');
 
-let registry;
-let token;
-let applicant;
-let challenger;
-let voter;
-
 contract('Registry', (accounts) => {
-  before(async () => {
-    [registry, token, applicant, challenger, voter] = await utils.setupForTests(accounts);
-  });
-
   describe('Function: deposit', () => {
     const minDeposit = paramConfig.minDeposit;
     const incAmount = minDeposit / 2;
+    const [applicant, challenger] = accounts;
 
     it('should increase the deposit for a specific domain in the listing', async () => {
+      const registry = await Registry.deployed();
       const domain = 'specificdomain.net';
-      await utils.addToWhitelist(domain, minDeposit, applicant);
 
+      await utils.addToWhitelist(domain, minDeposit, applicant);
       await utils.as(applicant, registry.deposit, domain, incAmount);
 
       const currentDeposit = await utils.getCurrentDeposit(domain);
       const expectedAmount = incAmount + minDeposit;
-      assert.strictEqual(currentDeposit, expectedAmount.toString(10), 'Current deposit should be equal to the sum of the original + increase amount');
+      assert.strictEqual(currentDeposit, expectedAmount.toString(10),
+        'Current deposit should be equal to the sum of the original + increase amount');
     });
 
     it('should increase a deposit for a pending application', async () => {
+      const registry = await Registry.deployed();
       const domain = 'pendingdomain.net';
       await utils.as(applicant, registry.apply, domain, minDeposit);
 
@@ -52,6 +48,7 @@ contract('Registry', (accounts) => {
     });
 
     it('should increase deposit for a whitelisted, challenged domain', async () => {
+      const registry = await Registry.deployed();
       const domain = 'challengedomain.net';
       await utils.addToWhitelist(domain, minDeposit, applicant);
       const originalDeposit = await utils.getCurrentDeposit(domain);
@@ -89,18 +86,18 @@ contract('Registry', () => {
 });
 
 contract('Registry', (accounts) => {
-  before(async () => {
-    [registry, token, applicant, challenger, voter] = await utils.setupForTests(accounts);
-  });
-
   describe('Function: isWhitelisted', () => {
+    const [applicant] = accounts;
+
     it('should verify a domain is not in the whitelist', async () => {
+      const registry = await Registry.deployed();
       const domain = 'eth.eth'; // the domain to be tested
       const result = await registry.isWhitelisted.call(domain);
       assert.strictEqual(result, false, 'Domain should not be whitelisted');
     });
 
     it('should verify a domain is in the whitelist', async () => {
+      const registry = await Registry.deployed();
       const domain = 'eth.eth';
       await utils.addToWhitelist(domain, paramConfig.minDeposit, applicant);
       const result = await registry.isWhitelisted.call(domain);
@@ -110,12 +107,11 @@ contract('Registry', (accounts) => {
 });
 
 contract('Registry', (accounts) => {
-  before(async () => {
-    [registry, token, applicant, challenger, voter] = await utils.setupForTests(accounts);
-  });
-
   describe('Function: apply', () => {
+    const [applicant] = accounts;
+
     it('should allow a new domain to apply', async () => {
+      const registry = await Registry.deployed();
       const domain = 'nochallenge.net';
       // apply with accounts[1]
       await registry.apply(domain, paramConfig.minDeposit, { from: accounts[1] });
@@ -135,6 +131,7 @@ contract('Registry', (accounts) => {
     });
 
     it('should not allow a domain to apply which has a pending application', async () => {
+      const registry = await Registry.deployed();
       const domain = 'doubledomain.net';
       await utils.as(applicant, registry.apply, domain, paramConfig.minDeposit);
       try {
@@ -147,6 +144,8 @@ contract('Registry', (accounts) => {
     });
 
     it('should not allow a domain to apply which is already listed', async () => {
+      const registry = await Registry.deployed();
+      const token = Token.at(await registry.token.call());
       const domain = 'nochallenge.net';
       const initialAmnt = await token.balanceOf.call(registry.address);
       // apply with accounts[1] with the same domain, should fail since there's
@@ -168,6 +167,7 @@ contract('Registry', (accounts) => {
 
     it('should add a domain to the whitelist which went unchallenged in its application period',
       async () => {
+        const registry = await Registry.deployed();
         const domain = 'nochallenge.net';
         await utils.increaseTime(paramConfig.applyStageLength + 1);
         await registry.updateStatus(domain);
@@ -177,11 +177,7 @@ contract('Registry', (accounts) => {
   });
 });
 
-contract('Registry', (accounts) => {
-  before(async () => {
-    [registry, token, applicant, challenger, voter] = await utils.setupForTests(accounts);
-  });
-
+contract('Registry', () => {
   describe('Function: challenge', () => {
     it('should successfully challenge an application');
     it('should successfully challenge a listing');
@@ -192,12 +188,12 @@ contract('Registry', (accounts) => {
 });
 
 contract('Registry', (accounts) => {
-  before(async () => {
-    [registry, token, applicant, challenger, voter] = await utils.setupForTests(accounts);
-  });
-
   describe('Function: exit', () => {
+    const [applicant, challenger, voter] = accounts;
+
     it('should allow a listing to exit when no challenge exists', async () => {
+      const registry = await Registry.deployed();
+      const token = Token.at(await registry.token.call());
       const domain = 'consensys.net';
 
       const initialApplicantTokenHoldings = await token.balanceOf.call(applicant);
@@ -221,6 +217,8 @@ contract('Registry', (accounts) => {
     });
 
     it('should not allow a listing to exit when a challenge does exist', async () => {
+      const registry = await Registry.deployed();
+      const token = Token.at(await registry.token.call());
       const domain = 'consensys.net';
 
       const initialApplicantTokenHoldings = await token.balanceOf.call(applicant);
@@ -258,6 +256,7 @@ contract('Registry', (accounts) => {
     });
 
     it('should not allow a listing to be exited by someone who doesn\'t own it', async () => {
+      const registry = await Registry.deployed();
       const domain = 'consensys.net';
 
       await utils.addToWhitelist(domain, paramConfig.minDeposit, applicant);
@@ -279,11 +278,10 @@ contract('Registry', (accounts) => {
 });
 
 contract('Registry', (accounts) => {
-  before(async () => {
-    [registry, token, applicant, challenger, voter] = await utils.setupForTests(accounts);
-  });
   describe('User stories', () => {
+    const [applicant, challenger, voter] = accounts;
     it('should apply, fail challenge, and reject domain', async () => {
+      const registry = await Registry.deployed();
       const domain = 'failChallenge.net'; // domain to apply with
       // apply with accounts[2]
       await registry.apply(domain, paramConfig.minDeposit, { from: applicant });
@@ -299,6 +297,7 @@ contract('Registry', (accounts) => {
     });
 
     it('should apply, pass challenge, and whitelist domain', async () => {
+      const registry = await Registry.deployed();
       const domain = 'passChallenge.net'; // domain to apply with
       // apply with accounts[2]
       await registry.apply(domain, paramConfig.minDeposit, { from: applicant });

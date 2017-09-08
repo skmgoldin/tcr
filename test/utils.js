@@ -8,19 +8,17 @@ const fs = require('fs');
 
 const ethRPC = new EthRPC(new HttpProvider('http://localhost:8545'));
 
-const Token = artifacts.require('./HumanStandardToken.sol');
-const PLCRVoting = artifacts.require('./PLCRVoting.sol');
-const Registry = artifacts.require('./Registry.sol');
+const PLCRVoting = artifacts.require('PLCRVoting.sol');
 const Sale = artifacts.require('historical/Sale.sol');
+const Registry = artifacts.require('Registry.sol');
+const Token = artifacts.require('historical/Token.sol');
 
 const adchainConfig = JSON.parse(fs.readFileSync('./conf/config.json'));
 const paramConfig = adchainConfig.RegistryDefaults;
 
-let registry;
-let token;
-
 const utils = {
   getVoting: async () => {
+    const registry = await Registry.deployed();
     const votingAddr = await registry.voting.call();
     return PLCRVoting.at(votingAddr);
   },
@@ -50,43 +48,13 @@ const utils = {
     await sale.purchaseTokens({ from: address, value: etherAmount });
   },
   approvePLCR: async (address, adtAmount) => {
+    const registry = await Registry.deployed();
     const plcrAddr = await registry.voting.call();
+    const token = Token.at(await registry.token.call());
     await token.approve(plcrAddr, adtAmount, { from: address });
   },
-  setupForTests: async (accounts) => {
-    async function buyTokensFor(addresses) {
-      await utils.buyTokens(addresses[0], '1000000000000000000');
-      if (addresses.length === 1) { return true; }
-      return buyTokensFor(addresses.slice(1));
-    }
-
-    async function approveRegistryFor(addresses) {
-      const user = addresses[0];
-      const balanceOfUser = await token.balanceOf(user);
-      await token.approve(registry.address, balanceOfUser, { from: user });
-      if (addresses.length === 1) { return true; }
-      return approveRegistryFor(addresses.slice(1));
-    }
-
-    async function approvePLCRFor(addresses) {
-      const user = addresses[0];
-      const balanceOfUser = await token.balanceOf(user);
-      await utils.approvePLCR(user, balanceOfUser);
-      if (addresses.length === 1) { return true; }
-      return approvePLCRFor(addresses.slice(1));
-    }
-    registry = await Registry.deployed();
-    token = Token.at(await registry.token.call());
-
-    const [applicant, challenger, voter] = accounts.slice(1);
-
-    await buyTokensFor(accounts.slice(1));
-    await approveRegistryFor(accounts.slice(1));
-    await approvePLCRFor(accounts.slice(1));
-
-    return [registry, token, applicant, challenger, voter];
-  },
   addToWhitelist: async (domain, deposit, actor) => {
+    const registry = await Registry.deployed();
     await utils.as(actor, registry.apply, domain, deposit);
     await utils.increaseTime(paramConfig.applyStageLength + 1);
     await utils.as(actor, registry.updateStatus, domain);
@@ -118,6 +86,7 @@ const utils = {
     err.toString().includes('invalid opcode')
   ),
   getCurrentDeposit: async (domain) => {
+    const registry = await Registry.deployed();
     // hash the domain so we can identify in listingMap
     const hash = utils.getDomainHash(domain);
     // get the struct in the mapping

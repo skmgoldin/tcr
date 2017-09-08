@@ -1,12 +1,47 @@
 /* global artifacts */
 
 const Registry = artifacts.require('Registry.sol');
+const Token = artifacts.require('Token.sol');
 const Parameterizer = artifacts.require('Parameterizer.sol');
 const Sale = artifacts.require('historical/Sale.sol');
 
 const fs = require('fs');
 
-module.exports = (deployer, network) => {
+module.exports = (deployer, network, accounts) => {
+  async function setupForTests(tokenAddress) {
+    async function buyTokensFor(addresses) {
+      const sale = await Sale.deployed();
+      const user = addresses[0];
+      await sale.purchaseTokens({ from: user, value: '1000000000000000000' });
+      if (addresses.length === 1) { return true; }
+      return buyTokensFor(addresses.slice(1));
+    }
+
+    async function approveRegistryFor(addresses) {
+      const token = Token.at(tokenAddress);
+      const user = addresses[0];
+      const balanceOfUser = await token.balanceOf(user);
+      await token.approve(Registry.address, balanceOfUser, { from: user });
+      if (addresses.length === 1) { return true; }
+      return approveRegistryFor(addresses.slice(1));
+    }
+
+    async function approvePLCRFor(addresses) {
+      const token = Token.at(tokenAddress);
+      const registry = await Registry.deployed();
+      const user = addresses[0];
+      const balanceOfUser = await token.balanceOf(user);
+      const plcrAddr = await registry.voting.call();
+      await token.approve(plcrAddr, balanceOfUser, { from: user });
+      if (addresses.length === 1) { return true; }
+      return approvePLCRFor(addresses.slice(1));
+    }
+
+    await buyTokensFor(accounts);
+    await approveRegistryFor(accounts);
+    await approvePLCRFor(accounts);
+  }
+
   const adchainConfig = JSON.parse(fs.readFileSync('./conf/config.json'));
   const parameterizerConfig = adchainConfig.RegistryDefaults;
   let tokenAddress = adchainConfig.TokenAddress;
@@ -32,5 +67,10 @@ module.exports = (deployer, network) => {
         tokenAddress,
         Parameterizer.address,
       ),
-    ).catch((err) => { throw err; });
+    )
+    .then(async () => {
+      if (network === 'development') {
+        await setupForTests(tokenAddress);
+      }
+    }).catch((err) => { throw err; });
 };
