@@ -4,6 +4,9 @@ const Registry = artifacts.require('Registry.sol');
 const Token = artifacts.require('Token.sol');
 const Parameterizer = artifacts.require('Parameterizer.sol');
 const Sale = artifacts.require('historical/Sale.sol');
+const DLL = artifacts.require('DLL.sol');
+const AttributeStore = artifacts.require('AttributeStore.sol');
+const PLCRVoting = artifacts.require('PLCRVoting.sol');
 
 const fs = require('fs');
 
@@ -45,6 +48,18 @@ module.exports = (deployer, network, accounts) => {
   const adchainConfig = JSON.parse(fs.readFileSync('./conf/config.json'));
   const parameterizerConfig = adchainConfig.RegistryDefaults;
   let tokenAddress = adchainConfig.TokenAddress;
+
+  deployer.deploy(DLL);
+  deployer.deploy(AttributeStore);
+
+  deployer.link(DLL, PLCRVoting);
+  deployer.link(AttributeStore, PLCRVoting);
+
+  deployer.link(DLL, Parameterizer);
+  deployer.link(AttributeStore, Parameterizer);
+
+  deployer.link(DLL, Registry);
+  deployer.link(AttributeStore, Registry);
 
   return deployer.then(async () => {
     if (network !== 'mainnet') {

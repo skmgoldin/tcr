@@ -150,7 +150,7 @@ contract Registry {
         //take tokens from challenger
         require(token.transferFrom(msg.sender, this, deposit));
         //start poll
-        uint pollID = voting.startPoll(domain,
+        uint pollID = voting.startPoll(
             parameterizer.get("voteQuorum"),
             parameterizer.get("commitPeriodLen"), 
             parameterizer.get("revealPeriodLen")

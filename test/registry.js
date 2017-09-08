@@ -318,14 +318,14 @@ contract('Registry', (accounts) => {
       // voter has never voted before, use pollID 0
       await voting.requestVotingRights(tokensArg, { from: voter });
       await voting.commitVote(pollID, hash, tokensArg, 0, { from: voter });
-      const numTokens = await voting.getNumTokens(pollID, { from: voter });
+      const numTokens = await voting.getNumTokens.call(voter, pollID);
       assert.strictEqual(numTokens.toString(10), tokensArg.toString(10), 'wrong num tok committed');
 
       // reveal
       await utils.increaseTime(paramConfig.commitPeriodLength + 1);
       let rpa = await voting.revealPeriodActive.call(pollID);
       assert.strictEqual(rpa, true, 'reveal period should be active');
-      await voting.revealVote(pollID, salt, voteOption, { from: voter });
+      await voting.revealVote(pollID, voteOption, salt, { from: voter });
 
       // inc time
       await utils.increaseTime(paramConfig.revealPeriodLength + 1);

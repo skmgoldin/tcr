@@ -65,7 +65,7 @@ contract Parameterizer {
 		uint deposit = get("minParamDeposit");
 		require(token.transferFrom(msg.sender, this, deposit)); // escrow tokens (deposit amt)
 		
-		uint pollID = voting.startPoll("blah",
+		uint pollID = voting.startPoll(
 			get("voteQuorum"),
 			get("commitPeriodLen"),
 			get("revealPeriodLen")
