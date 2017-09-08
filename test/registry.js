@@ -13,8 +13,8 @@ const utils = require('./utils.js');
 
 contract('Registry', (accounts) => {
   describe('Function: deposit', () => {
-    const minDeposit = paramConfig.minDeposit;
-    const incAmount = minDeposit / 2;
+    const minDeposit = new BN(paramConfig.minDeposit, 10);
+    const incAmount = minDeposit.div(new BN(2, 10));
     const [applicant, challenger] = accounts;
 
     it('should increase the deposit for a specific domain in the listing', async () => {
@@ -25,7 +25,7 @@ contract('Registry', (accounts) => {
       await utils.as(applicant, registry.deposit, domain, incAmount);
 
       const currentDeposit = await utils.getCurrentDeposit(domain);
-      const expectedAmount = incAmount + minDeposit;
+      const expectedAmount = incAmount.add(minDeposit);
       assert.strictEqual(currentDeposit, expectedAmount.toString(10),
         'Current deposit should be equal to the sum of the original + increase amount');
     });
@@ -39,7 +39,7 @@ contract('Registry', (accounts) => {
         await utils.as(applicant, registry.deposit, domain, incAmount);
 
         const currentDeposit = await utils.getCurrentDeposit(domain);
-        const expectedAmount = incAmount + minDeposit;
+        const expectedAmount = incAmount.add(minDeposit);
         assert.strictEqual(currentDeposit, expectedAmount.toString(10), 'Deposit should have increased for pending application');
       } catch (err) {
         const errMsg = err.toString();
@@ -58,7 +58,8 @@ contract('Registry', (accounts) => {
       await utils.as(applicant, registry.deposit, domain, incAmount);
 
       const afterIncDeposit = await utils.getCurrentDeposit(domain);
-      const expectedAmount = (new BN(originalDeposit).add(new BN(incAmount))) - new BN(minDeposit);
+      const expectedAmount =
+        (new BN(originalDeposit, 10).add(new BN(incAmount, 10))) - new BN(minDeposit, 10);
 
       assert.strictEqual(afterIncDeposit, expectedAmount.toString(10), 'Deposit should have increased for whitelisted, challenged domain');
     });
