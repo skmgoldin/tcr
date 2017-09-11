@@ -224,7 +224,14 @@ contract Registry {
         require(tokenClaims[_challengeID][msg.sender] == false);
         require(challengeMap[_challengeID].resolved = true);
 
-        uint reward = calculateTokens(_challengeID, _salt, msg.sender);
+        uint voterTokens = voting.getNumPassingTokens(msg.sender, _challengeID, _salt);
+        uint reward = calculateVoterReward(msg.sender, _challengeID, _salt);
+
+        // subtract voter's information to preserve the participation ratios of other voters
+        // compared to the remaining pool of rewards
+        challengeMap[_challengeID].totalTokens -= voterTokens;
+        challengeMap[_challengeID].rewardPool -= reward;
+
         require(token.transfer(msg.sender, reward));
         
         // ensures a voter cannot claim tokens again
@@ -234,19 +241,19 @@ contract Registry {
         _RewardClaimed(msg.sender, _challengeID, reward);
     }
 
-    // helper function to claimReward()
-    function calculateTokens(uint _challengeID, uint _salt, address _voter) private returns (uint) {
+    /**
+    @dev Calculate the provided voter's token reward for the given poll
+    @param _voter Address of the voter whose reward balance is to be returned
+    @param _challengeID pollID of the challenge a reward balance is being queried for
+    @param _salt the salt for the voter's commit hash in the given poll
+    @return a uint indicating the voter's reward in nano-adToken
+    */
+    function calculateVoterReward(address _voter, uint _challengeID, uint _salt)
+    public constant returns (uint) {
         uint totalTokens = challengeMap[_challengeID].totalTokens;
         uint rewardPool = challengeMap[_challengeID].rewardPool;
         uint voterTokens = voting.getNumPassingTokens(_voter, _challengeID, _salt);
-        uint reward = (voterTokens * rewardPool) / totalTokens;
-
-        // subtract voter's information to preserve the participation ratios of other voters
-        // compared to the remaining pool of rewards
-        challengeMap[_challengeID].totalTokens -= voterTokens;
-        challengeMap[_challengeID].rewardPool -= reward;
-
-        return reward;
+        return (voterTokens * rewardPool) / totalTokens;
     }
     
     // --------
