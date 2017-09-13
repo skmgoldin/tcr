@@ -160,6 +160,24 @@ contract('Registry', (accounts) => {
         assert(utils.isEVMException(err), err.toString());
       }
     });
+
+    it('should not whitelist a domain that failed a challenge', async () => {
+      const registry = await Registry.deployed();
+      const domain = 'dontwhitelist.net';
+
+      await utils.as(applicant, registry.apply, domain, minDeposit);
+      await utils.as(challenger, registry.challenge, domain);
+
+      await utils.increaseTime(paramConfig.revealPeriodLength + paramConfig.commitPeriodLength + 1);
+
+      try {
+        await registry.updateStatus(domain);
+        const result = await registry.isWhitelisted(domain);
+        assert.strictEqual(result, false, 'Domain should not have been whitelisted');
+      } catch (err) {
+        assert(utils.isEVMException(err), err.toString());
+      }
+    });
   });
 });
 
