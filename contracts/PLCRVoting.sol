@@ -78,7 +78,7 @@ contract PLCRVoting {
         require(availableTokens >= numTokens);
         require(token.transfer(msg.sender, numTokens));
         voteTokenBalance[msg.sender] -= numTokens;
-        VotingRightsGranted(msg.sender, numTokens);
+        VotingRightsWithdrawn(msg.sender, numTokens);
     }
 
     /**
