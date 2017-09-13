@@ -108,7 +108,14 @@ contract PLCRVoting {
         require(voteTokenBalance[msg.sender] >= numTokens); // prevent user from overspending
         require(pollID != 0);                // prevent user from committing to zero node placerholder
 
+        // TODO: Move all insert validation into the DLL lib
+        // Check if prevPollID exists
+        require(prevPollID == 0 || getCommitHash(msg.sender, prevPollID) != 0);
+
         uint nextPollID = dllMap[msg.sender].getNext(prevPollID);
+
+        // if nextPollID is equal to pollID, pollID is being updated,
+        nextPollID = (nextPollID == pollID) ? dllMap[msg.sender].getNext(pollID) : nextPollID;
 
         require(validPosition(prevPollID, nextPollID, msg.sender, numTokens));
         dllMap[msg.sender].insert(prevPollID, pollID, nextPollID);
