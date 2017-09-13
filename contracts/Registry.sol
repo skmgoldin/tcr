@@ -108,6 +108,7 @@ contract Registry {
         require(listing.owner == msg.sender);
         require(amount <= listing.currentDeposit);
         require(listing.currentDeposit - amount >= parameterizer.get("minDeposit"));
+
         require(token.transfer(msg.sender, amount));
 
         listing.currentDeposit -= amount;
