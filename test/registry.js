@@ -11,10 +11,12 @@ const paramConfig = adchainConfig.RegistryDefaults;
 
 const utils = require('./utils.js');
 
+const bigTen = number => new BN(number, 10);
+
 contract('Registry', (accounts) => {
   describe('Function: deposit', () => {
-    const minDeposit = new BN(paramConfig.minDeposit, 10);
-    const incAmount = minDeposit.div(new BN(2, 10));
+    const minDeposit = bigTen(paramConfig.minDeposit);
+    const incAmount = minDeposit.div(bigTen(2));
     const [applicant, challenger] = accounts;
 
     it('should increase the deposit for a specific domain in the listing', async () => {
@@ -59,15 +61,57 @@ contract('Registry', (accounts) => {
 
       const afterIncDeposit = await utils.getCurrentDeposit(domain);
       const expectedAmount =
-        (new BN(originalDeposit, 10).add(new BN(incAmount, 10))) - new BN(minDeposit, 10);
+        (bigTen(originalDeposit).add(bigTen(incAmount))).sub(bigTen(minDeposit));
 
       assert.strictEqual(afterIncDeposit, expectedAmount.toString(10), 'Deposit should have increased for whitelisted, challenged domain');
     });
   });
 });
 
-contract('Registry', () => {
-  describe('Function: withdraw', () => {});
+contract('Registry', (accounts) => {
+  describe('Function: withdraw', () => {
+    const minDeposit = bigTen(paramConfig.minDeposit);
+    const withdrawAmount = minDeposit.div(bigTen(2));
+    const [applicant, challenger] = accounts;
+
+    it('should not withdraw tokens from a listing that has a deposit === minDeposit', async () => {
+      const registry = await Registry.deployed();
+      const dontChallengeDomain = 'dontchallenge.net';
+      const errMsg = 'applicant was able to withdraw tokens';
+
+      await utils.addToWhitelist(dontChallengeDomain, minDeposit, applicant);
+      const origDeposit = await utils.getCurrentDeposit(dontChallengeDomain);
+
+      try {
+        await utils.as(applicant, registry.withdraw, dontChallengeDomain, withdrawAmount);
+        assert(false, errMsg);
+      } catch (err) {
+        assert(utils.isEVMException(err), err.toString());
+      }
+
+      const afterWithdrawDeposit = await utils.getCurrentDeposit(dontChallengeDomain);
+
+      assert.strictEqual(afterWithdrawDeposit.toString(10), origDeposit.toString(10), errMsg);
+    });
+
+    it('should not withdraw tokens from a domain that is locked in a challenge', async () => {
+      const registry = await Registry.deployed();
+      const domain = 'shouldntwithdraw.net';
+
+      // Whitelist, then challenge
+      await utils.addToWhitelist(domain, minDeposit, applicant);
+      await utils.as(challenger, registry.challenge, domain);
+
+      try {
+        // Attempt to withdraw; should fail
+        const result = await utils.as(applicant, registry.withdraw, domain, withdrawAmount);
+        assert.strictEqual(result, false, 'Applicant should not have been able to withdraw from a challenged, locked domain');
+      } catch (err) {
+        const errMsg = err.toString();
+        assert(utils.isEVMException(err), errMsg);
+      }
+    });
+  });
 });
 
 contract('Registry', () => {
