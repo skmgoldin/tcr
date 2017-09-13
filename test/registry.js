@@ -105,11 +105,14 @@ contract('Registry', (accounts) => {
       try {
         // Attempt to withdraw; should fail
         const result = await utils.as(applicant, registry.withdraw, domain, withdrawAmount);
-        assert.strictEqual(result, false, 'Applicant should not have been able to withdraw from a challenged, locked domain');
+        assert.strictEqual(false, 'Applicant should not have been able to withdraw from a challenged, locked domain');
       } catch (err) {
         const errMsg = err.toString();
         assert(utils.isEVMException(err), errMsg);
       }
+      // TODO: check balance
+      // TODO: apply, gets challenged, and then minDeposit lowers during challenge. still shouldn't be able to withdraw anything.
+      // when challenge ends, should be able to withdraw origDeposit - new minDeposit
     });
   });
 });
