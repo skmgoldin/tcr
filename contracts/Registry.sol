@@ -181,18 +181,22 @@ contract Registry {
         bytes32 domainHash = sha3(domain);
         uint challengeID = listingMap[domainHash].challengeID;
 
-        // Will be unresolved if a challenge was never made, or if updateStatus has not
-        // been called yet following a challenge
-        require(!challengeMap[challengeID].resolved);
+        // To update a domain's status it needs an unresolved challenge, or to be an application
+        require(!challengeMap[challengeID].resolved || appExists(domain));
 
-        if (challengeID == 0 && isExpired(listingMap[domainHash].applicationExpiry)) {
+        if (appExists(domain) &&
+            isExpired(listingMap[domainHash].applicationExpiry) &&
+            !isWhitelisted(domain) &&
+            challengeID == 0
+           ) {
             // The applicationExpiry date passed without a challenge being made
             listingMap[domainHash].whitelisted = true;
             _NewDomainWhitelisted(domain);
         } else {
             // A challenge exists on the domain
             // winner gets back their full staked deposit, and dispensationPct*loser's stake
-            uint stake = 2*challengeMap[challengeID].stake - challengeMap[challengeID].rewardPool;
+            uint stake = 
+              (2 * challengeMap[challengeID].stake) - challengeMap[challengeID].rewardPool;
             bool wasWhitelisted = isWhitelisted(domain);
 
             if (voting.isPassed(challengeID)) { // if voting is not yet over, isPassed will throw
