@@ -65,6 +65,19 @@ contract('Registry', (accounts) => {
 
       assert.strictEqual(afterIncDeposit, expectedAmount.toString(10), 'Deposit should have increased for whitelisted, challenged domain');
     });
+
+    it('should not increase deposit for a listing not owned by the msg.sender', async () => {
+      const registry = await Registry.deployed();
+      const domain = 'notowner.com';
+      await utils.addToWhitelist(domain, minDeposit, applicant);
+
+      try {
+        await utils.as(challenger, registry.deposit, domain, incAmount);
+        assert(false, 'Deposit should not have increased when sent by the wrong msg.sender');
+      } catch (err) {
+        assert(utils.isEVMException(err), err.toString());
+      }
+    });
   });
 });
 
@@ -104,21 +117,35 @@ contract('Registry', (accounts) => {
 
       try {
         // Attempt to withdraw; should fail
-        const result = await utils.as(applicant, registry.withdraw, domain, withdrawAmount);
+        await utils.as(applicant, registry.withdraw, domain, withdrawAmount);
         assert.strictEqual(false, 'Applicant should not have been able to withdraw from a challenged, locked domain');
       } catch (err) {
         const errMsg = err.toString();
         assert(utils.isEVMException(err), errMsg);
       }
       // TODO: check balance
-      // TODO: apply, gets challenged, and then minDeposit lowers during challenge. still shouldn't be able to withdraw anything.
+      // TODO: apply, gets challenged, and then minDeposit lowers during challenge. 
+      // still shouldn't be able to withdraw anything.
       // when challenge ends, should be able to withdraw origDeposit - new minDeposit
     });
   });
 });
 
-contract('Registry', () => {
-  describe('Function: updateStatus', () => {});
+contract('Registry', (accounts) => {
+  describe('Function: updateStatus', () => {
+    const [applicant] = accounts;
+    const minDeposit = bigTen(paramConfig.minDeposit);
+
+    it('should whitelist domain if apply stage ended without a challenge', async () => {
+      const registry = await Registry.deployed();
+      const domain = 'whitelist.io';
+      // note: this function calls registry.updateStatus at the end
+      await utils.addToWhitelist(domain, minDeposit, applicant);
+
+      const result = await registry.isWhitelisted.call(domain);
+      assert.strictEqual(result, true, 'Domain should have been whitelisted');
+    });
+  });
 });
 
 contract('Registry', () => {
