@@ -133,7 +133,7 @@ contract('Registry', (accounts) => {
 
 contract('Registry', (accounts) => {
   describe('Function: updateStatus', () => {
-    const [applicant] = accounts;
+    const [applicant, challenger] = accounts;
     const minDeposit = bigTen(paramConfig.minDeposit);
 
     it('should whitelist domain if apply stage ended without a challenge', async () => {
@@ -144,6 +144,21 @@ contract('Registry', (accounts) => {
 
       const result = await registry.isWhitelisted.call(domain);
       assert.strictEqual(result, true, 'Domain should have been whitelisted');
+    });
+
+    it('should not whitelist a domain that is currently being challenged', async () => {
+      const registry = await Registry.deployed();
+      const domain = 'dontwhitelist.io';
+
+      await utils.as(applicant, registry.apply, domain, minDeposit);
+      await utils.as(challenger, registry.challenge, domain);
+
+      try {
+        await registry.updateStatus(domain);
+        assert(false, 'Domain should not have been whitelisted');
+      } catch (err) {
+        assert(utils.isEVMException(err), err.toString());
+      }
     });
   });
 });
