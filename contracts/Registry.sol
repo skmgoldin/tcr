@@ -20,7 +20,7 @@ contract Registry {
     event _ChallengeFailed(uint challengeID);
     event _ChallengeSucceeded(uint challengeID);
     event _RewardClaimed(address voter, uint challengeID, uint reward);
-                
+
     struct Listing {
         uint applicationExpiry; // expiration date of apply stage
         bool whitelisted;       // indicates registry status
@@ -38,7 +38,7 @@ contract Registry {
     }
 
     // maps challengeIDs to associated challenge data
-    mapping(uint => Challenge) public challengeMap; 
+    mapping(uint => Challenge) public challengeMap;
     // maps domainHashes to associated listing data
     mapping(bytes32 => Listing) public listingMap;
     // maps challengeIDs and address to token claim data
@@ -147,14 +147,14 @@ contract Registry {
         if (listing.currentDeposit < deposit) {
             // not enough tokens, publisher auto-delisted
             resetListing(domain);
-            return 0;               
+            return 0;
         }
         //take tokens from challenger
         require(token.transferFrom(msg.sender, this, deposit));
         //start poll
         uint pollID = voting.startPoll(
             parameterizer.get("voteQuorum"),
-            parameterizer.get("commitPeriodLen"), 
+            parameterizer.get("commitPeriodLen"),
             parameterizer.get("revealPeriodLen")
         );
 
@@ -182,7 +182,7 @@ contract Registry {
         if (challengeID == 0 && isExpired(listingMap[domainHash].applicationExpiry)) {
             listingMap[domainHash].whitelisted = true;
             _NewDomainWhitelisted(domain);
-        } else { 
+        } else {
             // PROCESS THE RESULT OF THE POLL
             // winner gets back their full staked deposit, and dispensationPct*loser's stake
             // (1-dispensationPct)*loser's stake = rewardPool
