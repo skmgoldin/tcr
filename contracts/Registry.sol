@@ -173,45 +173,55 @@ contract Registry {
         return pollID;
     }
 
-    // whitelist domain if apply stage ended without a challenge
+    /**
+    @notice updates a domain's status from application to listing, or resolves a challenge if one exists
+    @param domain The domain whose status is being updated
+    */
     function updateStatus(string domain) public {
         bytes32 domainHash = sha3(domain);
         uint challengeID = listingMap[domainHash].challengeID;
-        require(!challengeMap[challengeID].resolved);  // require processed flag to be false      
-        // IF NO CHALLENGE AFTER APPLY STAGE
-        if (challengeID == 0 && isExpired(listingMap[domainHash].applicationExpiry)) {
+
+        // To update a domain's status it needs an unresolved challenge, or to be an application
+        require(!challengeMap[challengeID].resolved || appExists(domain));
+
+        if (appExists(domain) &&
+            isExpired(listingMap[domainHash].applicationExpiry) &&
+            !isWhitelisted(domain) &&
+            challengeID == 0
+           ) {
+            // The applicationExpiry date passed without a challenge being made
             listingMap[domainHash].whitelisted = true;
             _NewDomainWhitelisted(domain);
         } else {
-            // PROCESS THE RESULT OF THE POLL
+            // A challenge exists on the domain
             // winner gets back their full staked deposit, and dispensationPct*loser's stake
-            // (1-dispensationPct)*loser's stake = rewardPool
-            uint stake = 2*challengeMap[challengeID].stake - challengeMap[challengeID].rewardPool;
+            uint stake = 
+              (2 * challengeMap[challengeID].stake) - challengeMap[challengeID].rewardPool;
             bool wasWhitelisted = isWhitelisted(domain);
-            // if voting is not yet over, isPassed will throw
-            if (voting.isPassed(challengeID)) {
+
+            if (voting.isPassed(challengeID)) { // if voting is not yet over, isPassed will throw
+                // The challenge failed
                 listingMap[domainHash].whitelisted = true;
                 listingMap[domainHash].currentDeposit += stake; // give stake back to applicant
 
                 _ChallengeFailed(challengeID);
-                if (!wasWhitelisted) {
-                  _NewDomainWhitelisted(domain); 
-                }
+                if (!wasWhitelisted) { _NewDomainWhitelisted(domain); }
             } else {
-                resetListing(domain); // whitelisted = false
-                require(token.transfer(challengeMap[challengeID].challenger, stake)); // give stake to challenger
+                // The challenge succeeded
+                resetListing(domain);
+                require(token.transfer(challengeMap[challengeID].challenger, stake));
+
                 _ChallengeSucceeded(challengeID);
-                if (wasWhitelisted) {
-                  _ListingRemoved(domain);
-                } else {
-                  _ApplicationRemoved(domain);
-                }
+                if (wasWhitelisted) { _ListingRemoved(domain); }
+                else { _ApplicationRemoved(domain); }
             }
 
-            challengeMap[challengeID].resolved = true; // set flag on challenge being processed
+            // set flag on challenge being processed
+            challengeMap[challengeID].resolved = true;
 
             // store the total tokens used for voting by the winning side for reward purposes
-            challengeMap[challengeID].totalTokens = voting.getTotalNumberOfTokensForWinningOption(challengeID);
+            challengeMap[challengeID].totalTokens =
+              voting.getTotalNumberOfTokensForWinningOption(challengeID);
         }
     }
 

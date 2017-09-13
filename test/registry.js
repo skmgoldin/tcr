@@ -178,6 +178,8 @@ contract('Registry', (accounts) => {
         assert(utils.isEVMException(err), err.toString());
       }
     });
+
+    it('should not be possible to add a domain to the whitelist just by calling updateStatus');
   });
 });
 
