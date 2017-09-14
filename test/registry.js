@@ -146,6 +146,19 @@ contract('Registry', (accounts) => {
       assert.strictEqual(result, true, 'Domain should have been whitelisted');
     });
 
+    it('should not whitelist a domain that is still pending an application', async () => {
+      const registry = await Registry.deployed();
+      const domain = 'tooearlybuddy.io';
+      await utils.as(applicant, registry.apply, domain, minDeposit);
+
+      try {
+        await utils.as(applicant, registry.updateStatus, domain);
+        assert(false, 'Domain should not have been whitelisted');
+      } catch (err) {
+        assert(utils.isEVMException(err), err.toString());
+      }
+    });
+
     it('should not whitelist a domain that is currently being challenged', async () => {
       const registry = await Registry.deployed();
       const domain = 'dontwhitelist.io';
@@ -168,7 +181,8 @@ contract('Registry', (accounts) => {
       await utils.as(applicant, registry.apply, domain, minDeposit);
       await utils.as(challenger, registry.challenge, domain);
 
-      await utils.increaseTime(paramConfig.revealPeriodLength + paramConfig.commitPeriodLength + 1);
+      const plcrComplete = paramConfig.revealPeriodLength + paramConfig.commitPeriodLength + 1
+      await utils.increaseTime(plcrComplete);
 
       try {
         await registry.updateStatus(domain);
@@ -179,7 +193,17 @@ contract('Registry', (accounts) => {
       }
     });
 
-    it('should not be possible to add a domain to the whitelist just by calling updateStatus');
+    it('should not be possible to add a domain to the whitelist just by calling updateStatus', async () => {
+      const registry = await Registry.deployed();
+      const domain = 'updatemenow.net';
+
+      try {
+        await utils.as(applicant, registry.updateStatus, domain);
+        assert(false, 'Domain should not have been whitelisted');
+      } catch (err) {
+        assert(utils.isEVMException(err), err.toString());
+      }
+    });
   });
 });
 
