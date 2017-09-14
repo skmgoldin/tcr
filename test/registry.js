@@ -201,7 +201,25 @@ contract('Registry', (accounts) => {
       }
     });
 
-    it('should not be possible to add a domain to the whitelist just by callinng updateStatus after it has been previously removed');
+    it('should not be possible to add a domain to the whitelist just by calling updateStatus after it has been previously removed', async () => {
+      const registry = await Registry.deployed();
+      const domain = 'somanypossibilities.net';
+
+      await utils.addToWhitelist(domain, minDeposit, applicant);
+      const resultOne = await registry.isWhitelisted(domain);
+      assert.strictEqual(resultOne, true, 'Domain should have been whitelisted');
+
+      await utils.as(applicant, registry.exit, domain);
+      const resultTwo = await registry.isWhitelisted(domain);
+      assert.strictEqual(resultTwo, false, 'Domain should not be in the whitelist');
+
+      try {
+        await utils.as(applicant, registry.updateStatus, domain);
+        assert(false, 'Domain should not have been whitelisted');
+      } catch (err) {
+        assert(utils.isEVMException(err), err.toString());
+      }
+    });
   });
 });
 
