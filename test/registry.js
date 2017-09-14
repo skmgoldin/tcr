@@ -181,16 +181,12 @@ contract('Registry', (accounts) => {
       await utils.as(applicant, registry.apply, domain, minDeposit);
       await utils.as(challenger, registry.challenge, domain);
 
-      const plcrComplete = paramConfig.revealPeriodLength + paramConfig.commitPeriodLength + 1
+      const plcrComplete = paramConfig.revealPeriodLength + paramConfig.commitPeriodLength + 1;
       await utils.increaseTime(plcrComplete);
 
-      try {
-        await registry.updateStatus(domain);
-        const result = await registry.isWhitelisted(domain);
-        assert.strictEqual(result, false, 'Domain should not have been whitelisted');
-      } catch (err) {
-        assert(utils.isEVMException(err), err.toString());
-      }
+      await registry.updateStatus(domain);
+      const result = await registry.isWhitelisted(domain);
+      assert.strictEqual(result, false, 'Domain should not have been whitelisted');
     });
 
     it('should not be possible to add a domain to the whitelist just by calling updateStatus', async () => {
@@ -204,6 +200,8 @@ contract('Registry', (accounts) => {
         assert(utils.isEVMException(err), err.toString());
       }
     });
+
+    it('should not be possible to add a domain to the whitelist just by callinng updateStatus after it has been previously removed');
   });
 });
 
