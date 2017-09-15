@@ -430,6 +430,8 @@ contract('Registry', (accounts) => {
 contract('Registry', (accounts) => {
   describe('User stories', () => {
     const [applicant, challenger, voter] = accounts;
+    const minDeposit = bigTen(paramConfig.minDeposit);
+
     it('should apply, fail challenge, and reject domain', async () => {
       const registry = await Registry.deployed();
       const domain = 'failChallenge.net'; // domain to apply with
@@ -448,48 +450,47 @@ contract('Registry', (accounts) => {
 
     it('should apply, pass challenge, and whitelist domain', async () => {
       const registry = await Registry.deployed();
-      const domain = 'passChallenge.net'; // domain to apply with
-      // apply with accounts[2]
-      await registry.apply(domain, paramConfig.minDeposit, { from: applicant });
-      // challenge with accounts[1]
-      const receipt = await registry.challenge(domain, { from: challenger });
-      const pollID = receipt.logs[0].args.pollID;
       const voting = await utils.getVoting();
+      const domain = 'passChallenge.net';
 
+      await utils.as(applicant, registry.apply, domain, minDeposit);
+
+      // Challenge and get back the pollID
+      const pollID = await utils.challengeAndGetPollID(domain, challenger);
+
+      // Make sure it's cool to commit
+      const cpa = await voting.commitPeriodActive.call(pollID);
+      assert.strictEqual(cpa, true, 'Commit period should be active');
+
+      // Virgin commit
+      const tokensArg = 10;
       const salt = 420;
       const voteOption = 1;
-      const hash = utils.getVoteSaltHash(voteOption, salt);
+      await utils.firstCommitVote(pollID, voteOption, tokensArg, salt, voter);
 
-      // commit
-      const tokensArg = 10;
-      const cpa = await voting.commitPeriodActive.call(pollID);
-      assert.strictEqual(cpa, true, 'commit period should be active');
-
-      // voter has never voted before, use pollID 0
-      await voting.requestVotingRights(tokensArg, { from: voter });
-      await voting.commitVote(pollID, hash, tokensArg, 0, { from: voter });
       const numTokens = await voting.getNumTokens.call(voter, pollID);
-      assert.strictEqual(numTokens.toString(10), tokensArg.toString(10), 'wrong num tok committed');
+      assert.strictEqual(numTokens.toString(10), tokensArg.toString(10), 'Should have committed the correct number of tokens');
 
-      // reveal
+      // Reveal
       await utils.increaseTime(paramConfig.commitPeriodLength + 1);
       let rpa = await voting.revealPeriodActive.call(pollID);
-      assert.strictEqual(rpa, true, 'reveal period should be active');
+      assert.strictEqual(rpa, true, 'Reveal period should be active');
+
       await voting.revealVote(pollID, voteOption, salt, { from: voter });
 
-      // inc time
+      // End reveal period
       await utils.increaseTime(paramConfig.revealPeriodLength + 1);
       rpa = await voting.revealPeriodActive.call(pollID);
-      assert.strictEqual(rpa, false, 'reveal period should not be active');
+      assert.strictEqual(rpa, false, 'Reveal period should not be active');
 
       // updateStatus
       const pollResult = await voting.isPassed.call(pollID);
-      assert.strictEqual(pollResult, true, 'poll should have passed');
-      await registry.updateStatus(domain);
+      assert.strictEqual(pollResult, true, 'Poll should have passed');
 
-      // should have been added to whitelist
+      // Add to whitelist
+      await registry.updateStatus(domain);
       const result = await registry.isWhitelisted(domain);
-      assert.strictEqual(result, true, 'domain should be whitelisted');
+      assert.strictEqual(result, true, 'Domain should be whitelisted');
     });
   });
 });
