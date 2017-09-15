@@ -95,6 +95,19 @@ const utils = {
     const currentDeposit = await listing[3];
     return currentDeposit.toString();
   },
+  challengeAndGetPollID: async (domain, actor) => {
+    const registry = await Registry.deployed();
+    const receipt = await utils.as(actor, registry.challenge, domain);
+    return receipt.logs[0].args.pollID;
+  },
+  firstCommitVote: async (pollID, voteOption, tokensArg, salt, voter) => {
+    const voting = await utils.getVoting();
+    const hash = utils.getVoteSaltHash(voteOption, salt);
+    await utils.as(voter, voting.requestVotingRights, tokensArg);
+
+    const prevPollID = 0; // Virgin vote
+    await utils.as(voter, voting.commitVote, pollID, hash, tokensArg, prevPollID);
+  },
 };
 
 module.exports = utils;
