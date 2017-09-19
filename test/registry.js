@@ -466,13 +466,17 @@ contract('Registry', (accounts) => {
       const tokensArg = 10;
       const salt = 420;
       const voteOption = 1;
-      await utils.firstCommitVote(pollID, voteOption, tokensArg, salt, voter);
+      await utils.commitVote(pollID, voteOption, tokensArg, salt, voter);
 
       const numTokens = await voting.getNumTokens.call(voter, pollID);
       assert.strictEqual(numTokens.toString(10), tokensArg.toString(10), 'Should have committed the correct number of tokens');
 
       // Reveal
       await utils.increaseTime(paramConfig.commitPeriodLength + 1);
+      // Make sure commit period is inactive
+      const commitPeriodActive = await voting.commitPeriodActive.call(pollID);
+      assert.strictEqual(commitPeriodActive, false, 'Commit period should be inactive');
+      // Make sure reveal period is active
       let rpa = await voting.revealPeriodActive.call(pollID);
       assert.strictEqual(rpa, true, 'Reveal period should be active');
 
