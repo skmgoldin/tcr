@@ -100,12 +100,12 @@ const utils = {
     const receipt = await utils.as(actor, registry.challenge, domain);
     return receipt.logs[0].args.pollID;
   },
-  firstCommitVote: async (pollID, voteOption, tokensArg, salt, voter) => {
+  commitVote: async (pollID, voteOption, tokensArg, salt, voter) => {
     const voting = await utils.getVoting();
     const hash = utils.getVoteSaltHash(voteOption, salt);
     await utils.as(voter, voting.requestVotingRights, tokensArg);
 
-    const prevPollID = 0; // Virgin vote
+    const prevPollID = await voting.getInsertPointForNumTokens.call(voter, tokensArg);
     await utils.as(voter, voting.commitVote, pollID, hash, tokensArg, prevPollID);
   },
 };
