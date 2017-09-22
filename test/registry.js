@@ -383,7 +383,8 @@ contract('Registry', (accounts) => {
         await registry.exit(domain, { from: applicant });
         assert(false, 'exit succeeded when it should have failed');
       } catch (err) {
-        // TODO: Check if is EVM error
+        const errMsg = err.toString();
+        assert(utils.isEVMException(err), errMsg);
       }
 
       const isWhitelistedAfterExit = await registry.isWhitelisted.call(domain);
@@ -400,7 +401,7 @@ contract('Registry', (accounts) => {
         'the applicant\'s tokens were returned in spite of failing to exit',
       );
 
-      // Clean up state, remove consensys.net from application stage
+      // Clean up state, remove consensys.net (it fails its challenge due to draw)
       await utils.increaseTime(paramConfig.commitPeriodLength + paramConfig.revealPeriodLength + 1);
       await registry.updateStatus(domain);
     });
@@ -415,7 +416,8 @@ contract('Registry', (accounts) => {
         await registry.exit(domain, { from: voter });
         assert(false, 'exit succeeded when it should have failed');
       } catch (err) {
-        // TODO: Check if is EVM error
+        const errMsg = err.toString();
+        assert(utils.isEVMException(err), errMsg);
       }
       const isWhitelistedAfterExit = await registry.isWhitelisted.call(domain);
       assert.strictEqual(
