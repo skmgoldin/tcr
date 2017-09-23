@@ -26,10 +26,10 @@ contract('Registry', (accounts) => {
       await utils.addToWhitelist(domain, minDeposit, applicant);
       await utils.as(applicant, registry.deposit, domain, incAmount);
 
-      const currentDeposit = await utils.getCurrentDeposit(domain);
+      const unstakedDeposit = await utils.getUnstakedDeposit(domain);
       const expectedAmount = incAmount.add(minDeposit);
-      assert.strictEqual(currentDeposit, expectedAmount.toString(10),
-        'Current deposit should be equal to the sum of the original + increase amount');
+      assert.strictEqual(unstakedDeposit, expectedAmount.toString(10),
+        'Unstaked deposit should be equal to the sum of the original + increase amount');
     });
 
     it('should increase a deposit for a pending application', async () => {
@@ -40,9 +40,9 @@ contract('Registry', (accounts) => {
       try {
         await utils.as(applicant, registry.deposit, domain, incAmount);
 
-        const currentDeposit = await utils.getCurrentDeposit(domain);
+        const unstakedDeposit = await utils.getUnstakedDeposit(domain);
         const expectedAmount = incAmount.add(minDeposit);
-        assert.strictEqual(currentDeposit, expectedAmount.toString(10), 'Deposit should have increased for pending application');
+        assert.strictEqual(unstakedDeposit, expectedAmount.toString(10), 'Deposit should have increased for pending application');
       } catch (err) {
         const errMsg = err.toString();
         assert(utils.isEVMException(err), errMsg);
@@ -53,13 +53,13 @@ contract('Registry', (accounts) => {
       const registry = await Registry.deployed();
       const domain = 'challengedomain.net';
       await utils.addToWhitelist(domain, minDeposit, applicant);
-      const originalDeposit = await utils.getCurrentDeposit(domain);
+      const originalDeposit = await utils.getUnstakedDeposit(domain);
 
       // challenge, then increase deposit
       await utils.as(challenger, registry.challenge, domain);
       await utils.as(applicant, registry.deposit, domain, incAmount);
 
-      const afterIncDeposit = await utils.getCurrentDeposit(domain);
+      const afterIncDeposit = await utils.getUnstakedDeposit(domain);
       const expectedAmount =
         (bigTen(originalDeposit).add(bigTen(incAmount))).sub(bigTen(minDeposit));
 
@@ -93,7 +93,7 @@ contract('Registry', (accounts) => {
       const errMsg = 'applicant was able to withdraw tokens';
 
       await utils.addToWhitelist(dontChallengeDomain, minDeposit, applicant);
-      const origDeposit = await utils.getCurrentDeposit(dontChallengeDomain);
+      const origDeposit = await utils.getUnstakedDeposit(dontChallengeDomain);
 
       try {
         await utils.as(applicant, registry.withdraw, dontChallengeDomain, withdrawAmount);
@@ -102,7 +102,7 @@ contract('Registry', (accounts) => {
         assert(utils.isEVMException(err), err.toString());
       }
 
-      const afterWithdrawDeposit = await utils.getCurrentDeposit(dontChallengeDomain);
+      const afterWithdrawDeposit = await utils.getUnstakedDeposit(dontChallengeDomain);
 
       assert.strictEqual(afterWithdrawDeposit.toString(10), origDeposit.toString(10), errMsg);
     });
@@ -276,7 +276,7 @@ contract('Registry', (accounts) => {
       assert.strictEqual(
         result[3].toString(10),
         paramConfig.minDeposit.toString(10),
-        'incorrect currentDeposit',
+        'incorrect unstakedDeposit',
       );
     });
 

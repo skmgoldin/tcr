@@ -25,7 +25,7 @@ contract Registry {
         uint applicationExpiry; // expiration date of apply stage
         bool whitelisted;       // indicates registry status
         address owner;          // owner of Listing
-        uint currentDeposit;    // number of tokens staked
+        uint unstakedDeposit;   // number of unlocked tokens with potential risk if challenged
         uint challengeID;       // identifier of canonical challenge
     }
 
@@ -82,7 +82,7 @@ contract Registry {
 
         //set apply stage end time
         listing.applicationExpiry = block.timestamp + parameterizer.get("applyStageLen"); 
-        listing.currentDeposit = amount;
+        listing.unstakedDeposit = amount;
 
         _Application(domain, amount);
     }
@@ -94,26 +94,26 @@ contract Registry {
         require(listing.owner == msg.sender);
         require(token.transferFrom(msg.sender, this, amount));
 
-        listing.currentDeposit += amount;
+        listing.unstakedDeposit += amount;
 
-        _Deposit(domain, amount, listing.currentDeposit);
+        _Deposit(domain, amount, listing.unstakedDeposit);
     }
 
     //Allow the owner of a domain in the listing to withdraw
-    //tokens not locked in a challenge.
+    //tokens not locked in a challenge (unstaked).
     //The publisher's domain remains whitelisted
     function withdraw(string domain, uint amount) external {
         Listing storage listing = listingMap[sha3(domain)];
 
         require(listing.owner == msg.sender);
-        require(amount <= listing.currentDeposit);
-        require(listing.currentDeposit - amount >= parameterizer.get("minDeposit"));
+        require(amount <= listing.unstakedDeposit);
+        require(listing.unstakedDeposit - amount >= parameterizer.get("minDeposit"));
 
         require(token.transfer(msg.sender, amount));
 
-        listing.currentDeposit -= amount;
+        listing.unstakedDeposit -= amount;
 
-        _Withdrawal(domain, amount, listing.currentDeposit);
+        _Withdrawal(domain, amount, listing.unstakedDeposit);
     }
 
     //Allow the owner of a domain to remove the domain from the whitelist
@@ -144,7 +144,7 @@ contract Registry {
         // prevent multiple challenges
         require(listing.challengeID == 0 || challengeMap[listing.challengeID].resolved);
         uint deposit = parameterizer.get("minDeposit");
-        if (listing.currentDeposit < deposit) {
+        if (listing.unstakedDeposit < deposit) {
             // not enough tokens, publisher auto-delisted
             resetListing(domain);
             return 0;
@@ -166,8 +166,8 @@ contract Registry {
             totalTokens: 0
         });
 
-        listingMap[domainHash].challengeID = pollID;      // update listing to store most recent challenge
-        listingMap[domainHash].currentDeposit -= deposit; // lock tokens for listing during challenge
+        listingMap[domainHash].challengeID = pollID;       // update listing to store most recent challenge
+        listingMap[domainHash].unstakedDeposit -= deposit; // lock tokens for listing during challenge
 
         _Challenge(domain, deposit, pollID);
         return pollID;
@@ -293,8 +293,8 @@ contract Registry {
         bytes32 domainHash = sha3(domain);
         Listing storage listing = listingMap[domainHash];
         //transfer any remaining balance back to the owner
-        if (listing.currentDeposit > 0)
-            require(token.transfer(listing.owner, listing.currentDeposit));
+        if (listing.unstakedDeposit > 0)
+            require(token.transfer(listing.owner, listing.unstakedDeposit));
         delete listingMap[domainHash];
     }
 
@@ -316,7 +316,7 @@ contract Registry {
 
         if (voting.isPassed(challengeID)) { // The challenge failed
             whitelistApplication(_domain);
-            listingMap[domainHash].currentDeposit += reward; // give stake back to applicant
+            listingMap[domainHash].unstakedDeposit += reward; // give stake back to applicant
 
             _ChallengeFailed(challengeID);
             if (!wasWhitelisted) { _NewDomainWhitelisted(_domain); }
