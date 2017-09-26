@@ -4,7 +4,7 @@ const Registry = artifacts.require('Registry.sol');
 const Token = artifacts.require('Token.sol');
 
 const fs = require('fs');
-const BN = require('bn.js');
+const BN = require('bignumber.js');
 
 const adchainConfig = JSON.parse(fs.readFileSync('./conf/config.json'));
 const paramConfig = adchainConfig.RegistryDefaults;
