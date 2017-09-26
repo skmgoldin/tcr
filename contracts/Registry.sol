@@ -283,6 +283,21 @@ contract Registry {
         return voting.pollEnded(challengeID);
     }
 
+    /**
+    @notice Determines the number of tokens to awarded to the winning party in a challenge
+    @param _challengeID The challengeID to determine a reward for
+    */
+    function determineReward(uint _challengeID) public constant returns (uint) {
+      require(!challengeMap[_challengeID].resolved && voting.pollEnded(_challengeID));
+
+      if(voting.getTotalNumberOfTokensForWinningOption(_challengeID) == 0) {
+        // Edge case, nobody voted, give all tokens to the winner.
+        return 2 * challengeMap[_challengeID].stake;
+      }
+      
+      return (2 * challengeMap[_challengeID].stake) - challengeMap[_challengeID].rewardPool;
+    }
+
     //return true if termDate has passed
     function isExpired(uint termDate) constant public returns (bool expired) {
         return termDate < block.timestamp;
@@ -311,7 +326,7 @@ contract Registry {
         uint challengeID = listingMap[domainHash].challengeID;
 
         // winner gets back their full staked deposit, and dispensationPct*loser's stake
-        uint reward = (2 * challengeMap[challengeID].stake) - challengeMap[challengeID].rewardPool;
+        uint reward = determineReward(challengeID);
         bool wasWhitelisted = isWhitelisted(_domain);
 
         if (voting.isPassed(challengeID)) { // The challenge failed
