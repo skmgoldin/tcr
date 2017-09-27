@@ -4,6 +4,7 @@
   "description": "AdChain node module",
   "scripts": {
     "compile": "truffle compile",
+    "deploy-rinkeby": "truffle migrate --network rinkeby",
     "test": "node test.js",
     "fix": "eslint --fix",
     "lint": "eslint"
