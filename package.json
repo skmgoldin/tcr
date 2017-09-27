@@ -22,7 +22,7 @@
     "ethjs-query": "0.2.6",
     "ethjs-rpc": "0.1.5",
     "ethjs-util": "0.1.4",
-    "truffle": "3.4.5",
+    "truffle": "3.4.11",
     "truffle-hdwallet-provider": "0.0.3"
   },
   "devDependencies": {
