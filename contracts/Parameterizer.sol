@@ -30,6 +30,7 @@ contract Parameterizer {
 
 	function Parameterizer( 
 		address tokenAddr,
+    address _plcrAddr,
 		uint _minDeposit,
         uint _minParamDeposit,
         uint _applyStageLen,
@@ -39,7 +40,7 @@ contract Parameterizer {
         uint _voteQuorum
     ) {
 		token = StandardToken(tokenAddr);
-		voting = new PLCRVoting(tokenAddr);
+		voting = PLCRVoting(_plcrAddr);
 
 		set("minDeposit", _minDeposit);
         set("minParamDeposit", _minParamDeposit);

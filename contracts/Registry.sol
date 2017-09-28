@@ -55,11 +55,12 @@ contract Registry {
 
     function Registry(
         address _tokenAddr,
+        address _plcrAddr,
         address _paramsAddr
     ) {
         token = StandardToken(_tokenAddr);
         parameterizer = Parameterizer(_paramsAddr);
-        voting = new PLCRVoting(_tokenAddr);
+        voting = PLCRVoting(_plcrAddr);
     }
 
     // --------------------
