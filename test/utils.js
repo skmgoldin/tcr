@@ -22,6 +22,7 @@ const utils = {
     const votingAddr = await registry.voting.call();
     return PLCRVoting.at(votingAddr);
   },
+
   increaseTime: async seconds =>
     new Promise((resolve, reject) => ethRPC.sendAsync({
       method: 'evm_increaseTime',
@@ -37,28 +38,34 @@ const utils = {
         if (err) reject(err);
         resolve();
       }))),
+
   getVoteSaltHash: (vote, salt) => (
     `0x${abi.soliditySHA3(['uint', 'uint'], [vote, salt]).toString('hex')}`
   ),
+
   getDomainHash: domain => (
     `0x${abi.soliditySHA3(['string'], [domain]).toString('hex')}`
   ),
+
   buyTokens: async (address, etherAmount) => {
     const sale = await Sale.deployed();
     await sale.purchaseTokens({ from: address, value: etherAmount });
   },
+
   approvePLCR: async (address, adtAmount) => {
     const registry = await Registry.deployed();
     const plcrAddr = await registry.voting.call();
     const token = Token.at(await registry.token.call());
     await token.approve(plcrAddr, adtAmount, { from: address });
   },
+
   addToWhitelist: async (domain, deposit, actor) => {
     const registry = await Registry.deployed();
     await utils.as(actor, registry.apply, domain, deposit);
     await utils.increaseTime(paramConfig.applyStageLength + 1);
     await utils.as(actor, registry.updateStatus, domain);
   },
+
   as: (actor, fn, ...args) => {
     function detectSendObject(potentialSendObj) {
       function hasOwnProperty(obj, prop) {
@@ -82,9 +89,11 @@ const utils = {
     const sendObject = { from: actor };
     return fn(...args, sendObject);
   },
+
   isEVMException: err => (
     err.toString().includes('invalid opcode')
   ),
+
   getUnstakedDeposit: async (domain) => {
     const registry = await Registry.deployed();
     // hash the domain so we can identify in listingMap
@@ -95,11 +104,13 @@ const utils = {
     const unstakedDeposit = await listing[3];
     return unstakedDeposit.toString();
   },
+
   challengeAndGetPollID: async (domain, actor) => {
     const registry = await Registry.deployed();
     const receipt = await utils.as(actor, registry.challenge, domain);
     return receipt.logs[0].args.pollID;
   },
+
   commitVote: async (pollID, voteOption, tokensArg, salt, voter) => {
     const voting = await utils.getVoting();
     const hash = utils.getVoteSaltHash(voteOption, salt);
