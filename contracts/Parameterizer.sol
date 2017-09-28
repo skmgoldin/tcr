@@ -21,48 +21,57 @@ contract Parameterizer {
     PLCRVoting public voting;
 
 	/// @param _minDeposit      minimum deposit for listing to be whitelisted  
-    /// @param _minParamDeposit minimum deposit to propose a parameter change 
-    /// @param _applyStageLen   length of period in which applicants wait to be whitelisted
-    /// @param _dispensationPct percentage of losing party's deposit distributed to winning party
-    /// @param _commitPeriodLen length of commit period for voting
-    /// @param _revealPeriodLen length of reveal period for voting
-    /// @param _voteQuorum      type of majority out of 100 necessary for vote success
-
+  /// @param _pMinDeposit minimum deposit to propose a parameter change 
+  /// @param _applyStageLen   length of period in which applicants wait to be whitelisted
+  /// @param _dispensationPct percentage of losing party's deposit distributed to winning party
+  /// @param _commitPeriodLen length of commit period for voting
+  /// @param _revealPeriodLen length of reveal period for voting
+  /// @param _voteQuorum      type of majority out of 100 necessary for vote success
 	function Parameterizer( 
-		address tokenAddr,
+		address _tokenAddr,
     address _plcrAddr,
 		uint _minDeposit,
-        uint _minParamDeposit,
-        uint _applyStageLen,
-        uint _commitPeriodLen,
-        uint _revealPeriodLen,
-        uint _dispensationPct,
-        uint _voteQuorum
+    uint _pMinDeposit,
+    uint _applyStageLen,
+    uint _pApplyStageLen,
+    uint _commitPeriodLen,
+    uint _pCommitPeriodLen,
+    uint _revealPeriodLen,
+    uint _pRevealPeriodLen,
+    uint _dispensationPct,
+    uint _pDispensationPct,
+    uint _voteQuorum,
+    uint _pVoteQuorum
     ) {
-		token = StandardToken(tokenAddr);
-		voting = PLCRVoting(_plcrAddr);
+      token = StandardToken(_tokenAddr);
+      voting = PLCRVoting(_plcrAddr);
 
-		set("minDeposit", _minDeposit);
-        set("minParamDeposit", _minParamDeposit);
-        set("applyStageLen", _applyStageLen);
-        set("commitPeriodLen", _commitPeriodLen);
-        set("revealPeriodLen", _revealPeriodLen);
-        set("dispensationPct", _dispensationPct);
-        set("voteQuorum", _voteQuorum);
+      set("minDeposit", _minDeposit);
+      set("pMinDeposit", _pMinDeposit);
+      set("applyStageLen", _applyStageLen);
+      set("pApplyStageLen", _pApplyStageLen);
+      set("commitPeriodLen", _commitPeriodLen);
+      set("pCommitPeriodLen", _pCommitPeriodLen);
+      set("revealPeriodLen", _revealPeriodLen);
+      set("pRevealPeriodLen", _pRevealPeriodLen);
+      set("dispensationPct", _dispensationPct);
+      set("pDispensationPct", _pDispensationPct);
+      set("voteQuorum", _voteQuorum);
+      set("pVoteQuorum", _pVoteQuorum);
 	}
 
 	// changes parameter within canonical mapping
-	function set(string name, uint value) internal {
-		params[sha3(name)] = value;
+	function set(string _name, uint _value) internal {
+		params[sha3(_name)] = _value;
 	}
 
-	// gets parameter by string name from hashMap
-	function get(string name) public constant returns (uint value) {
-		return params[sha3(name)];
+	// gets parameter by string _name from hashMap
+	function get(string _name) public constant returns (uint value) {
+		return params[sha3(_name)];
 	}
 
 	// starts poll and takes tokens from msg.sender
-	function changeParameter(string name, uint value) returns (uint) {
+	function changeParameter(string _name, uint _value) returns (uint) {
 		uint deposit = get("minParamDeposit");
 		require(token.transferFrom(msg.sender, this, deposit)); // escrow tokens (deposit amt)
 		
@@ -74,8 +83,8 @@ contract Parameterizer {
 
 		// attach name and value to pollID		
 		proposalMap[pollID] = ParamProposal({
-			name: name,
-			value: value,
+			name: _name,
+			value: _value,
 			owner: msg.sender,
 			deposit: deposit
 		});
@@ -84,10 +93,10 @@ contract Parameterizer {
 	}
 
 	// updates canonical mapping with evaluation of poll result
-	function processProposal(uint pollID) {
-		ParamProposal storage prop = proposalMap[pollID];
+	function processProposal(uint _pollID) {
+		ParamProposal storage prop = proposalMap[_pollID];
 		// check isPassed ==> update params mapping using set
-		if (voting.isPassed(pollID)) {
+		if (voting.isPassed(_pollID)) {
 			set(prop.name, prop.value);
 		}
 		// release escrowed tokens
