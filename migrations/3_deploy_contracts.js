@@ -66,26 +66,33 @@ module.exports = (deployer, network, accounts) => {
       const sale = await Sale.deployed();
       tokenAddress = await sale.token.call();
     }
-    return deployer.deploy(Parameterizer,
+    return deployer.deploy(PLCRVoting,
       tokenAddress,
-      parameterizerConfig.minDeposit,
-      parameterizerConfig.minParamDeposit,
-      parameterizerConfig.applyStageLength,
-      parameterizerConfig.commitPeriodLength,
-      parameterizerConfig.revealPeriodLength,
-      parameterizerConfig.dispensationPct,
-      parameterizerConfig.voteQuorum,
     );
   })
     .then(() =>
-      deployer.deploy(Registry,
+      deployer.deploy(Parameterizer,
         tokenAddress,
-        Parameterizer.address,
-      ),
-    )
-    .then(async () => {
-      if (network === 'development') {
-        await setupForTests(tokenAddress);
-      }
-    }).catch((err) => { throw err; });
+        PLCRVoting.address,
+        parameterizerConfig.minDeposit,
+        parameterizerConfig.minParamDeposit,
+        parameterizerConfig.applyStageLength,
+        parameterizerConfig.commitPeriodLength,
+        parameterizerConfig.revealPeriodLength,
+        parameterizerConfig.dispensationPct,
+        parameterizerConfig.voteQuorum,
+      )
+        .then(() =>
+          deployer.deploy(Registry,
+            tokenAddress,
+            PLCRVoting.address,
+            Parameterizer.address,
+          ),
+        )
+        .then(async () => {
+          if (network === 'development') {
+            await setupForTests(tokenAddress);
+          }
+        }).catch((err) => { throw err; }),
+    );
 };
