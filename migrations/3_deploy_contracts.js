@@ -75,12 +75,17 @@ module.exports = (deployer, network, accounts) => {
         tokenAddress,
         PLCRVoting.address,
         parameterizerConfig.minDeposit,
-        parameterizerConfig.minParamDeposit,
+        parameterizerConfig.pMinDeposit,
         parameterizerConfig.applyStageLength,
+        parameterizerConfig.pApplyStageLength,
         parameterizerConfig.commitPeriodLength,
+        parameterizerConfig.pCommitPeriodLength,
         parameterizerConfig.revealPeriodLength,
+        parameterizerConfig.pRevealPeriodLength,
         parameterizerConfig.dispensationPct,
+        parameterizerConfig.pDispensationPct,
         parameterizerConfig.voteQuorum,
+        parameterizerConfig.pVoteQuorum,
       )
         .then(() =>
           deployer.deploy(Registry,
