@@ -10,6 +10,7 @@ contract Parameterizer {
   // ------
 
   event _ReparameterizationProposal(address proposer, string name, uint value, bytes32 propID);
+  event _NewChallenge(address challenger, bytes32 propID, uint pollID);
 
   mapping(bytes32 => uint) public params;
 
@@ -157,6 +158,8 @@ contract Parameterizer {
     });
 
     proposalMap[_propID].challengeID = pollID;       // update listing to store most recent challenge
+
+    _NewChallenge(msg.sender, _propID, pollID);
     return pollID;
   }
 
