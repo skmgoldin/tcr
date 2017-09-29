@@ -11,17 +11,17 @@ contract Parameterizer {
 
   event _ReparameterizationProposal(address proposer, string name, uint value, bytes32 propID);
 
-	mapping(bytes32 => uint) public params;
-	
-	struct ParamProposal {
+  mapping(bytes32 => uint) public params;
+
+  struct ParamProposal {
     uint appExpiry;
     uint challengeID;
-		uint deposit;
-		string name;
-		address owner;
+    uint deposit;
+    string name;
+    address owner;
     uint processBy;
-		uint value;
-	}
+    uint value;
+  }
 
   struct Challenge {
     uint rewardPool;        // (remaining) pool of tokens distributed amongst winning voters
@@ -31,9 +31,9 @@ contract Parameterizer {
     uint totalTokens;       // (remaining) amount of tokens used for voting by the winning side
   }
 
-	// maps pollIDs to intended data change if poll passes
-	mapping(bytes32 => ParamProposal) public proposalMap; 
-  
+  // maps pollIDs to intended data change if poll passes
+  mapping(bytes32 => ParamProposal) public proposalMap; 
+
   // maps challengeIDs to associated challenge data
   mapping(uint => Challenge) public challengeMap;
 
@@ -41,7 +41,7 @@ contract Parameterizer {
   mapping(uint => mapping(address => bool)) public tokenClaims;
 
 
-	// Global Variables
+  // Global Variables
   StandardToken public token;
   PLCRVoting public voting;
   uint public PROCESSBY = 604800; // 7 days
@@ -50,7 +50,7 @@ contract Parameterizer {
   @dev constructor
   @param _tokenAddr        address of the token which parameterizes this system
   @param _plcrAddr         address of a PLCR voting contract for the provided token
-	@param _minDeposit       minimum deposit for listing to be whitelisted  
+  @param _minDeposit       minimum deposit for listing to be whitelisted  
   @param _pMinDeposit      minimum deposit to propose a reparameterization
   @param _applyStageLen    period over which applicants wait to be whitelisted
   @param _pApplyStageLen   period over which reparmeterization proposals wait to be processed 
@@ -63,10 +63,10 @@ contract Parameterizer {
   @param _voteQuorum       type of majority out of 100 necessary for vote success
   @param _pVoteQuorum      type of majority out of 100 necessary for vote success in parameterizer
   */
-	function Parameterizer( 
-		address _tokenAddr,
+  function Parameterizer( 
+    address _tokenAddr,
     address _plcrAddr,
-		uint _minDeposit,
+    uint _minDeposit,
     uint _pMinDeposit,
     uint _applyStageLen,
     uint _pApplyStageLen,
@@ -94,7 +94,7 @@ contract Parameterizer {
       set("pDispensationPct", _pDispensationPct);
       set("voteQuorum", _voteQuorum);
       set("pVoteQuorum", _pVoteQuorum);
-	}
+  }
 
   // -----------------------
   // TOKEN HOLDER INTERFACE:
@@ -105,28 +105,28 @@ contract Parameterizer {
   @param _name the name of the proposed param to be set
   @param _value the proposed value to set the param to be set
   */
-	function proposeReparameterization(string _name, uint _value) public returns (bytes32) {
-		uint deposit = get("pMinDeposit");
+  function proposeReparameterization(string _name, uint _value) public returns (bytes32) {
+    uint deposit = get("pMinDeposit");
     bytes32 propID = sha3(_name, _value);
 
     require(get(_name) != _value); // Forbid NOOP reparameterizations
-		require(token.transferFrom(msg.sender, this, deposit)); // escrow tokens (deposit amt)
+    require(token.transferFrom(msg.sender, this, deposit)); // escrow tokens (deposit amt)
 
-		// attach name and value to pollID		
-		proposalMap[propID] = ParamProposal({
+    // attach name and value to pollID		
+    proposalMap[propID] = ParamProposal({
       appExpiry: now + get("pApplyStageLen"),
       challengeID: 0,
-			deposit: deposit,
-			name: _name,
-			owner: msg.sender,
+      deposit: deposit,
+      name: _name,
+      owner: msg.sender,
       processBy: now + get("pApplyStageLen") + get("pCommitPeriodLen") +
         get("pRevealPeriodLen") + PROCESSBY,
-			value: _value
-		});
+      value: _value
+    });
 
     _ReparameterizationProposal(msg.sender, _name, _value, propID);
-		return propID;
-	}
+    return propID;
+  }
 
   /**
   @notice challenge the provided proposal ID, and put tokens at stake to do so.
@@ -163,8 +163,8 @@ contract Parameterizer {
   @notice for the provided proposal ID, set it, resolve its challenge, or delete it depending on whether it can be set, has a challenge which can be resolved, or if its "process by" date has passed
   @param _propID the proposal ID to make a determination and state transition for
   */
-	function processProposal(bytes32 _propID) public {
-		ParamProposal storage prop = proposalMap[_propID];
+  function processProposal(bytes32 _propID) public {
+    ParamProposal storage prop = proposalMap[_propID];
 
     if (canBeSet(_propID)) {
       set(prop.name, prop.value);
@@ -175,8 +175,8 @@ contract Parameterizer {
       revert();
     }
 
-		delete proposalMap[_propID];
-	}
+    delete proposalMap[_propID];
+  }
 
   /**
   @notice claim the tokens owed for the msg.sender in the provided challenge
@@ -269,24 +269,24 @@ contract Parameterizer {
   @notice gets the parameter keyed by the provided name value from the params mapping
   @param _name the key whose value is to be determined
   */
-	function get(string _name) public constant returns (uint value) {
-		return params[sha3(_name)];
-	}
+  function get(string _name) public constant returns (uint value) {
+    return params[sha3(_name)];
+  }
 
   // ----------------
   // PRIVATE FUNCTIONS:
   // ----------------
 
-	/**
+  /**
   @dev sets the param keted by the provided name to the provided value
   @param _name the name of the param to be set
   @param _value the value to set the param to be set
   */
-	function set(string _name, uint _value) private {
-		params[sha3(_name)] = _value;
-	}
+  function set(string _name, uint _value) private {
+    params[sha3(_name)] = _value;
+  }
 
-	/**
+  /**
   @dev resolves a challenge for the provided _propID. It must be checked in advance whether the _propID has a challenge on it
   @param _propID the proposal ID whose challenge is to be resolved.
   */
