@@ -109,6 +109,7 @@ contract Parameterizer {
     uint deposit = get("pMinDeposit");
     bytes32 propID = sha3(_name, _value);
 
+    require(!propExists(propID)); // Forbid duplicate proposals
     require(get(_name) != _value); // Forbid NOOP reparameterizations
     require(token.transferFrom(msg.sender, this, deposit)); // escrow tokens (deposit amt)
 
