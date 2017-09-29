@@ -29,6 +29,15 @@ module.exports = (deployer, network, accounts) => {
       return approveRegistryFor(addresses.slice(1));
     }
 
+    async function approveParameterizerFor(addresses) {
+      const token = Token.at(tokenAddress);
+      const user = addresses[0];
+      const balanceOfUser = await token.balanceOf(user);
+      await token.approve(Parameterizer.address, balanceOfUser, { from: user });
+      if (addresses.length === 1) { return true; }
+      return approveParameterizerFor(addresses.slice(1));
+    }
+
     async function approvePLCRFor(addresses) {
       const token = Token.at(tokenAddress);
       const registry = await Registry.deployed();
@@ -42,6 +51,7 @@ module.exports = (deployer, network, accounts) => {
 
     await buyTokensFor(accounts);
     await approveRegistryFor(accounts);
+    await approveParameterizerFor(accounts);
     await approvePLCRFor(accounts);
   }
 
