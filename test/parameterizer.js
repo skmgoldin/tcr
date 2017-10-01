@@ -55,6 +55,9 @@ contract('Parameterizer', (accounts) => {
 
     it('should not allow a reparameterization for a proposal that already exists', async () => {
       const parameterizer = await Parameterizer.deployed();
+      const token = Token.at(await parameterizer.token.call());
+
+      const applicantStartingBalance = await token.balanceOf.call(secondProposer);
 
       try {
         await utils.as(
@@ -64,6 +67,11 @@ contract('Parameterizer', (accounts) => {
       } catch (err) {
         assert(utils.isEVMException(err), err.toString());
       }
+
+      const applicantEndingBalance = await token.balanceOf.call(secondProposer);
+
+      assert.strictEqual(applicantEndingBalance.toString(10), applicantStartingBalance.toString(10), 'starting balance and '
+        + 'ending balance should have been equal');
     });
   });
 });
