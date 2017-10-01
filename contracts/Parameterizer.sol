@@ -251,7 +251,7 @@ contract Parameterizer {
   function challengeCanBeResolved(bytes32 _propID) constant public returns (bool) {
     ParamProposal memory prop = proposalMap[_propID];
 
-    return (prop.challengeID > 0 && now < prop.processBy);
+    return (prop.challengeID > 0);
   }
 
   /**
@@ -301,7 +301,9 @@ contract Parameterizer {
     uint reward = determineReward(prop.challengeID);
 
     if (voting.isPassed(prop.challengeID)) { // The challenge failed
-      set(prop.name, prop.value);
+      if(prop.processBy > now) {
+        set(prop.name, prop.value);
+      }
       require(token.transfer(prop.owner, reward));
     } 
     else { // The challenge succeeded
