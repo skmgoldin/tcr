@@ -108,7 +108,7 @@ contract Parameterizer {
   */
   function proposeReparameterization(string _name, uint _value) public returns (bytes32) {
     uint deposit = get("pMinDeposit");
-    bytes32 propID = sha3(_name, _value);
+    bytes32 propID = keccak256(_name, _value);
 
     require(!propExists(propID)); // Forbid duplicate proposals
     require(get(_name) != _value); // Forbid NOOP reparameterizations
@@ -274,7 +274,7 @@ contract Parameterizer {
   @param _name the key whose value is to be determined
   */
   function get(string _name) public constant returns (uint value) {
-    return params[sha3(_name)];
+    return params[keccak256(_name)];
   }
 
   // ----------------
@@ -287,7 +287,7 @@ contract Parameterizer {
   @param _value the value to set the param to be set
   */
   function set(string _name, uint _value) private {
-    params[sha3(_name)] = _value;
+    params[keccak256(_name)] = _value;
   }
 
   /**
