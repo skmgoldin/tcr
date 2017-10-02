@@ -250,8 +250,10 @@ contract Parameterizer {
   */
   function challengeCanBeResolved(bytes32 _propID) constant public returns (bool) {
     ParamProposal memory prop = proposalMap[_propID];
+    Challenge memory challenge = challengeMap[prop.challengeID];
 
-    return (prop.challengeID > 0);
+    return (prop.challengeID > 0 && challenge.resolved == false &&
+            voting.pollEnded(prop.challengeID));
   }
 
   /**
