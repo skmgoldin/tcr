@@ -104,7 +104,7 @@ contract PLCRVoting {
     @param _prevPollID The ID of the poll that the user has voted the maximum number of tokens in which is still less than or equal to numTokens 
     */
     function commitVote(uint _pollID, bytes32 _secretHash, uint _numTokens, uint _prevPollID) external {
-        require(commitPeriodActive(_pollID));
+        require(commitStageActive(_pollID));
         require(voteTokenBalance[msg.sender] >= _numTokens); // prevent user from overspending
         require(_pollID != 0);                // prevent user from committing to zero node placeholder
 
@@ -151,7 +151,7 @@ contract PLCRVoting {
     */
     function revealVote(uint _pollID, uint _voteOption, uint _salt) external {
         // Make sure the reveal period is active
-        require(revealPeriodActive(_pollID));
+        require(revealStageActive(_pollID));
         require(!hasBeenRevealed(msg.sender, _pollID));                        // prevent user from revealing multiple times
         require(sha3(_voteOption, _salt) == getCommitHash(msg.sender, _pollID)); // compare resultant hash from inputs to original commitHash
 
@@ -253,9 +253,9 @@ contract PLCRVoting {
     @notice Checks if the commit period is still active for the specified poll
     @dev Checks isExpired for the specified poll's commitEndDate
     @param _pollID Integer identifier associated with target poll
-    @return Boolean indication of isCommitPeriodActive for target poll
+    @return Boolean indication of isCommitStageActive for target poll
     */
-    function commitPeriodActive(uint _pollID) constant public returns (bool active) {
+    function commitStageActive(uint _pollID) constant public returns (bool active) {
         require(pollExists(_pollID));
 
         return !isExpired(pollMap[_pollID].commitEndDate);
@@ -266,10 +266,10 @@ contract PLCRVoting {
     @dev Checks isExpired for the specified poll's revealEndDate
     @param _pollID Integer identifier associated with target poll
     */
-    function revealPeriodActive(uint _pollID) constant public returns (bool active) {
+    function revealStageActive(uint _pollID) constant public returns (bool active) {
         require(pollExists(_pollID));
 
-        return !isExpired(pollMap[_pollID].revealEndDate) && !commitPeriodActive(_pollID);
+        return !isExpired(pollMap[_pollID].revealEndDate) && !commitStageActive(_pollID);
     }
 
     /**

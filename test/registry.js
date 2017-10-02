@@ -7,7 +7,7 @@ const fs = require('fs');
 const BN = require('bignumber.js');
 
 const adchainConfig = JSON.parse(fs.readFileSync('./conf/config.json'));
-const paramConfig = adchainConfig.RegistryDefaults;
+const paramConfig = adchainConfig.paramDefaults;
 
 const utils = require('./utils.js');
 
@@ -181,7 +181,7 @@ contract('Registry', (accounts) => {
       await utils.as(applicant, registry.apply, domain, minDeposit);
       await utils.as(challenger, registry.challenge, domain);
 
-      const plcrComplete = paramConfig.revealPeriodLength + paramConfig.commitPeriodLength + 1;
+      const plcrComplete = paramConfig.revealStageLength + paramConfig.commitStageLength + 1;
       await utils.increaseTime(plcrComplete);
 
       await registry.updateStatus(domain);
@@ -341,7 +341,7 @@ contract('Registry', (accounts) => {
       await utils.as(applicant, registry.apply, domain, paramConfig.minDeposit);
       await utils.challengeAndGetPollID(domain, challenger);
       await utils.increaseTime(
-        paramConfig.commitPeriodLength + paramConfig.revealPeriodLength + 1,
+        paramConfig.commitStageLength + paramConfig.revealStageLength + 1,
       );
       await registry.updateStatus(domain);
 
@@ -368,7 +368,7 @@ contract('Registry', (accounts) => {
 
       await utils.challengeAndGetPollID(domain, challenger);
       await utils.increaseTime(
-        paramConfig.commitPeriodLength + paramConfig.revealPeriodLength + 1,
+        paramConfig.commitStageLength + paramConfig.revealStageLength + 1,
       );
       await registry.updateStatus(domain);
 
@@ -393,9 +393,9 @@ contract('Registry', (accounts) => {
       await utils.as(applicant, registry.apply, domain, minDeposit);
       const pollID = await utils.challengeAndGetPollID(domain, challenger);
       await utils.commitVote(pollID, 1, 10, 420, voter);
-      await utils.increaseTime(paramConfig.commitPeriodLength + 1);
+      await utils.increaseTime(paramConfig.commitStageLength + 1);
       await utils.as(voter, voting.revealVote, pollID, 1, 420);
-      await utils.increaseTime(paramConfig.revealPeriodLength + 1);
+      await utils.increaseTime(paramConfig.revealStageLength + 1);
       await registry.updateStatus(domain);
 
       const isWhitelisted = await registry.isWhitelisted.call(domain);
@@ -419,9 +419,9 @@ contract('Registry', (accounts) => {
 
       const pollID = await utils.challengeAndGetPollID(domain, challenger);
       await utils.commitVote(pollID, 1, 10, 420, voter);
-      await utils.increaseTime(paramConfig.commitPeriodLength + 1);
+      await utils.increaseTime(paramConfig.commitStageLength + 1);
       await utils.as(voter, voting.revealVote, pollID, 1, 420);
-      await utils.increaseTime(paramConfig.revealPeriodLength + 1);
+      await utils.increaseTime(paramConfig.revealStageLength + 1);
       await registry.updateStatus(domain);
 
       const isWhitelisted = await registry.isWhitelisted.call(domain);
@@ -504,7 +504,7 @@ contract('Registry', (accounts) => {
       );
 
       // Clean up state, remove consensys.net (it fails its challenge due to draw)
-      await utils.increaseTime(paramConfig.commitPeriodLength + paramConfig.revealPeriodLength + 1);
+      await utils.increaseTime(paramConfig.commitStageLength + paramConfig.revealStageLength + 1);
       await registry.updateStatus(domain);
     });
 
@@ -544,7 +544,7 @@ contract('Registry', (accounts) => {
       // challenge with accounts[1]
       await registry.challenge(domain, { from: challenger });
 
-      await utils.increaseTime(paramConfig.revealPeriodLength + paramConfig.commitPeriodLength + 1);
+      await utils.increaseTime(paramConfig.revealStageLength + paramConfig.commitStageLength + 1);
       await registry.updateStatus(domain);
 
       // should not have been added to whitelist
@@ -563,7 +563,7 @@ contract('Registry', (accounts) => {
       const pollID = await utils.challengeAndGetPollID(domain, challenger);
 
       // Make sure it's cool to commit
-      const cpa = await voting.commitPeriodActive.call(pollID);
+      const cpa = await voting.commitStageActive.call(pollID);
       assert.strictEqual(cpa, true, 'Commit period should be active');
 
       // Virgin commit
@@ -576,19 +576,19 @@ contract('Registry', (accounts) => {
       assert.strictEqual(numTokens.toString(10), tokensArg.toString(10), 'Should have committed the correct number of tokens');
 
       // Reveal
-      await utils.increaseTime(paramConfig.commitPeriodLength + 1);
+      await utils.increaseTime(paramConfig.commitStageLength + 1);
       // Make sure commit period is inactive
-      const commitPeriodActive = await voting.commitPeriodActive.call(pollID);
-      assert.strictEqual(commitPeriodActive, false, 'Commit period should be inactive');
+      const commitStageActive = await voting.commitStageActive.call(pollID);
+      assert.strictEqual(commitStageActive, false, 'Commit period should be inactive');
       // Make sure reveal period is active
-      let rpa = await voting.revealPeriodActive.call(pollID);
+      let rpa = await voting.revealStageActive.call(pollID);
       assert.strictEqual(rpa, true, 'Reveal period should be active');
 
       await voting.revealVote(pollID, voteOption, salt, { from: voter });
 
       // End reveal period
-      await utils.increaseTime(paramConfig.revealPeriodLength + 1);
-      rpa = await voting.revealPeriodActive.call(pollID);
+      await utils.increaseTime(paramConfig.revealStageLength + 1);
+      rpa = await voting.revealStageActive.call(pollID);
       assert.strictEqual(rpa, false, 'Reveal period should not be active');
 
       // updateStatus

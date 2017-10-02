@@ -8,7 +8,7 @@ const BN = require('bignumber.js');
 const utils = require('./utils');
 
 const adchainConfig = JSON.parse(fs.readFileSync('./conf/config.json'));
-const paramConfig = adchainConfig.RegistryDefaults;
+const paramConfig = adchainConfig.paramDefaults;
 
 const bigTen = number => new BN(number.toString(10), 10);
 const getReceiptValue = (receipt, arg) => receipt.logs[0].args[arg];
@@ -96,7 +96,7 @@ contract('Parameterizer', (accounts) => {
       await utils.as(challenger, parameterizer.challengeReparameterization, propID);
 
       await utils.increaseTime(
-        paramConfig.pCommitPeriodLength + paramConfig.pRevealPeriodLength + 1,
+        paramConfig.pCommitStageLength + paramConfig.pRevealStageLength + 1,
       );
 
       await parameterizer.processProposal(propID);
@@ -137,10 +137,10 @@ contract('Parameterizer', (accounts) => {
       const challengeID = challengeReceipt.logs[0].args.pollID;
 
       await utils.commitVote(challengeID, '1', '10', '420', voter);
-      await utils.increaseTime(paramConfig.pCommitPeriodLength + 1);
+      await utils.increaseTime(paramConfig.pCommitStageLength + 1);
 
       await utils.as(voter, voting.revealVote, challengeID, '1', '420');
-      await utils.increaseTime(paramConfig.pRevealPeriodLength + 1);
+      await utils.increaseTime(paramConfig.pRevealStageLength + 1);
 
       await parameterizer.processProposal(propID);
 
@@ -229,7 +229,7 @@ contract('Parameterizer', (accounts) => {
 
       const pollID = challengeReceipt.logs[0].args.pollID;
       await utils.commitVote(pollID, '0', '10', '420', voter);
-      await utils.increaseTime(paramConfig.pCommitPeriodLength + 1);
+      await utils.increaseTime(paramConfig.pCommitStageLength + 1);
 
       await utils.as(voter, voting.revealVote, pollID, '0', '420');
 

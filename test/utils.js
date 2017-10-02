@@ -14,7 +14,7 @@ const Registry = artifacts.require('Registry.sol');
 const Token = artifacts.require('historical/Token.sol');
 
 const adchainConfig = JSON.parse(fs.readFileSync('./conf/config.json'));
-const paramConfig = adchainConfig.RegistryDefaults;
+const paramConfig = adchainConfig.paramDefaults;
 
 const utils = {
   getVoting: async () => {

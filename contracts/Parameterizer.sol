@@ -57,10 +57,10 @@ contract Parameterizer {
   @param _pApplyStageLen   period over which reparmeterization proposals wait to be processed 
   @param _dispensationPct  percentage of losing party's deposit distributed to winning party
   @param _pDispensationPct percentage of losing party's deposit distributed to winning party in parameterizer
-  @param _commitPeriodLen  length of commit period for voting
-  @param _pCommitPeriodLen length of commit period for voting in parameterizer
-  @param _revealPeriodLen  length of reveal period for voting
-  @param _pRevealPeriodLen length of reveal period for voting in parameterizer
+  @param _commitStageLen  length of commit period for voting
+  @param _pCommitStageLen length of commit period for voting in parameterizer
+  @param _revealStageLen  length of reveal period for voting
+  @param _pRevealStageLen length of reveal period for voting in parameterizer
   @param _voteQuorum       type of majority out of 100 necessary for vote success
   @param _pVoteQuorum      type of majority out of 100 necessary for vote success in parameterizer
   */
@@ -71,10 +71,10 @@ contract Parameterizer {
     uint _pMinDeposit,
     uint _applyStageLen,
     uint _pApplyStageLen,
-    uint _commitPeriodLen,
-    uint _pCommitPeriodLen,
-    uint _revealPeriodLen,
-    uint _pRevealPeriodLen,
+    uint _commitStageLen,
+    uint _pCommitStageLen,
+    uint _revealStageLen,
+    uint _pRevealStageLen,
     uint _dispensationPct,
     uint _pDispensationPct,
     uint _voteQuorum,
@@ -87,10 +87,10 @@ contract Parameterizer {
       set("pMinDeposit", _pMinDeposit);
       set("applyStageLen", _applyStageLen);
       set("pApplyStageLen", _pApplyStageLen);
-      set("commitPeriodLen", _commitPeriodLen);
-      set("pCommitPeriodLen", _pCommitPeriodLen);
-      set("revealPeriodLen", _revealPeriodLen);
-      set("pRevealPeriodLen", _pRevealPeriodLen);
+      set("commitStageLen", _commitStageLen);
+      set("pCommitStageLen", _pCommitStageLen);
+      set("revealStageLen", _revealStageLen);
+      set("pRevealStageLen", _pRevealStageLen);
       set("dispensationPct", _dispensationPct);
       set("pDispensationPct", _pDispensationPct);
       set("voteQuorum", _voteQuorum);
@@ -121,8 +121,8 @@ contract Parameterizer {
       deposit: deposit,
       name: _name,
       owner: msg.sender,
-      processBy: now + get("pApplyStageLen") + get("pCommitPeriodLen") +
-        get("pRevealPeriodLen") + PROCESSBY,
+      processBy: now + get("pApplyStageLen") + get("pCommitStageLen") +
+        get("pRevealStageLen") + PROCESSBY,
       value: _value
     });
 
@@ -145,8 +145,8 @@ contract Parameterizer {
     //start poll
     uint pollID = voting.startPoll(
       get("pVoteQuorum"),
-      get("pCommitPeriodLen"),
-      get("pRevealPeriodLen")
+      get("pCommitStageLen"),
+      get("pRevealStageLen")
     );
 
     challengeMap[pollID] = Challenge({
