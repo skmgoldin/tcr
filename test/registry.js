@@ -228,7 +228,7 @@ contract('Registry', () => {
 });
 
 contract('Registry', () => {
-  describe('Function: appExists', () => {});
+  describe('Function: appWasMade', () => {});
 });
 
 contract('Registry', () => {
