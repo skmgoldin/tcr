@@ -56,7 +56,7 @@ module.exports = (deployer, network, accounts) => {
   }
 
   const adchainConfig = JSON.parse(fs.readFileSync('./conf/config.json'));
-  const parameterizerConfig = adchainConfig.RegistryDefaults;
+  const parameterizerConfig = adchainConfig.paramDefaults;
   let tokenAddress = adchainConfig.TokenAddress;
 
   deployer.deploy(DLL);
@@ -88,10 +88,10 @@ module.exports = (deployer, network, accounts) => {
         parameterizerConfig.pMinDeposit,
         parameterizerConfig.applyStageLength,
         parameterizerConfig.pApplyStageLength,
-        parameterizerConfig.commitPeriodLength,
-        parameterizerConfig.pCommitPeriodLength,
-        parameterizerConfig.revealPeriodLength,
-        parameterizerConfig.pRevealPeriodLength,
+        parameterizerConfig.commitStageLength,
+        parameterizerConfig.pCommitStageLength,
+        parameterizerConfig.revealStageLength,
+        parameterizerConfig.pRevealStageLength,
         parameterizerConfig.dispensationPct,
         parameterizerConfig.pDispensationPct,
         parameterizerConfig.voteQuorum,

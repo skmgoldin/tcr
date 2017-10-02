@@ -155,8 +155,8 @@ contract Registry {
         //start poll
         uint pollID = voting.startPoll(
             parameterizer.get("voteQuorum"),
-            parameterizer.get("commitPeriodLen"),
-            parameterizer.get("revealPeriodLen")
+            parameterizer.get("commitStageLen"),
+            parameterizer.get("revealStageLen")
         );
 
         challengeMap[pollID] = Challenge({
