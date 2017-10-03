@@ -2,6 +2,7 @@ pragma solidity^0.4.11;
 
 import "./PLCRVoting.sol";
 import "./historical/StandardToken.sol";
+import "./Challenge.sol";
 
 contract Parameterizer {
 
@@ -24,19 +25,12 @@ contract Parameterizer {
     uint value;
   }
 
-  struct Challenge {
-    uint rewardPool;        // (remaining) pool of tokens distributed amongst winning voters
-    address challenger;     // owner of Challenge
-    bool resolved;          // indication of if challenge is resolved
-    uint stake;             // number of tokens at risk for either party during challenge
-    uint totalTokens;       // (remaining) amount of tokens used for voting by the winning side
-  }
-
   // maps pollIDs to intended data change if poll passes
   mapping(bytes32 => ParamProposal) public proposalMap; 
 
   // maps challengeIDs to associated challenge data
-  mapping(uint => Challenge) public challengeMap;
+  using Challenge for Challenge.Instance;
+  mapping(uint => Challenge.Instance) public challengeMap;
 
   // maps challengeIDs and address to token claim data
   mapping(uint => mapping(address => bool)) public tokenClaims;
@@ -149,7 +143,7 @@ contract Parameterizer {
       get("pRevealStageLen")
     );
 
-    challengeMap[pollID] = Challenge({
+    challengeMap[pollID] = Challenge.Instance({
       challenger: msg.sender,
       rewardPool: ((100 - get("pDispensationPct")) * deposit) / 100, 
       stake: deposit,
@@ -168,11 +162,12 @@ contract Parameterizer {
   @param _propID the proposal ID to make a determination and state transition for
   */
   function processProposal(bytes32 _propID) public {
-    ParamProposal storage prop = proposalMap[_propID];
+    ParamProposal memory prop = proposalMap[_propID];
+    Challenge.Instance storage challenge = challengeMap[prop.challengeID];
 
     if (canBeSet(_propID)) {
       set(prop.name, prop.value);
-    } else if (challengeCanBeResolved(_propID)) {
+    } else if (challenge.exists() && challenge.isUnresolved()) {
       resolveChallenge(_propID);
     } else if (now > prop.processBy) {
     } else {
@@ -242,18 +237,6 @@ contract Parameterizer {
   */
   function propExists(bytes32 _propID) constant public returns (bool) {
     return proposalMap[_propID].processBy > 0;
-  }
-
-  /**
-  @notice Determines whether the provided proposal ID has a challenge which can be resolved
-  @param _propID The proposal ID whose challenge to inspect
-  */
-  function challengeCanBeResolved(bytes32 _propID) constant public returns (bool) {
-    ParamProposal memory prop = proposalMap[_propID];
-    Challenge memory challenge = challengeMap[prop.challengeID];
-
-    return (prop.challengeID > 0 && challenge.resolved == false &&
-            voting.pollEnded(prop.challengeID));
   }
 
   /**

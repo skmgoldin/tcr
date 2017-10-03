@@ -3,6 +3,7 @@ pragma solidity ^0.4.11;
 import "./historical/StandardToken.sol";
 import "./PLCRVoting.sol";
 import "./Parameterizer.sol";
+import "./Challenge.sol";
 
 contract Registry {
 
@@ -29,16 +30,9 @@ contract Registry {
         uint challengeID;       // identifier of canonical challenge
     }
 
-    struct Challenge {
-        uint rewardPool;        // (remaining) pool of tokens distributed amongst winning voters
-        address challenger;     // owner of Challenge
-        bool resolved;          // indication of if challenge is resolved
-        uint stake;             // number of tokens at risk for either party during challenge
-        uint totalTokens;       // (remaining) amount of tokens used for voting by the winning side
-    }
-
     // maps challengeIDs to associated challenge data
-    mapping(uint => Challenge) public challengeMap;
+    using Challenge for Challenge.Instance;
+    mapping(uint => Challenge.Instance) public challengeMap;
     // maps domainHashes to associated listing data
     mapping(bytes32 => Listing) public listingMap;
     // maps challengeIDs and address to token claim data
@@ -159,7 +153,7 @@ contract Registry {
             parameterizer.get("revealStageLen")
         );
 
-        challengeMap[pollID] = Challenge({
+        challengeMap[pollID] = Challenge.Instance({
             challenger: msg.sender,
             rewardPool: ((100 - parameterizer.get("dispensationPct")) * deposit) / 100, 
             stake: deposit,
@@ -179,10 +173,14 @@ contract Registry {
     @param _domain The domain whose status is being updated
     */
     function updateStatus(string _domain) public {
+        bytes32 domainHash = sha3(_domain);
+        uint challengeID = listingMap[domainHash].challengeID;
+        Challenge.Instance storage challenge = challengeMap[challengeID];
+
         if (canBeWhitelisted(_domain)) {
           whitelistApplication(_domain);
           _NewDomainWhitelisted(_domain);
-        } else if (challengeCanBeResolved(_domain)) {
+        } else if (challenge.exists() && challenge.isUnresolved()) {
           resolveChallenge(_domain);
         } else {
           revert();
@@ -261,27 +259,6 @@ contract Registry {
     //return true if apply(domain) was called for this domain
     function appExists(string domain) constant public returns (bool exists) {
         return listingMap[sha3(domain)].applicationExpiry > 0;
-    }
-
-    // return true if the listing has an unresolved challenge
-    function challengeExists(string _domain) constant public returns (bool) {
-        bytes32 domainHash = sha3(_domain);
-        uint challengeID = listingMap[domainHash].challengeID;
-
-        return (listingMap[domainHash].challengeID > 0 && !challengeMap[challengeID].resolved);
-    }
-
-    /**
-    @notice determines whether voting has concluded in a challenge for a given domain. Throws if no challenge exists.
-    @param _domain a domain with an unresolved challenge
-    */
-    function challengeCanBeResolved(string _domain) constant public returns (bool) {
-        bytes32 domainHash = sha3(_domain);
-        uint challengeID = listingMap[domainHash].challengeID;
-
-        require(challengeExists(_domain));
-
-        return voting.pollEnded(challengeID);
     }
 
     /**
