@@ -7,6 +7,8 @@ import "./Challenge.sol";
 
 contract Registry {
 
+    using Challenge for Challenge.Instance;
+
     // ------
     // EVENTS
     // ------
@@ -23,16 +25,13 @@ contract Registry {
     event _RewardClaimed(address voter, uint challengeID, uint reward);
 
     struct Listing {
-        uint applicationExpiry; // expiration date of apply stage
-        bool whitelisted;       // indicates registry status
-        address owner;          // owner of Listing
-        uint unstakedDeposit;   // number of unlocked tokens with potential risk if challenged
-        uint challengeID;       // identifier of canonical challenge
+        uint applicationExpiry;              // expiration date of apply stage
+        bool whitelisted;                    // indicates registry status
+        address owner;                       // owner of Listing
+        uint unstakedDeposit;                // number of unlocked tokens which can be withdrawn
+        Challenge.Instance challenge;        // a challenge, uninitialized by default
     }
 
-    // maps challengeIDs to associated challenge data
-    using Challenge for Challenge.Instance;
-    mapping(uint => Challenge.Instance) public challengeMap;
     // maps domainHashes to associated listing data
     mapping(bytes32 => Listing) public listingMap;
     // maps challengeIDs and address to token claim data
@@ -119,7 +118,7 @@ contract Registry {
         require(msg.sender == listing.owner);
         require(isWhitelisted(domain));
         // cannot exit during ongoing challenge
-        require(listing.challengeID == 0 || challengeMap[listing.challengeID].resolved);
+        require(!listing.challenge.exists() || listing.challenge.resolved);
 
         //remove domain & return tokens
         resetListing(domain);
@@ -131,41 +130,42 @@ contract Registry {
 
     //start a poll for a domain in the apply stage or already on the whitelist
     //tokens are taken from the challenger and the publisher's tokens are locked
-    function challenge(string domain) external returns (uint challengeID) {
+    function challenge(string domain) external returns (Challenge.Instance) {
         bytes32 domainHash = sha3(domain);
         Listing storage listing = listingMap[domainHash];
-        //to be challenged, domain must be in apply stage or already on the whitelist
+
+        // to be challenged, domain must be in apply stage or already on the whitelist
         require(appExists(domain) || listing.whitelisted); 
         // prevent multiple challenges
-        require(listing.challengeID == 0 || challengeMap[listing.challengeID].resolved);
+        require(!listing.challenge.exists() || listing.challenge.resolved);
+
         uint deposit = parameterizer.get("minDeposit");
+
         if (listing.unstakedDeposit < deposit) {
             // not enough tokens, publisher auto-delisted
             resetListing(domain);
             return 0;
         }
-        //take tokens from challenger
+
+        // take tokens from challenger
         require(token.transferFrom(msg.sender, this, deposit));
-        //start poll
-        uint pollID = voting.startPoll(
-            parameterizer.get("voteQuorum"),
-            parameterizer.get("commitStageLen"),
-            parameterizer.get("revealStageLen")
+
+        // start poll
+        uint rewardPool = ((100 - parameterizer.get("dispensationPct")) * deposit) / 100;
+        listing.challenge = Challenge.New(
+          msg.sender,
+          rewardPool,
+          deposit,
+          voting,
+          parameterizer.get("voteQuorum"),
+          parameterizer.get("commitStageLen"),
+          parameterizer.get("revealStageLen")
         );
 
-        challengeMap[pollID] = Challenge.Instance({
-            challenger: msg.sender,
-            rewardPool: ((100 - parameterizer.get("dispensationPct")) * deposit) / 100, 
-            stake: deposit,
-            resolved: false,
-            totalTokens: 0
-        });
-
-        listingMap[domainHash].challengeID = pollID;       // update listing to store most recent challenge
         listingMap[domainHash].unstakedDeposit -= deposit; // lock tokens for listing during challenge
 
-        _Challenge(domain, deposit, pollID);
-        return pollID;
+        _Challenge(domain, deposit, listing.challenge.pollID);
+        return listing.challenge;
     }
 
     /**
@@ -174,16 +174,13 @@ contract Registry {
     */
     function updateStatus(string _domain) public {
         bytes32 domainHash = sha3(_domain);
-        uint challengeID = listingMap[domainHash].challengeID;
-        Challenge.Instance storage challenge = challengeMap[challengeID];
+        Listing listing = listingMap[domainHash];
 
         if (canBeWhitelisted(_domain)) {
           whitelistApplication(_domain);
           _NewDomainWhitelisted(_domain);
-        } else if (challenge.exists() && challenge.isUnresolved()) {
+        } else if (listing.challenge.isUnresolved()) {
           resolveChallenge(_domain);
-        } else {
-          revert();
         }
     }
 

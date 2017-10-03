@@ -148,7 +148,8 @@ contract Parameterizer {
       rewardPool: ((100 - get("pDispensationPct")) * deposit) / 100, 
       stake: deposit,
       resolved: false,
-      totalTokens: 0
+      totalTokens: 0,
+      voting: voting
     });
 
     proposalMap[_propID].challengeID = pollID;       // update listing to store most recent challenge
