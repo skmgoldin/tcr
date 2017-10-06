@@ -175,6 +175,7 @@ contract Parameterizer {
     } else if (challengeCanBeResolved(_propID)) {
       resolveChallenge(_propID);
     } else if (now > prop.processBy) {
+      require(token.transfer(prop.owner, prop.deposit));
     } else {
       revert();
     }
@@ -232,8 +233,7 @@ contract Parameterizer {
   function canBeSet(bytes32 _propID) constant public returns (bool) {
     ParamProposal memory prop = proposalMap[_propID];
 
-    return (propExists(_propID) && now > prop.appExpiry && now < prop.processBy && 
-        prop.challengeID == 0);
+    return (now > prop.appExpiry && now < prop.processBy && prop.challengeID == 0);
   }
 
   /**
@@ -261,8 +261,6 @@ contract Parameterizer {
   @param _challengeID The challengeID to determine a reward for
   */
   function determineReward(uint _challengeID) public constant returns (uint) {
-    require(!challengeMap[_challengeID].resolved && voting.pollEnded(_challengeID));
-
     if(voting.getTotalNumberOfTokensForWinningOption(_challengeID) == 0) {
       // Edge case, nobody voted, give all tokens to the winner.
       return 2 * challengeMap[_challengeID].stake;
@@ -299,6 +297,9 @@ contract Parameterizer {
   function resolveChallenge(bytes32 _propID) private {
     ParamProposal memory prop = proposalMap[_propID];
 
+    // set flag on challenge being processed
+    challengeMap[prop.challengeID].resolved = true;
+
     // winner gets back their full staked deposit, and dispensationPct*loser's stake
     uint reward = determineReward(prop.challengeID);
 
@@ -311,9 +312,6 @@ contract Parameterizer {
     else { // The challenge succeeded
       require(token.transfer(challengeMap[prop.challengeID].challenger, reward));
     }
-
-    // set flag on challenge being processed
-    challengeMap[prop.challengeID].resolved = true;
 
     // store the total tokens used for voting by the winning side for reward purposes
     challengeMap[prop.challengeID].totalTokens =
