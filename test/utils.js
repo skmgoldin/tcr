@@ -9,6 +9,7 @@ const fs = require('fs');
 const ethRPC = new EthRPC(new HttpProvider('http://localhost:8545'));
 
 const PLCRVoting = artifacts.require('PLCRVoting.sol');
+const Parameterizer = artifacts.require('Parameterizer.sol');
 const Sale = artifacts.require('historical/Sale.sol');
 const Registry = artifacts.require('Registry.sol');
 const Token = artifacts.require('historical/Token.sol');
@@ -121,6 +122,18 @@ const utils = {
   },
 
   getReceiptValue: (receipt, arg) => receipt.logs[0].args[arg],
+
+  proposeReparamAndGetPropID: async (reParam, value, actor) => {
+    const parameterizer = await Parameterizer.deployed();
+    const receipt = await utils.as(actor, parameterizer.proposeReparameterization, reParam, value);
+    return receipt.logs[0].args.propID;
+  },
+
+  challengeReparamAndGetChallengeID: async (propID, actor) => {
+    const parameterizer = await Parameterizer.deployed();
+    const receipt = await utils.as(actor, parameterizer.challengeReparameterization, propID);
+    return receipt.logs[0].args.pollID;
+  },
 };
 
 module.exports = utils;
