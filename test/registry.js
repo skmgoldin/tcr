@@ -224,15 +224,27 @@ contract('Registry', (accounts) => {
 });
 
 contract('Registry', () => {
-  describe('Function: claimReward', () => {});
+  describe('Function: claimReward', () => {
+    it('should transfer the correct number of tokens once a challenge has been resolved');
+    it('should revert if challenge does not exist');
+    it('should revert if provided salt is incorrect');
+    it('should not transfer tokens if msg.sender has already claimed tokens for a challenge');
+    it('should not transfer tokens for an unresolved challenge');
+  });
 });
 
 contract('Registry', () => {
-  describe('Function: appWasMade', () => {});
+  describe('Function: appWasMade', () => {
+    it('should return true if applicationExpiry was previously initialized');
+    it('should return false if applicationExpiry was uninitialized');
+  });
 });
 
 contract('Registry', () => {
-  describe('Function: isExpired', () => {});
+  describe('Function: isExpired', () => {
+    it('should return true if the argument is less than the current block.timestamp');
+    it('should return false if the argument is greater than the current block.timestamp');
+  });
 });
 
 contract('Registry', (accounts) => {
