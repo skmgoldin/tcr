@@ -119,6 +119,8 @@ const utils = {
     const prevPollID = await voting.getInsertPointForNumTokens.call(voter, tokensArg);
     await utils.as(voter, voting.commitVote, pollID, hash, tokensArg, prevPollID);
   },
+
+  getReceiptValue: (receipt, arg) => receipt.logs[0].args[arg],
 };
 
 module.exports = utils;

@@ -11,7 +11,6 @@ const adchainConfig = JSON.parse(fs.readFileSync('./conf/config.json'));
 const paramConfig = adchainConfig.paramDefaults;
 
 const bigTen = number => new BN(number.toString(10), 10);
-const getReceiptValue = (receipt, arg) => receipt.logs[0].args[arg];
 
 contract('Parameterizer', (accounts) => {
   describe('Function: proposeReparameterization', () => {
@@ -28,7 +27,7 @@ contract('Parameterizer', (accounts) => {
         proposer, parameterizer.proposeReparameterization, 'voteQuorum', '51',
       );
 
-      const propID = getReceiptValue(receipt, 'propID');
+      const propID = utils.getReceiptValue(receipt, 'propID');
       const paramProposal = await parameterizer.proposalMap.call(propID);
 
       assert.strictEqual(paramProposal[6].toString(10), '51', 'The reparameterization proposal ' +
