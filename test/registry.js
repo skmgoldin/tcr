@@ -12,7 +12,7 @@ const paramConfig = adchainConfig.paramDefaults;
 
 const utils = require('./utils.js');
 
-const bigTen = number => new BN(number, 10);
+const bigTen = number => new BN(number.toString(10), 10);
 
 contract('Registry', (accounts) => {
   describe('Function: deposit', () => {
@@ -61,8 +61,10 @@ contract('Registry', (accounts) => {
       await utils.as(applicant, registry.deposit, domain, incAmount);
 
       const afterIncDeposit = await utils.getUnstakedDeposit(domain);
-      const expectedAmount =
-        (bigTen(originalDeposit).add(bigTen(incAmount))).sub(bigTen(minDeposit));
+
+      const expectedAmount = (
+        bigTen(originalDeposit).add(bigTen(incAmount))
+      ).sub(bigTen(minDeposit));
 
       assert.strictEqual(afterIncDeposit, expectedAmount.toString(10), 'Deposit should have increased for whitelisted, challenged domain');
     });
@@ -416,8 +418,11 @@ contract('Registry', (accounts) => {
 
       const unstakedDeposit = await utils.getUnstakedDeposit(domain);
       const expectedUnstakedDeposit = minDeposit.add(
-        minDeposit.mul(new BN(paramConfig.dispensationPct, 10).div(new BN('100', 10))),
+        minDeposit.mul(
+          bigTen(paramConfig.dispensationPct).div(bigTen(100)),
+        ),
       );
+
       assert.strictEqual(unstakedDeposit.toString(10), expectedUnstakedDeposit.toString(10),
         'The challenge winner was not properly disbursed their tokens');
     });
