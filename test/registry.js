@@ -1,6 +1,7 @@
 /* eslint-env mocha */
 /* global assert contract artifacts */
 const Registry = artifacts.require('Registry.sol');
+const Parameterizer = artifacts.require('Parameterizer.sol');
 const Token = artifacts.require('Token.sol');
 
 const fs = require('fs');
@@ -341,7 +342,7 @@ contract('Registry', (accounts) => {
 
 contract('Registry', (accounts) => {
   describe('Function: challenge', () => {
-    const [applicant, challenger, voter] = accounts;
+    const [applicant, challenger, voter, proposer] = accounts;
 
     it('should successfully challenge an application', async () => {
       const registry = await Registry.deployed();
@@ -447,7 +448,40 @@ contract('Registry', (accounts) => {
         'The challenge winner was not properly disbursed their tokens');
     });
 
-    it('should touch-and-remove a listing with a depost below the current minimum');
+    it('should touch-and-remove a listing with a depost below the current minimum', async () => {
+      const registry = await Registry.deployed();
+      const parameterizer = await Parameterizer.deployed();
+      const token = Token.at(await registry.token.call());
+      const domain = 'touchandremove.net';
+      const minDeposit = new BN(paramConfig.minDeposit, 10);
+      const newMinDeposit = minDeposit.add(new BN('1', 10));
+
+      const applicantStartingBal = await token.balanceOf.call(applicant);
+
+      await utils.addToWhitelist(domain, minDeposit, applicant);
+
+      const receipt = await utils.as(proposer, parameterizer.proposeReparameterization,
+        'minDeposit', newMinDeposit);
+      const propID = utils.getReceiptValue(receipt, 'propID');
+
+      await utils.increaseTime(paramConfig.pApplyStageLength + 1);
+
+      await parameterizer.processProposal(propID);
+
+      const challengerStartingBal = await token.balanceOf.call(challenger);
+      utils.as(challenger, registry.challenge, domain);
+      const challengerFinalBal = await token.balanceOf.call(challenger);
+
+      assert(challengerStartingBal.eq(challengerFinalBal),
+        'Tokens were not returned to challenger');
+
+      const applicantFinalBal = await token.balanceOf.call(applicant);
+
+      assert(applicantStartingBal.eq(applicantFinalBal),
+        'Tokens were not returned to applicant');
+
+      assert(!await registry.isWhitelisted.call(domain), 'Domain was not removed');
+    });
   });
 });
 
