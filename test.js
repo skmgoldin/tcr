@@ -43,7 +43,29 @@ if (!fs.existsSync('secrets.json')) {
   mnemonic = secrets.mnemonic;
 }
 
-const testRPCInput = { accounts: generateAccounts(mnemonic, 0, ACCOUNTS, []) };
+const testRPCOutput = {
+  gasCount: 0,
+  log: (output) => {
+    console.log(output);
+    if (output.includes('Gas')) {
+      const gas = output.slice(13);
+      testRPCOutput.gasCount += parseInt(gas, 10);
+      console.log('Subtotal:', testRPCOutput.gasCount);
+    }
+  },
+};
+
+let testRPCInput;
+
+if (process.argv[2] === 'gas') {
+  testRPCInput = {
+    accounts: generateAccounts(mnemonic, 0, ACCOUNTS, []),
+    mem: true,
+    logger: testRPCOutput,
+  };
+} else {
+  testRPCInput = { accounts: generateAccounts(mnemonic, 0, ACCOUNTS, []) };
+}
 
 TestRPC.server(testRPCInput).listen(8545);
 const truffle = cp.spawn('truffle', ['test']);
