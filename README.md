@@ -4,6 +4,22 @@
 
 A token-curated registry listing the domains of high-quality web publishers with authentic human audiences.
 
+
+## Commands
+
+Compile contracts using truffle
+
+    $ npm run compile
+
+Run tests
+
+    $ npm run test
+
+Run tests and log TestRPC stats
+
+    $ npm run test gas
+
+
 ## Application Process
 
 1.  A publisher calls ```apply()``` to create an application and puts down a deposit of AdToken.  The apply stage for the application begins. During the apply stage, the application is waiting to be added to the whitelist, but can be challenged or left unchallenged.
