@@ -226,9 +226,48 @@ contract('Registry', (accounts) => {
   });
 });
 
-contract('Registry', () => {
+contract('Registry', (accounts) => {
   describe('Function: claimReward', () => {
-    it('should transfer the correct number of tokens once a challenge has been resolved');
+    const [applicant, challenger, voterAlice] = accounts;
+    const minDeposit = bigTen(paramConfig.minDeposit);
+
+    it('should transfer the correct number of tokens once a challenge has been resolved', async () => {
+      const registry = await Registry.deployed();
+      const voting = await utils.getVoting();
+      const token = Token.at(await registry.token.call());
+      const domain = 'claimthis.net';
+
+      // Apply
+      await utils.as(applicant, registry.apply, domain, minDeposit);
+      const aliceStartingBalance = await token.balanceOf.call(voterAlice);
+
+      // Challenge
+      const pollID = await utils.challengeAndGetPollID(domain, challenger);
+
+      // Alice is so committed
+      await utils.commitVote(pollID, '0', 500, '420', voterAlice);
+      await utils.increaseTime(paramConfig.commitStageLength + 1);
+
+      // Alice is so revealing
+      await utils.as(voterAlice, voting.revealVote, pollID, '0', '420');
+      await utils.increaseTime(paramConfig.revealStageLength + 1);
+
+      // Update status
+      await utils.as(applicant, registry.updateStatus, domain);
+
+      // Alice claims reward
+      const aliceVoterReward = await registry.calculateVoterReward(voterAlice, pollID, '420');
+      await utils.as(voterAlice, registry.claimReward, pollID, '420');
+
+      // Alice withdraws her voting rights
+      await utils.as(voterAlice, voting.withdrawVotingRights, '500');
+
+      const aliceExpected = aliceStartingBalance.add(aliceVoterReward);
+      const aliceFinalBalance = await token.balanceOf.call(voterAlice);
+
+      assert.strictEqual(aliceFinalBalance.toString(10), aliceExpected.toString(10),
+        'alice should have the same balance as she started');
+    });
     it('should revert if challenge does not exist');
     it('should revert if provided salt is incorrect');
     it('should not transfer tokens if msg.sender has already claimed tokens for a challenge');
@@ -236,10 +275,45 @@ contract('Registry', () => {
   });
 });
 
-contract('Registry', () => {
+contract('Registry', (accounts) => {
   describe('Function: appWasMade', () => {
-    it('should return true if applicationExpiry was previously initialized');
-    it('should return false if applicationExpiry was uninitialized');
+    const [applicant] = accounts;
+    const minDeposit = bigTen(paramConfig.minDeposit);
+    it('should return true if applicationExpiry was previously initialized', async () => {
+      const registry = await Registry.deployed();
+      const domain = 'wasthismade.net';
+
+      // Apply
+      await utils.as(applicant, registry.apply, domain, minDeposit);
+      const result = await registry.appWasMade(domain);
+      assert.strictEqual(result, true, 'should have returned true for the applied domain');
+
+      // Commit stage complete
+      await utils.increaseTime(paramConfig.commitStageLength + 1);
+      const resultTwo = await registry.appWasMade(domain);
+      assert.strictEqual(resultTwo, true, 'should have returned true because app is still not expired');
+
+      // Reveal stage complete, update status (whitelist it)
+      await utils.increaseTime(paramConfig.revealStageLength + 1);
+      await utils.as(applicant, registry.updateStatus, domain);
+      const isWhitelisted = await registry.isWhitelisted.call(domain);
+      assert.strictEqual(isWhitelisted, true, 'should have been whitelisted');
+      const resultThree = await registry.appWasMade(domain);
+      assert.strictEqual(resultThree, true, 'should have returned true because its whitelisted');
+
+      // Exit
+      await utils.as(applicant, registry.exit, domain);
+      const resultFour = await registry.appWasMade(domain);
+      assert.strictEqual(resultFour, false, 'should have returned false because exit');
+    });
+
+    it('should return false if applicationExpiry was uninitialized', async () => {
+      const registry = await Registry.deployed();
+      const domain = 'falseapp.net';
+
+      const result = await registry.appWasMade(domain);
+      assert.strictEqual(result, false, 'should have returned false because domain was never applied');
+    });
   });
 });
 
