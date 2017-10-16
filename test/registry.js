@@ -414,10 +414,39 @@ contract('Registry', (accounts) => {
   });
 });
 
-contract('Registry', () => {
+contract('Registry', (accounts) => {
+  const [applicant] = accounts;
+  const minDeposit = bigTen(paramConfig.minDeposit);
+
   describe('Function: isExpired', () => {
-    it('should return true if the argument is less than the current block.timestamp');
-    it('should return false if the argument is greater than the current block.timestamp');
+    it('should return true if the argument is less than the current block.timestamp', async () => {
+      const registry = await Registry.deployed();
+      const domain = 'expireddomain.net';
+
+      await utils.as(applicant, registry.apply, domain, minDeposit);
+
+      const hash = utils.getDomainHash(domain);
+      const result = await registry.listingMap.call(hash);
+
+      // Voting period done (ie. app expired)
+      await utils.increaseTime(paramConfig.commitStageLength + paramConfig.revealStageLength + 1);
+
+      const isExpired = await registry.isExpired(result[0]);
+      assert.strictEqual(isExpired, true, 'application should have expired.');
+    });
+
+    it('should return false if the argument is greater than the current block.timestamp', async () => {
+      const registry = await Registry.deployed();
+      const domain = 'notexpired.net';
+
+      await utils.as(applicant, registry.apply, domain, minDeposit);
+
+      const hash = utils.getDomainHash(domain);
+      const result = await registry.listingMap.call(hash);
+
+      const isExpired = await registry.isExpired(result[0]);
+      assert.strictEqual(isExpired, false, 'application should not have expired.');
+    });
   });
 });
 
