@@ -268,10 +268,107 @@ contract('Registry', (accounts) => {
       assert.strictEqual(aliceFinalBalance.toString(10), aliceExpected.toString(10),
         'alice should have the same balance as she started');
     });
-    it('should revert if challenge does not exist');
-    it('should revert if provided salt is incorrect');
-    it('should not transfer tokens if msg.sender has already claimed tokens for a challenge');
-    it('should not transfer tokens for an unresolved challenge');
+
+    it('should revert if challenge does not exist', async () => {
+      const registry = await Registry.deployed();
+      const domain = 'reversion.net';
+
+      await utils.addToWhitelist(domain, minDeposit, applicant);
+
+      try {
+        const nonPollID = '666';
+        await utils.as(voterAlice, registry.claimReward, nonPollID, '420');
+        assert(false, 'should not have been able to claimReward for non-existant challengeID');
+      } catch (err) {
+        assert(utils.isEVMException(err), err.toString());
+      }
+    });
+
+    it('should revert if provided salt is incorrect', async () => {
+      const registry = await Registry.deployed();
+      const domain = 'sugar.net';
+      const voting = await utils.getVoting();
+
+      await utils.addToWhitelist(domain, minDeposit, applicant);
+
+      const pollID = await utils.challengeAndGetPollID(domain, challenger);
+
+      // Alice is so committed
+      await utils.commitVote(pollID, '0', 500, '420', voterAlice);
+      await utils.increaseTime(paramConfig.commitStageLength + 1);
+
+      // Alice is so revealing
+      await utils.as(voterAlice, voting.revealVote, pollID, '0', '420');
+      await utils.increaseTime(paramConfig.revealStageLength + 1);
+
+      // Update status
+      await utils.as(applicant, registry.updateStatus, domain);
+
+      try {
+        await utils.as(voterAlice, registry.claimReward, pollID, '421');
+        assert(false, 'should not have been able to claimReward with the wrong salt');
+      } catch (err) {
+        assert(utils.isEVMException(err), err.toString());
+      }
+    });
+
+    it('should not transfer tokens if msg.sender has already claimed tokens for a challenge', async () => {
+      const registry = await Registry.deployed();
+      const domain = 'sugar.net';
+      const voting = await utils.getVoting();
+
+      await utils.addToWhitelist(domain, minDeposit, applicant);
+
+      // Challenge
+      const pollID = await utils.challengeAndGetPollID(domain, challenger);
+
+      // Alice is so committed
+      await utils.commitVote(pollID, '0', 500, '420', voterAlice);
+      await utils.increaseTime(paramConfig.commitStageLength + 1);
+
+      // Alice is so revealing
+      await utils.as(voterAlice, voting.revealVote, pollID, '0', '420');
+      await utils.increaseTime(paramConfig.revealStageLength + 1);
+
+      // Update status
+      await utils.as(applicant, registry.updateStatus, domain);
+
+      // Claim reward
+      await utils.as(voterAlice, registry.claimReward, pollID, '420');
+
+      try {
+        await utils.as(voterAlice, registry.claimReward, pollID, '420');
+        assert(false, 'should not have been able to call claimReward twice');
+      } catch (err) {
+        assert(utils.isEVMException(err), err.toString());
+      }
+    });
+
+    it('should not transfer tokens for an unresolved challenge', async () => {
+      const registry = await Registry.deployed();
+      const domain = 'unresolved.net';
+      const voting = await utils.getVoting();
+
+      await utils.addToWhitelist(domain, minDeposit, applicant);
+
+      // Challenge
+      const pollID = await utils.challengeAndGetPollID(domain, challenger);
+
+      // Alice is so committed
+      await utils.commitVote(pollID, '0', 500, '420', voterAlice);
+      await utils.increaseTime(paramConfig.commitStageLength + 1);
+
+      // Alice is so revealing
+      await utils.as(voterAlice, voting.revealVote, pollID, '0', '420');
+      await utils.increaseTime(paramConfig.revealStageLength + 1);
+
+      try {
+        await utils.as(voterAlice, registry.claimReward, pollID, '420');
+        assert(false, 'should not have been able to claimReward for unresolved challenge');
+      } catch (err) {
+        assert(utils.isEVMException(err), err.toString());
+      }
+    });
   });
 });
 
