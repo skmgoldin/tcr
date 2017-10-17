@@ -391,8 +391,7 @@ contract('Parameterizer', (accounts) => {
       const rewardPool = challenge[0]; // 250,000
       const totalTokens = challenge[4]; // 10
 
-      // This is the exact formula in the function
-      const expectedVoterReward = (voterTokens * rewardPool) / totalTokens; // 250,000
+      const expectedVoterReward = (voterTokens.mul(rewardPool)).div(totalTokens); // 250,000
       const voterReward = await parameterizer.calculateVoterReward(voterAlice, challengeID, '420');
 
       assert.strictEqual(expectedVoterReward.toString(10), voterReward.toString(10),
