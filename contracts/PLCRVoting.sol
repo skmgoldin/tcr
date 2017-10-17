@@ -3,6 +3,7 @@ import "./historical/HumanStandardToken.sol";
 import "./DLL.sol";
 import "./AttributeStore.sol";
 
+
 /**
 @title Partial-Lock-Commit-Reveal Voting scheme with ERC20 tokens 
 @author Team: Aspyn Palatnick, Cem Ozer, Yorke Rhodes
@@ -103,7 +104,14 @@ contract PLCRVoting {
     @param _numTokens The number of tokens to be committed towards the target poll
     @param _prevPollID The ID of the poll that the user has voted the maximum number of tokens in which is still less than or equal to numTokens 
     */
-    function commitVote(uint _pollID, bytes32 _secretHash, uint _numTokens, uint _prevPollID) external {
+    function commitVote(
+        uint _pollID,
+        bytes32 _secretHash,
+        uint _numTokens,
+        uint _prevPollID
+    )
+        external
+    {
         require(commitStageActive(_pollID));
         require(voteTokenBalance[msg.sender] >= _numTokens); // prevent user from overspending
         require(_pollID != 0);                // prevent user from committing to zero node placeholder
@@ -117,7 +125,15 @@ contract PLCRVoting {
         // if nextPollID is equal to _pollID, _pollID is being updated,
         nextPollID = (nextPollID == _pollID) ? dllMap[msg.sender].getNext(_pollID) : nextPollID;
 
-        require(validPosition(_prevPollID, nextPollID, msg.sender, _numTokens));
+        require(
+            validPosition(
+                _prevPollID,
+                nextPollID,
+                msg.sender,
+                _numTokens
+            )
+        );
+
         dllMap[msg.sender].insert(_prevPollID, _pollID, nextPollID);
 
         bytes32 UUID = attrUUID(msg.sender, _pollID);
@@ -136,7 +152,14 @@ contract PLCRVoting {
     @param _numTokens The number of tokens to be committed towards the poll (used for sorting)
     @return valid Boolean indication of if the specified position maintains the sort
     */
-    function validPosition(uint _prevID, uint _nextID, address _voter, uint _numTokens) public constant returns (bool valid) {
+    function validPosition(
+        uint _prevID,
+        uint _nextID,
+        address _voter,
+        uint _numTokens
+    )
+        public constant returns (bool valid)
+    {
         bool prevValid = (_numTokens >= getNumTokens(_voter, _prevID));
         // if next is zero node, _numTokens does not need to be greater
         bool nextValid = (_numTokens <= getNumTokens(_voter, _nextID) || _nextID == 0); 
@@ -164,7 +187,12 @@ contract PLCRVoting {
         
         dllMap[msg.sender].remove(_pollID); // remove the node referring to this vote upon reveal
 
-        VoteRevealed(msg.sender, _pollID, numTokens, _voteOption);
+        VoteRevealed(
+            msg.sender,
+            _pollID,
+            numTokens,
+            _voteOption
+        );
     }
 
     /**
@@ -204,7 +232,12 @@ contract PLCRVoting {
             votesAgainst: 0
         });
 
-        PollCreated(_voteQuorum, _commitDuration, _revealDuration, pollNonce);
+        PollCreated(
+            _voteQuorum,
+            _commitDuration,
+            _revealDuration,
+            pollNonce
+        );
         return pollNonce;
     }
  
@@ -299,7 +332,9 @@ contract PLCRVoting {
         assert(!(commitEndDate == 0 && revealEndDate != 0));
         assert(!(commitEndDate != 0 && revealEndDate == 0));
 
-        if(commitEndDate == 0 || revealEndDate == 0) { return false; }
+        if (commitEndDate == 0 || revealEndDate == 0) {
+            return false;
+        }
         return true;
     }
 
@@ -352,19 +387,20 @@ contract PLCRVoting {
     @return the node which the propoded node should be inserted after
     */
     function getInsertPointForNumTokens(address _voter, uint _numTokens)
-    constant public returns (uint prevNode) {
-      uint nodeID = getLastNode(_voter);
-      uint tokensInNode = getNumTokens(_voter, nodeID);
-
-      while(tokensInNode != 0) {
-        tokensInNode = getNumTokens(_voter, nodeID);
-        if(tokensInNode < _numTokens) {
-          return nodeID;
+        constant public returns (uint prevNode)
+    {
+        uint nodeID = getLastNode(_voter);
+        uint tokensInNode = getNumTokens(_voter, nodeID);
+        
+        while (tokensInNode != 0) {
+            tokensInNode = getNumTokens(_voter, nodeID);
+            if (tokensInNode < _numTokens) {
+                return nodeID;
+            }
+            nodeID = dllMap[_voter].getPrev(nodeID);
         }
-        nodeID = dllMap[_voter].getPrev(nodeID);
-      }
 
-      return nodeID;
+        return nodeID;
     }
  
     // ----------------
