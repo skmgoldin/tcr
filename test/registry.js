@@ -368,6 +368,7 @@ contract('Registry', (accounts) => {
       } catch (err) {
         assert(utils.isEVMException(err), err.toString());
       }
+      // TODO: check state
     });
   });
 });
@@ -419,7 +420,7 @@ contract('Registry', (accounts) => {
   const minDeposit = bigTen(paramConfig.minDeposit);
 
   describe('Function: isExpired', () => {
-    it('should return true if the argument is less than the current block.timestamp', async () => {
+    it('should return true if the argument is greater than the current block.timestamp', async () => {
       const registry = await Registry.deployed();
       const domain = 'expireddomain.net';
 
@@ -435,7 +436,7 @@ contract('Registry', (accounts) => {
       assert.strictEqual(isExpired, true, 'application should have expired.');
     });
 
-    it('should return false if the argument is greater than the current block.timestamp', async () => {
+    it('should return false if the argument is less than the current block.timestamp', async () => {
       const registry = await Registry.deployed();
       const domain = 'notexpired.net';
 
