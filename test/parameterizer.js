@@ -402,24 +402,81 @@ contract('Parameterizer', (accounts) => {
   });
 });
 
-contract('Parameterizer', () => {
+contract('Parameterizer', (accounts) => {
   describe('Function: canBeSet', () => {
-    it('should true if a proposal passed its application stage with no challenge');
-    it('should false if a proposal did not pass its application stage with no challenge');
+    const [proposer] = accounts;
+
+    it('should true if a proposal passed its application stage with no challenge', async () => {
+      const parameterizer = await Parameterizer.deployed();
+      const propID = await utils.proposeReparamAndGetPropID('voteQuorum', '51', proposer);
+
+      await utils.increaseTime(paramConfig.pCommitStageLength + 1);
+      await utils.increaseTime(paramConfig.pRevealStageLength + 1);
+
+      const result = await parameterizer.canBeSet(propID);
+      assert.strictEqual(result, true, 'should have returned true because enough time has passed');
+    });
+
+    it('should false if a proposal did not pass its application stage with no challenge', async () => {
+      const parameterizer = await Parameterizer.deployed();
+      const propID = await utils.proposeReparamAndGetPropID('dispensationPct', '58', proposer);
+
+      const betterBeFalse = await parameterizer.canBeSet(propID);
+      assert.strictEqual(betterBeFalse, false, 'should have returned false because not enough time has passed');
+
+      await utils.increaseTime(paramConfig.pCommitStageLength + 1);
+
+      const result = await parameterizer.canBeSet(propID);
+      assert.strictEqual(result, true, 'should have been able to set because commit period is done');
+    });
   });
 });
 
-contract('Parameterizer', () => {
+contract('Parameterizer', (accounts) => {
   describe('Function: propExists', () => {
-    it('should true if a proposal exists for the provided propID');
-    it('should false if no proposal exists for the provided propID');
+    const [proposer] = accounts;
+
+    it('should true if a proposal exists for the provided propID', async () => {
+      const parameterizer = await Parameterizer.deployed();
+      const propID = await utils.proposeReparamAndGetPropID('voteQuorum', '51', proposer);
+      const result = await parameterizer.propExists(propID);
+      assert.strictEqual(result, true, 'should have been true cause I literally just made the proposal');
+    });
+
+    it('should false if no proposal exists for the provided propID', async () => {
+      const parameterizer = await Parameterizer.deployed();
+      const result = await parameterizer.propExists('666');
+      assert.strictEqual(result, false, 'should have been false cause i just made it up!');
+    });
   });
 });
 
-contract('Parameterizer', () => {
+contract('Parameterizer', (accounts) => {
   describe('Function: challengeCanBeResolved', () => {
-    it('should true if a challenge is ready to be resolved');
-    it('should false if a challenge is not ready to be resolved');
+    const [proposer, challenger] = accounts;
+
+    it('should true if a challenge is ready to be resolved', async () => {
+      const parameterizer = await Parameterizer.deployed();
+      const propID = await utils.proposeReparamAndGetPropID('voteQuorum', '51', proposer);
+
+      await utils.as(challenger, parameterizer.challengeReparameterization, propID);
+      await utils.increaseTime(paramConfig.pCommitStageLength);
+      await utils.increaseTime(paramConfig.pRevealStageLength + 1);
+
+      const result = await parameterizer.challengeCanBeResolved(propID);
+      assert.strictEqual(result, true, 'should have been true cause enough time has passed');
+    });
+
+    it('should false if a challenge is not ready to be resolved', async () => {
+      const parameterizer = await Parameterizer.deployed();
+      const propID = await utils.proposeReparamAndGetPropID('voteQuorum', '59', proposer);
+
+      await utils.as(challenger, parameterizer.challengeReparameterization, propID);
+      await utils.increaseTime(paramConfig.pCommitStageLength);
+
+      const result = await parameterizer.challengeCanBeResolved(propID);
+      assert.strictEqual(result, false, 'should have been false because not enough time has passed');
+    });
   });
 });
 
