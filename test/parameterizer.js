@@ -4,7 +4,7 @@ const Parameterizer = artifacts.require('./Parameterizer.sol');
 const Token = artifacts.require('./historical/HumanStandardToken.sol');
 
 const fs = require('fs');
-const BN = require('bignumber.js');
+const BN = require('bn.js');
 const utils = require('./utils');
 
 const adchainConfig = JSON.parse(fs.readFileSync('./conf/config.json'));
@@ -149,8 +149,10 @@ contract('Parameterizer', (accounts) => {
 
       const proposerFinalBalance = await token.balanceOf.call(proposer);
       const proposerExpected = proposerStartingBalance.add(
-        new BN(paramConfig.pMinDeposit, 10).mul(
-          new BN(paramConfig.pDispensationPct, 10).div(new BN('100', 10)),
+        utils.decimalMultiply(
+          paramConfig.pMinDeposit, utils.decimalDivide(
+            paramConfig.pDispensationPct, 100,
+          ),
         ),
       );
       assert.strictEqual(proposerFinalBalance.toString(10), proposerExpected.toString(10),
@@ -251,8 +253,10 @@ contract('Parameterizer', (accounts) => {
 
       const challengerFinalBalance = await token.balanceOf.call(challenger);
       const challengerExpected = challengerStartingBalance.add(
-        new BN(paramConfig.pMinDeposit, 10).mul(
-          new BN(paramConfig.pDispensationPct, 10).div(new BN('100', 10)),
+        utils.decimalMultiply(
+          paramConfig.pMinDeposit, utils.decimalDivide(
+            paramConfig.pDispensationPct, 100,
+          ),
         ),
       );
       assert.strictEqual(challengerFinalBalance.toString(10), challengerExpected.toString(10),
@@ -296,8 +300,10 @@ contract('Parameterizer', (accounts) => {
 
       const voterAliceFinalBalance = await token.balanceOf.call(voterAlice);
       const voterAliceExpected = voterAliceStartingBalance.add(
-        new BN(paramConfig.pMinDeposit, 10).mul((new BN('100', 10).sub(
-          new BN(paramConfig.pDispensationPct, 10))).div(new BN('100', 10)),
+        utils.decimalMultiply(
+          paramConfig.pMinDeposit, utils.decimalDivide(
+            bigTen(100).sub(bigTen(paramConfig.pDispensationPct)), 100,
+          ),
         ),
       );
       assert.strictEqual(voterAliceFinalBalance.toString(10), voterAliceExpected.toString(10),
