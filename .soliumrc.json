@@ -1,0 +1,14 @@
+{
+  "extends": "solium:all",
+  "rules": {
+    "imports-on-top": "error",
+    "whitespace": "error",
+    "deprecated-suicide": "warning",
+    "pragma-on-top": "error",
+    "no-unused-vars": "error",
+    "arg-overflow": [
+      "warning",
+      3
+    ]
+  }
+}

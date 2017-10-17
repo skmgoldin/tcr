@@ -7,7 +7,8 @@
     "deploy-rinkeby": "truffle migrate --network rinkeby",
     "test": "node test.js",
     "fix": "eslint --fix",
-    "lint": "eslint"
+    "lint": "eslint",
+    "solium": "solium --dir ."
   },
   "author": "Irene Lin <irene.lin@consensys.net>, Mira Zeitlin <miranda.zeitlin@consensys.net>, Yorke Rhodes <yorke.rhodesiv@consensys.net>",
   "license": "ISC",
