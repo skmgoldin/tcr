@@ -1,14 +1,19 @@
 {
   "extends": "solium:all",
   "rules": {
-    "imports-on-top": "error",
-    "whitespace": "error",
-    "deprecated-suicide": "warning",
-    "pragma-on-top": "error",
-    "no-unused-vars": "error",
     "arg-overflow": [
       "warning",
       3
-    ]
+    ],
+    "camelcase": 0,
+    "deprecated-suicide": "warning",
+    "imports-on-top": "error",
+    "indentation": ["error", 4],
+    "mixedcase": 0,
+    "no-unused-vars": "error",
+    "operator-whitespace": 0,
+    "pragma-on-top": "error",
+    "quotes": ["error", "double"],
+    "whitespace": 0
   }
 }
