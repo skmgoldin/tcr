@@ -1,6 +1,7 @@
 /* eslint-env mocha */
 /* global artifacts */
 
+const Eth = require('ethjs');
 const HttpProvider = require('ethjs-provider-http');
 const EthRPC = require('ethjs-rpc');
 const abi = require('ethereumjs-abi');
@@ -16,6 +17,8 @@ const Token = artifacts.require('historical/Token.sol');
 
 const adchainConfig = JSON.parse(fs.readFileSync('./conf/config.json'));
 const paramConfig = adchainConfig.paramDefaults;
+
+const BN = small => new Eth.BN(small.toString(10), 10);
 
 const utils = {
   getVoting: async () => {
@@ -133,6 +136,16 @@ const utils = {
     const parameterizer = await Parameterizer.deployed();
     const receipt = await utils.as(actor, parameterizer.challengeReparameterization, propID);
     return receipt.logs[0].args.pollID;
+  },
+
+  decimalDivide: (numerator, denominator) => {
+    const weiNumerator = Eth.toWei(BN(numerator), 'ether');
+    return weiNumerator.div(BN(denominator));
+  },
+
+  decimalMultiply: (x, weiBN) => {
+    const weiProduct = BN(x).mul(weiBN);
+    return BN(Eth.fromWei(weiProduct, 'ether'));
   },
 };
 
