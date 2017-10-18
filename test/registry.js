@@ -272,7 +272,6 @@ contract('Registry', (accounts) => {
     it('should revert if challenge does not exist', async () => {
       const registry = await Registry.deployed();
       const domain = 'reversion.net';
-
       await utils.addToWhitelist(domain, minDeposit, applicant);
 
       try {
@@ -288,7 +287,10 @@ contract('Registry', (accounts) => {
       const registry = await Registry.deployed();
       const domain = 'sugar.net';
       const voting = await utils.getVoting();
+      const token = Token.at(await registry.token.call());
 
+      const applicantStartingBalance = await token.balanceOf.call(applicant);
+      const aliceStartBal = await token.balanceOf.call(voterAlice);
       await utils.addToWhitelist(domain, minDeposit, applicant);
 
       const pollID = await utils.challengeAndGetPollID(domain, challenger);
@@ -300,6 +302,16 @@ contract('Registry', (accounts) => {
       // Alice is so revealing
       await utils.as(voterAlice, voting.revealVote, pollID, '0', '420');
       await utils.increaseTime(paramConfig.revealStageLength + 1);
+
+      const applicantFinalBalance = await token.balanceOf.call(applicant);
+      const aliceFinalBalance = await token.balanceOf.call(voterAlice);
+      const expectedBalance = applicantStartingBalance.sub(minDeposit);
+
+      assert.strictEqual(applicantFinalBalance.toString(10), expectedBalance.toString(10),
+        'applicants final balance should be what they started with minus the minDeposit');
+      assert.strictEqual(
+        aliceFinalBalance.toString(10), (aliceStartBal.sub(bigTen(500))).toString(10),
+        'alices final balance should be exactly the same as her starting balance');
 
       // Update status
       await utils.as(applicant, registry.updateStatus, domain);
@@ -316,6 +328,10 @@ contract('Registry', (accounts) => {
       const registry = await Registry.deployed();
       const domain = 'sugar.net';
       const voting = await utils.getVoting();
+      const token = Token.at(await registry.token.call());
+
+      const applicantStartingBalance = await token.balanceOf.call(applicant);
+      const aliceStartingBalance = await token.balanceOf.call(voterAlice);
 
       await utils.addToWhitelist(domain, minDeposit, applicant);
 
@@ -342,12 +358,31 @@ contract('Registry', (accounts) => {
       } catch (err) {
         assert(utils.isEVMException(err), err.toString());
       }
+
+      const applicantEndingBalance = await token.balanceOf.call(applicant);
+      const appExpected = applicantStartingBalance.sub(minDeposit);
+
+      const aliceEndingBalance = await token.balanceOf.call(voterAlice);
+      const aliceExpected = aliceStartingBalance.add(
+        minDeposit.div(bigTen(2)),
+      ).sub(bigTen(500));
+
+      assert.strictEqual(
+        applicantEndingBalance.toString(10), appExpected.toString(10),
+        'applicants ending balance is incorrect');
+      assert.strictEqual(
+        aliceEndingBalance.toString(10), aliceExpected.toString(10),
+        'alices ending balance is incorrect');
     });
 
     it('should not transfer tokens for an unresolved challenge', async () => {
       const registry = await Registry.deployed();
       const domain = 'unresolved.net';
       const voting = await utils.getVoting();
+      const token = Token.at(await registry.token.call());
+
+      const applicantStartingBalance = await token.balanceOf.call(applicant);
+      const aliceStartingBalance = await token.balanceOf.call(voterAlice);
 
       await utils.addToWhitelist(domain, minDeposit, applicant);
 
@@ -368,8 +403,48 @@ contract('Registry', (accounts) => {
       } catch (err) {
         assert(utils.isEVMException(err), err.toString());
       }
-      // TODO: check state
+
+      const applicantEndingBalance = await token.balanceOf.call(applicant);
+      const appExpected = applicantStartingBalance.sub(minDeposit);
+
+      const aliceEndingBalance = await token.balanceOf.call(voterAlice);
+      const aliceExpected = aliceStartingBalance.sub(bigTen(500));
+
+      assert.strictEqual(
+        applicantEndingBalance.toString(10), appExpected.toString(10),
+        'applicants ending balance is incorrect');
+      assert.strictEqual(
+        aliceEndingBalance.toString(10), aliceExpected.toString(10),
+        'alices ending balance is incorrect');
     });
+  });
+});
+
+contract('Registry', () => {
+  describe('Function: calculateVoterReward', () => {
+    it('should return the correct value');
+    it('should throw errors if given false arguments');
+  });
+});
+
+contract('Registry', () => {
+  describe('Function: canBeWhitelisted', () => {
+    it('should return true for a domain that has passed all tests');
+    it('should return false for a domain that failes any one of the tests');
+  });
+});
+
+contract('Registry', () => {
+  describe('Function: challengeCanBeResolved', () => {
+    it('should return true for a poll that has ended');
+    it('should return false if the poll either doesnt exist, or its still in contention');
+  });
+});
+
+contract('Registry', () => {
+  describe('Function: determineReward', () => {
+    it('should return the correct value of reward for a given challengeID');
+    it('should throw errors if it hasnt been resolved or its already ended');
   });
 });
 
