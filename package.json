@@ -19,7 +19,7 @@
     "ethereumjs-abi": "0.6.4",
     "ethereumjs-testrpc": "4.1.1",
     "ethereumjs-wallet": "0.6.0",
-    "ethjs": "^0.2.8",
+    "ethjs": "0.2.8",
     "ethjs-provider-http": "0.1.6",
     "ethjs-query": "0.2.6",
     "ethjs-rpc": "0.1.5",

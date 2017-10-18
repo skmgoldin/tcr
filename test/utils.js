@@ -138,14 +138,22 @@ const utils = {
     return receipt.logs[0].args.pollID;
   },
 
-  decimalDivide: (numerator, denominator) => {
+  divideAndGetWei: (numerator, denominator) => {
     const weiNumerator = Eth.toWei(BN(numerator), 'ether');
     return weiNumerator.div(BN(denominator));
   },
 
-  decimalMultiply: (x, weiBN) => {
+  multiplyFromWei: (x, weiBN) => {
+    if (!Eth.BN.isBN(weiBN)) {
+      return false;
+    }
     const weiProduct = BN(x).mul(weiBN);
     return BN(Eth.fromWei(weiProduct, 'ether'));
+  },
+
+  multiplyByPercentage: (x, y, z = 100) => {
+    const weiQuotient = utils.divideAndGetWei(y, z);
+    return utils.multiplyFromWei(x, weiQuotient);
   },
 };
 

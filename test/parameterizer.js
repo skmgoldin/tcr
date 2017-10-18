@@ -149,11 +149,7 @@ contract('Parameterizer', (accounts) => {
 
       const proposerFinalBalance = await token.balanceOf.call(proposer);
       const proposerExpected = proposerStartingBalance.add(
-        utils.decimalMultiply(
-          paramConfig.pMinDeposit, utils.decimalDivide(
-            paramConfig.pDispensationPct, 100,
-          ),
-        ),
+        utils.multiplyByPercentage(paramConfig.pMinDeposit, paramConfig.pDispensationPct),
       );
       assert.strictEqual(proposerFinalBalance.toString(10), proposerExpected.toString(10),
         'The challenge winner\'s token balance is not as expected');
@@ -253,11 +249,7 @@ contract('Parameterizer', (accounts) => {
 
       const challengerFinalBalance = await token.balanceOf.call(challenger);
       const challengerExpected = challengerStartingBalance.add(
-        utils.decimalMultiply(
-          paramConfig.pMinDeposit, utils.decimalDivide(
-            paramConfig.pDispensationPct, 100,
-          ),
-        ),
+        utils.multiplyByPercentage(paramConfig.pMinDeposit, paramConfig.pDispensationPct),
       );
       assert.strictEqual(challengerFinalBalance.toString(10), challengerExpected.toString(10),
         'The challenge winner\'s token balance is not as expected');
@@ -300,10 +292,9 @@ contract('Parameterizer', (accounts) => {
 
       const voterAliceFinalBalance = await token.balanceOf.call(voterAlice);
       const voterAliceExpected = voterAliceStartingBalance.add(
-        utils.decimalMultiply(
-          paramConfig.pMinDeposit, utils.decimalDivide(
-            bigTen(100).sub(bigTen(paramConfig.pDispensationPct)), 100,
-          ),
+        utils.multiplyByPercentage(
+          paramConfig.pMinDeposit,
+          bigTen(100).sub(bigTen(paramConfig.pDispensationPct)),
         ),
       );
       assert.strictEqual(voterAliceFinalBalance.toString(10), voterAliceExpected.toString(10),
