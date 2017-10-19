@@ -139,7 +139,7 @@ const utils = {
   },
 
   divideAndGetWei: (numerator, denominator) => {
-    const weiNumerator = Eth.toWei(BN(numerator), 'ether');
+    const weiNumerator = Eth.toWei(BN(numerator), 'gwei');
     return weiNumerator.div(BN(denominator));
   },
 
@@ -148,7 +148,7 @@ const utils = {
       return false;
     }
     const weiProduct = BN(x).mul(weiBN);
-    return BN(Eth.fromWei(weiProduct, 'ether'));
+    return BN(Eth.fromWei(weiProduct, 'gwei'));
   },
 
   multiplyByPercentage: (x, y, z = 100) => {
