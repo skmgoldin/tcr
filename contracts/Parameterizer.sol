@@ -191,7 +191,7 @@ contract Parameterizer {
   function claimReward(uint _challengeID, uint _salt) public {
     // ensure voter has not already claimed tokens and challenge results have been processed
     require(tokenClaims[_challengeID][msg.sender] == false);
-    require(challengeMap[_challengeID].resolved = true);
+    require(challengeMap[_challengeID].resolved == true);
 
     uint voterTokens = voting.getNumPassingTokens(msg.sender, _challengeID, _salt);
     uint reward = calculateVoterReward(msg.sender, _challengeID, _salt);

@@ -351,6 +351,49 @@ contract('Parameterizer', (accounts) => {
         // TODO: add asserts for final balances
       });
 
+    it('should not transfer tokens for an unresolved challenge', async () => {
+      const parameterizer = await Parameterizer.deployed();
+      const voting = await utils.getVoting();
+      const token = Token.at(await parameterizer.token.call());
+
+      const proposerStartingBalance = await token.balanceOf.call(proposer);
+      const aliceStartingBalance = await token.balanceOf.call(voterAlice);
+
+      const proposalReceipt = await utils.as(
+        proposer, parameterizer.proposeReparameterization, 'pMinDeposit', '5000',
+      );
+
+      const propID = proposalReceipt.logs[0].args.propID;
+
+      const challengeReceipt =
+        await utils.as(challenger, parameterizer.challengeReparameterization, propID);
+
+      const challengeID = challengeReceipt.logs[0].args.pollID;
+
+      await utils.commitVote(challengeID, '1', '10', '420', voterAlice);
+      await utils.increaseTime(paramConfig.pCommitStageLength + 1);
+
+      await utils.as(voterAlice, voting.revealVote, challengeID, '1', '420');
+      await utils.increaseTime(paramConfig.pRevealStageLength + 1);
+
+      try {
+        await utils.as(voterAlice, parameterizer.claimReward, challengeID, '420');
+        assert(false, 'should not have been able to claimReward for unresolved challenge');
+      } catch (err) {
+        assert(utils.isEVMException(err), err.toString());
+      }
+
+      const proposerEndingBalance = await token.balanceOf.call(proposer);
+      const proposerExpected = proposerStartingBalance.sub(bigTen(paramConfig.pMinDeposit));
+      const aliceEndingBalance = await token.balanceOf.call(voterAlice);
+      const aliceExpected = aliceStartingBalance.sub(bigTen(10));
+
+      assert.strictEqual(proposerEndingBalance.toString(10), proposerExpected.toString(10),
+        'proposers ending balance is incorrect');
+      assert.strictEqual(aliceEndingBalance.toString(10), aliceExpected.toString(10),
+        'alices ending balance is incorrect');
+    });
+
     it('should give zero tokens to a voter who cannot reveal a vote on the winning side.');
   });
 });
