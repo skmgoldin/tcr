@@ -2,6 +2,7 @@ pragma solidity^0.4.11;
 
 import "./PLCRVoting.sol";
 import "./historical/StandardToken.sol";
+import "./Challenge.sol";
 
 contract Parameterizer {
 
@@ -24,23 +25,12 @@ contract Parameterizer {
     uint value;
   }
 
-  struct Challenge {
-    uint rewardPool;        // (remaining) pool of tokens distributed amongst winning voters
-    address challenger;     // owner of Challenge
-    bool resolved;          // indication of if challenge is resolved
-    uint stake;             // number of tokens at risk for either party during challenge
-    uint totalTokens;       // (remaining) amount of tokens used for voting by the winning side
-  }
+  // Maps challengeIDs to associated challenge data
+  using Challenge for Challenge.Data;
+  mapping(uint => Challenge.Data) public challenges;
 
   // maps pollIDs to intended data change if poll passes
   mapping(bytes32 => ParamProposal) public proposalMap; 
-
-  // maps challengeIDs to associated challenge data
-  mapping(uint => Challenge) public challengeMap;
-
-  // maps challengeIDs and address to token claim data
-  mapping(uint => mapping(address => bool)) public tokenClaims;
-
 
   // Global Variables
   StandardToken public token;
@@ -149,12 +139,15 @@ contract Parameterizer {
       get("pRevealStageLen")
     );
 
-    challengeMap[pollID] = Challenge({
-      challenger: msg.sender,
-      rewardPool: ((100 - get("pDispensationPct")) * deposit) / 100, 
-      stake: deposit,
-      resolved: false,
-      totalTokens: 0
+    challenges[pollID] = Challenge.Data({
+        challenger: msg.sender,
+        voting: voting,
+        token: token,
+        challengeID: pollID,
+        rewardPool: ((100 - get("pDispensationPct")) * deposit) / 100,
+        stake: deposit,
+        resolved: false,
+        totalTokens: 0
     });
 
     proposalMap[_propID].challengeID = pollID;       // update listing to store most recent challenge
@@ -189,22 +182,7 @@ contract Parameterizer {
   @param _salt the salt used to vote in the challenge being withdrawn for
   */
   function claimReward(uint _challengeID, uint _salt) public {
-    // ensure voter has not already claimed tokens and challenge results have been processed
-    require(tokenClaims[_challengeID][msg.sender] == false);
-    require(challengeMap[_challengeID].resolved == true);
-
-    uint voterTokens = voting.getNumPassingTokens(msg.sender, _challengeID, _salt);
-    uint reward = calculateVoterReward(msg.sender, _challengeID, _salt);
-
-    // subtract voter's information to preserve the participation ratios of other voters
-    // compared to the remaining pool of rewards
-    challengeMap[_challengeID].totalTokens -= voterTokens;
-    challengeMap[_challengeID].rewardPool -= reward;
-
-    require(token.transfer(msg.sender, reward));
-    
-    // ensures a voter cannot claim tokens again
-    tokenClaims[_challengeID][msg.sender] = true;
+    challenges[_challengeID].claimReward(msg.sender, _salt);
   }
 
   // --------
@@ -212,18 +190,15 @@ contract Parameterizer {
   // --------
 
   /**
-  @dev Calculate the provided voter's token reward for the given poll
-  @param _voter Address of the voter whose reward balance is to be returned
-  @param _challengeID pollID of the challenge a reward balance is being queried for
-  @param _salt the salt for the voter's commit hash in the given poll
-  @return a uint indicating the voter's reward in nano-adToken
+  @dev                Calculates the provided voter's token reward for the given poll.
+  @param _voter       The address of the voter whose reward balance is to be returned
+  @param _challengeID The ID of the challenge the voter's reward is being calculated for
+  @param _salt        The salt of the voter's commit hash in the given poll
+  @return             The uint indicating the voter's reward (in nano-ADT)
   */
   function calculateVoterReward(address _voter, uint _challengeID, uint _salt)
   public constant returns (uint) {
-    uint totalTokens = challengeMap[_challengeID].totalTokens;
-    uint rewardPool = challengeMap[_challengeID].rewardPool;
-    uint voterTokens = voting.getNumPassingTokens(_voter, _challengeID, _salt);
-    return (voterTokens * rewardPool) / totalTokens;
+      return challenges[_challengeID].calculateVoterReward(_voter, _salt);
   }
 
   /**
@@ -249,11 +224,7 @@ contract Parameterizer {
   @param _propID The proposal ID whose challenge to inspect
   */
   function challengeCanBeResolved(bytes32 _propID) constant public returns (bool) {
-    ParamProposal memory prop = proposalMap[_propID];
-    Challenge memory challenge = challengeMap[prop.challengeID];
-
-    return (prop.challengeID > 0 && challenge.resolved == false &&
-            voting.pollEnded(prop.challengeID));
+    return challenges[proposalMap[_propID].challengeID].canBeResolved();
   }
 
   /**
@@ -261,12 +232,7 @@ contract Parameterizer {
   @param _challengeID The challengeID to determine a reward for
   */
   function determineReward(uint _challengeID) public constant returns (uint) {
-    if(voting.getTotalNumberOfTokensForWinningOption(_challengeID) == 0) {
-      // Edge case, nobody voted, give all tokens to the winner.
-      return 2 * challengeMap[_challengeID].stake;
-    }
-    
-    return (2 * challengeMap[_challengeID].stake) - challengeMap[_challengeID].rewardPool;
+    return challenges[_challengeID].determineReward();
   }
 
   /**
@@ -298,7 +264,7 @@ contract Parameterizer {
     ParamProposal memory prop = proposalMap[_propID];
 
     // set flag on challenge being processed
-    challengeMap[prop.challengeID].resolved = true;
+    challenges[prop.challengeID].resolved = true;
 
     // winner gets back their full staked deposit, and dispensationPct*loser's stake
     uint reward = determineReward(prop.challengeID);
@@ -310,11 +276,11 @@ contract Parameterizer {
       require(token.transfer(prop.owner, reward));
     } 
     else { // The challenge succeeded
-      require(token.transfer(challengeMap[prop.challengeID].challenger, reward));
+      require(token.transfer(challenges[prop.challengeID].challenger, reward));
     }
 
     // store the total tokens used for voting by the winning side for reward purposes
-    challengeMap[prop.challengeID].totalTokens =
+    challenges[prop.challengeID].totalTokens =
       voting.getTotalNumberOfTokensForWinningOption(prop.challengeID);
   }
 }

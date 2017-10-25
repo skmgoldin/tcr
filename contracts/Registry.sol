@@ -1,8 +1,9 @@
 pragma solidity ^0.4.11;
 
 import "./historical/StandardToken.sol";
-import "./PLCRVoting.sol";
 import "./Parameterizer.sol";
+import "./Challenge.sol";
+import "./PLCRVoting.sol";
 
 contract Registry {
 
@@ -29,23 +30,12 @@ contract Registry {
         uint challengeID;       // Identifier of canonical challenge
     }
 
-    struct Challenge {
-        uint rewardPool;        // (remaining) Pool of tokens distributed amongst winning voters
-        address challenger;     // Owner of Challenge
-        bool resolved;          // Indication of if challenge is resolved
-        uint stake;             // Number of tokens at risk for either party during challenge
-        uint totalTokens;       // (remaining) Amount of tokens used for voting by the winning side
-    }
-
     // Maps challengeIDs to associated challenge data
-    mapping(uint => Challenge) public challengeMap;
+    using Challenge for Challenge.Data;
+    mapping(uint => Challenge.Data) public challenges;
 
     // Maps domainHashes to associated listing data
     mapping(bytes32 => Listing) public listingMap;
-
-    // Maps challengeIDs and address to token claim data
-    mapping(uint => mapping(address => bool)) public tokenClaims;
-
 
     // Global Variables
     StandardToken public token;
@@ -150,7 +140,8 @@ contract Registry {
         require(isWhitelisted(_domain));
 
         // Cannot exit during ongoing challenge
-        require(listing.challengeID == 0 || challengeMap[listing.challengeID].resolved);
+        require(!challenges[listing.challengeID].isInitialized() ||
+                challenges[listing.challengeID].isResolved());
 
         // Remove domain & return tokens
         resetListing(_domain);
@@ -174,7 +165,8 @@ contract Registry {
         // Domain must be in apply stage or already on the whitelist
         require(appWasMade(_domain) || listing.whitelisted);
         // Prevent multiple challenges
-        require(listing.challengeID == 0 || challengeMap[listing.challengeID].resolved);
+        require(!challenges[listing.challengeID].isInitialized() ||
+                challenges[listing.challengeID].isResolved());
 
         if (listing.unstakedDeposit < deposit) {
             // Not enough tokens, domain auto-delisted
@@ -192,8 +184,11 @@ contract Registry {
             parameterizer.get("revealStageLen")
         );
 
-        challengeMap[pollID] = Challenge({
+        challenges[pollID] = Challenge.Data({
             challenger: msg.sender,
+            voting: voting,
+            token: token,
+            challengeID: pollID,
             rewardPool: ((100 - parameterizer.get("dispensationPct")) * deposit) / 100,
             stake: deposit,
             resolved: false,
@@ -237,39 +232,9 @@ contract Registry {
     @param _salt        The salt of a voter's commit hash in the given poll
     */
     function claimReward(uint _challengeID, uint _salt) public {
-        // Ensures the voter has not already claimed tokens and challenge results have been processed
-        require(tokenClaims[_challengeID][msg.sender] == false);
-        require(challengeMap[_challengeID].resolved == true);
-
-        uint voterTokens = voting.getNumPassingTokens(msg.sender, _challengeID, _salt);
-        uint reward = calculateVoterReward(msg.sender, _challengeID, _salt);
-
-        // Subtracts the voter's information to preserve the participation ratios
-        // of other voters compared to the remaining pool of rewards
-        challengeMap[_challengeID].totalTokens -= voterTokens;
-        challengeMap[_challengeID].rewardPool -= reward;
-
-        require(token.transfer(msg.sender, reward));
-
-        // Ensures a voter cannot claim tokens again
-        tokenClaims[_challengeID][msg.sender] = true;
+        uint reward = challenges[_challengeID].claimReward(msg.sender, _salt);
 
         _RewardClaimed(msg.sender, _challengeID, reward);
-    }
-
-    /**
-    @dev                Calculates the provided voter's token reward for the given poll.
-    @param _voter       The address of the voter whose reward balance is to be returned
-    @param _challengeID The pollID of the challenge a reward balance is being queried for
-    @param _salt        The salt of the voter's commit hash in the given poll
-    @return             The uint indicating the voter's reward (in nano-ADT)
-    */
-    function calculateVoterReward(address _voter, uint _challengeID, uint _salt)
-    public constant returns (uint) {
-        uint totalTokens = challengeMap[_challengeID].totalTokens;
-        uint rewardPool = challengeMap[_challengeID].rewardPool;
-        uint voterTokens = voting.getNumPassingTokens(_voter, _challengeID, _salt);
-        return (voterTokens * rewardPool) / totalTokens;
     }
 
     // --------
@@ -292,7 +257,7 @@ contract Registry {
             appWasMade(_domain) &&
             isExpired(listingMap[domainHash].applicationExpiry) &&
             !isWhitelisted(_domain) &&
-            (challengeID == 0 || challengeMap[challengeID].resolved == true)
+            (!challenges[challengeID].isInitialized() || challenges[challengeID].isResolved())
         ) { return true; }
 
         return false;
@@ -310,10 +275,7 @@ contract Registry {
 
     // Returns true if the application/listing has an unresolved challenge
     function challengeExists(string _domain) constant public returns (bool) {
-        bytes32 domainHash = keccak256(_domain);
-        uint challengeID = listingMap[domainHash].challengeID;
-
-        return (listingMap[domainHash].challengeID > 0 && !challengeMap[challengeID].resolved);
+        return !challenges[listingMap[keccak256(_domain)].challengeID].isResolved();
     }
 
     /**
@@ -322,12 +284,7 @@ contract Registry {
     @param _domain      A domain with an unresolved challenge
     */
     function challengeCanBeResolved(string _domain) constant public returns (bool) {
-        bytes32 domainHash = keccak256(_domain);
-        uint challengeID = listingMap[domainHash].challengeID;
-
-        require(challengeExists(_domain));
-
-        return voting.pollEnded(challengeID);
+        return challenges[listingMap[keccak256(_domain)].challengeID].canBeResolved();
     }
 
     /**
@@ -335,14 +292,7 @@ contract Registry {
     @param _challengeID The challengeID to determine a reward for
     */
     function determineReward(uint _challengeID) public constant returns (uint) {
-        require(!challengeMap[_challengeID].resolved && voting.pollEnded(_challengeID));
-
-        // Edge case, nobody voted, give all tokens to the challenger.
-        if (voting.getTotalNumberOfTokensForWinningOption(_challengeID) == 0) {
-            return 2 * challengeMap[_challengeID].stake;
-        }
-
-        return (2 * challengeMap[_challengeID].stake) - challengeMap[_challengeID].rewardPool;
+        return challenges[_challengeID].determineReward(); 
     }
 
     // Returns true if the provided termDate has passed
@@ -360,6 +310,18 @@ contract Registry {
             require(token.transfer(listing.owner, listing.unstakedDeposit));
 
         delete listingMap[domainHash];
+    }
+
+    /**
+    @dev                Calculates the provided voter's token reward for the given poll.
+    @param _voter       The address of the voter whose reward balance is to be returned
+    @param _challengeID The ID of the challenge the voter's reward is being calculated for
+    @param _salt        The salt of the voter's commit hash in the given poll
+    @return             The uint indicating the voter's reward (in nano-ADT)
+    */
+    function calculateVoterReward(address _voter, uint _challengeID, uint _salt)
+    public constant returns (uint) {
+        return challenges[_challengeID].calculateVoterReward(_voter, _salt);
     }
 
     // ----------------
@@ -395,7 +357,7 @@ contract Registry {
         else {
             resetListing(_domain);
             // Transfer the reward to the challenger
-            require(token.transfer(challengeMap[challengeID].challenger, reward));
+            require(token.transfer(challenges[challengeID].challenger, reward));
 
             _ChallengeSucceeded(challengeID);
             if (wasWhitelisted) { _ListingRemoved(_domain); }
@@ -403,10 +365,10 @@ contract Registry {
         }
 
         // Sets flag on challenge being processed
-        challengeMap[challengeID].resolved = true;
+        challenges[challengeID].resolved = true;
 
         // Stores the total tokens used for voting by the winning side for reward purposes
-        challengeMap[challengeID].totalTokens =
+        challenges[challengeID].totalTokens =
             voting.getTotalNumberOfTokensForWinningOption(challengeID);
     }
 
