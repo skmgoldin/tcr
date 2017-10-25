@@ -331,12 +331,12 @@ contract('Parameterizer', (accounts) => {
 
         await parameterizer.processProposal(propID);
 
-        const voterAliceReward = await parameterizer.calculateVoterReward.call(voterAlice,
+        const voterAliceReward = await parameterizer.voterReward.call(voterAlice,
           challengeID, '420');
         await utils.as(voterAlice, parameterizer.claimReward, challengeID, '420');
         await utils.as(voterAlice, voting.withdrawVotingRights, '10');
 
-        const voterBobReward = await parameterizer.calculateVoterReward.call(voterBob,
+        const voterBobReward = await parameterizer.voterReward.call(voterBob,
           challengeID, '420');
         await utils.as(voterBob, parameterizer.claimReward, challengeID, '420');
         await utils.as(voterBob, voting.withdrawVotingRights, '20');
@@ -426,7 +426,7 @@ contract('Parameterizer', (accounts) => {
       const totalTokens = challenge[7]; // 10
 
       const expectedVoterReward = (voterTokens.mul(rewardPool)).div(totalTokens); // 250,000
-      const voterReward = await parameterizer.calculateVoterReward(voterAlice, challengeID, '420');
+      const voterReward = await parameterizer.voterReward(voterAlice, challengeID, '420');
 
       assert.strictEqual(expectedVoterReward.toString(10), voterReward.toString(10),
         'voterReward should have equaled tokens * pool / total');

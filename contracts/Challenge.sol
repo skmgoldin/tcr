@@ -13,7 +13,7 @@ library Challenge {
     address challenger;     // Owner of Challenge
     bool resolved;          // Indication of if challenge is resolved
     uint stake;             // Number of tokens at risk for either party during challenge
-    uint totalTokens;       // (remaining) Amount of tokens used for voting by the winning side
+    uint winningTokens;     // (remaining) Amount of tokens used for voting by the winning side
     mapping(uint =>
       mapping(address =>
         bool))
@@ -38,7 +38,7 @@ library Challenge {
   }
 
   /// @dev determines the number of tokens awarded to the winning party in a challenge.
-  function determineReward(Data storage _self) public constant returns (uint) {
+  function challengeWinnerReward(Data storage _self) public constant returns (uint) {
     // Edge case, nobody voted, give all tokens to the challenger.
     if (_self.voting.getTotalNumberOfTokensForWinningOption(_self.challengeID) == 0) {
       return 2 * _self.stake;
@@ -57,11 +57,11 @@ library Challenge {
     require(isResolved(_self));
 
     uint voterTokens = _self.voting.getNumPassingTokens(_voter, _self.challengeID, _salt);
-    uint reward = calculateVoterReward(_self, _voter, _salt);
+    uint reward = voterReward(_self, _voter, _salt);
 
     // Subtracts the voter's information to preserve the participation ratios
     // of other voters compared to the remaining pool of rewards
-    _self.totalTokens -= voterTokens;
+    _self.winningTokens -= voterTokens;
     _self.rewardPool -= reward;
 
     require(_self.token.transfer(_voter, reward));
@@ -78,12 +78,17 @@ library Challenge {
   @param _salt        The salt of the voter's commit hash in the given poll
   @return             The uint indicating the voter's reward (in nano-ADT)
   */
-  function calculateVoterReward(Data storage _self, address _voter, uint _salt)
+  function voterReward(Data storage _self, address _voter, uint _salt)
   public constant returns (uint) {
-    uint totalTokens = _self.totalTokens;
-    uint rewardPool = _self.rewardPool;
     uint voterTokens = _self.voting.getNumPassingTokens(_voter, _self.challengeID, _salt);
-    return (voterTokens * rewardPool) / totalTokens;
+    return (voterTokens * _self.rewardPool) / _self.winningTokens;
+  }
+
+  function resolve(Data storage _self) public {
+    require(canBeResolved(_self));
+
+    _self.winningTokens = _self.voting.getTotalNumberOfTokensForWinningOption(_self.challengeID);
+    _self.resolved = true;
   }
 }
 

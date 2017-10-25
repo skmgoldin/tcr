@@ -192,7 +192,7 @@ contract Registry {
             rewardPool: ((100 - parameterizer.get("dispensationPct")) * deposit) / 100,
             stake: deposit,
             resolved: false,
-            totalTokens: 0
+            winningTokens: 0
         });
 
         // Updates listing to store most recent challenge
@@ -291,8 +291,8 @@ contract Registry {
     @notice             Determines the number of tokens awarded to the winning party in a challenge.
     @param _challengeID The challengeID to determine a reward for
     */
-    function determineReward(uint _challengeID) public constant returns (uint) {
-        return challenges[_challengeID].determineReward(); 
+    function challengeWinnerReward(uint _challengeID) public constant returns (uint) {
+        return challenges[_challengeID].challengeWinnerReward(); 
     }
 
     // Returns true if the provided termDate has passed
@@ -319,9 +319,9 @@ contract Registry {
     @param _salt        The salt of the voter's commit hash in the given poll
     @return             The uint indicating the voter's reward (in nano-ADT)
     */
-    function calculateVoterReward(address _voter, uint _challengeID, uint _salt)
+    function voterReward(address _voter, uint _challengeID, uint _salt)
     public constant returns (uint) {
-        return challenges[_challengeID].calculateVoterReward(_voter, _salt);
+        return challenges[_challengeID].voterReward(_voter, _salt);
     }
 
     // ----------------
@@ -335,41 +335,37 @@ contract Registry {
     */
     function resolveChallenge(string _domain) private {
         bytes32 domainHash = keccak256(_domain);
-        uint challengeID = listingMap[domainHash].challengeID;
+        Listing storage listing = listingMap[domainHash];
+        Challenge.Data storage challenge = challenges[listing.challengeID];
 
         // Calculates the winner's reward,
         // which is: (winner's full stake) + (dispensationPct * loser's stake)
-        uint reward = determineReward(challengeID);
+        uint winnerReward = challenge.challengeWinnerReward();
 
         // Records whether the domain is a listing or an application
         bool wasWhitelisted = isWhitelisted(_domain);
 
         // Case: challenge failed
-        if (voting.isPassed(challengeID)) {
+        if (voting.isPassed(challenge.challengeID)) {
             whitelistApplication(_domain);
             // Unlock stake so that it can be retrieved by the applicant
-            listingMap[domainHash].unstakedDeposit += reward;
+            listing.unstakedDeposit += winnerReward;
 
-            _ChallengeFailed(challengeID);
+            _ChallengeFailed(challenge.challengeID);
             if (!wasWhitelisted) { _NewDomainWhitelisted(_domain); }
         }
         // Case: challenge succeeded
         else {
             resetListing(_domain);
             // Transfer the reward to the challenger
-            require(token.transfer(challenges[challengeID].challenger, reward));
+            require(token.transfer(challenge.challenger, winnerReward));
 
-            _ChallengeSucceeded(challengeID);
+            _ChallengeSucceeded(challenge.challengeID);
             if (wasWhitelisted) { _ListingRemoved(_domain); }
             else { _ApplicationRemoved(_domain); }
         }
 
-        // Sets flag on challenge being processed
-        challenges[challengeID].resolved = true;
-
-        // Stores the total tokens used for voting by the winning side for reward purposes
-        challenges[challengeID].totalTokens =
-            voting.getTotalNumberOfTokensForWinningOption(challengeID);
+        challenge.resolve();
     }
 
     /**
