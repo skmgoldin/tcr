@@ -147,7 +147,7 @@ contract Parameterizer {
         rewardPool: ((100 - get("pDispensationPct")) * deposit) / 100,
         stake: deposit,
         resolved: false,
-        totalTokens: 0
+        winningTokens: 0
     });
 
     proposalMap[_propID].challengeID = pollID;       // update listing to store most recent challenge
@@ -196,9 +196,9 @@ contract Parameterizer {
   @param _salt        The salt of the voter's commit hash in the given poll
   @return             The uint indicating the voter's reward (in nano-ADT)
   */
-  function calculateVoterReward(address _voter, uint _challengeID, uint _salt)
+  function voterReward(address _voter, uint _challengeID, uint _salt)
   public constant returns (uint) {
-      return challenges[_challengeID].calculateVoterReward(_voter, _salt);
+      return challenges[_challengeID].voterReward(_voter, _salt);
   }
 
   /**
@@ -231,8 +231,8 @@ contract Parameterizer {
   @notice Determines the number of tokens to awarded to the winning party in a challenge
   @param _challengeID The challengeID to determine a reward for
   */
-  function determineReward(uint _challengeID) public constant returns (uint) {
-    return challenges[_challengeID].determineReward();
+  function challengeWinnerReward(uint _challengeID) public constant returns (uint) {
+    return challenges[_challengeID].challengeWinnerReward();
   }
 
   /**
@@ -262,12 +262,10 @@ contract Parameterizer {
   */
   function resolveChallenge(bytes32 _propID) private {
     ParamProposal memory prop = proposalMap[_propID];
-
-    // set flag on challenge being processed
-    challenges[prop.challengeID].resolved = true;
+    Challenge.Data storage challenge = challenges[prop.challengeID];
 
     // winner gets back their full staked deposit, and dispensationPct*loser's stake
-    uint reward = determineReward(prop.challengeID);
+    uint reward = challenge.challengeWinnerReward();
 
     if (voting.isPassed(prop.challengeID)) { // The challenge failed
       if(prop.processBy > now) {
@@ -279,9 +277,7 @@ contract Parameterizer {
       require(token.transfer(challenges[prop.challengeID].challenger, reward));
     }
 
-    // store the total tokens used for voting by the winning side for reward purposes
-    challenges[prop.challengeID].totalTokens =
-      voting.getTotalNumberOfTokensForWinningOption(prop.challengeID);
+    challenge.resolve();
   }
 }
 

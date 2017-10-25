@@ -256,7 +256,7 @@ contract('Registry', (accounts) => {
       await utils.as(applicant, registry.updateStatus, domain);
 
       // Alice claims reward
-      const aliceVoterReward = await registry.calculateVoterReward(voterAlice, pollID, '420');
+      const aliceVoterReward = await registry.voterReward(voterAlice, pollID, '420');
       await utils.as(voterAlice, registry.claimReward, pollID, '420');
 
       // Alice withdraws her voting rights
