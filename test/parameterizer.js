@@ -420,10 +420,10 @@ contract('Parameterizer', (accounts) => {
       await parameterizer.processProposal(propID);
 
       // Grab the challenge struct after the proposal has been processed
-      const challenge = await parameterizer.challengeMap.call(challengeID);
+      const challenge = await parameterizer.challenges.call(challengeID);
       const voterTokens = await voting.getNumPassingTokens(voterAlice, challengeID, '420'); // 10
       const rewardPool = challenge[0]; // 250,000
-      const totalTokens = challenge[4]; // 10
+      const totalTokens = challenge[7]; // 10
 
       const expectedVoterReward = (voterTokens.mul(rewardPool)).div(totalTokens); // 250,000
       const voterReward = await parameterizer.calculateVoterReward(voterAlice, challengeID, '420');
