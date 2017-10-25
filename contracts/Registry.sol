@@ -275,7 +275,8 @@ contract Registry {
 
     // Returns true if the application/listing has an unresolved challenge
     function challengeExists(string _domain) constant public returns (bool) {
-        return !challenges[listingMap[keccak256(_domain)].challengeID].isResolved();
+        Challenge.Data storage challenge = challenges[listingMap[keccak256(_domain)].challengeID];
+        return challenge.isInitialized() && !challenge.isResolved();
     }
 
     /**
@@ -284,7 +285,8 @@ contract Registry {
     @param _domain      A domain with an unresolved challenge
     */
     function challengeCanBeResolved(string _domain) constant public returns (bool) {
-        return challenges[listingMap[keccak256(_domain)].challengeID].canBeResolved();
+        Challenge.Data storage challenge = challenges[listingMap[keccak256(_domain)].challengeID];
+        return challenge.isInitialized() && challenge.canBeResolved();
     }
 
     /**

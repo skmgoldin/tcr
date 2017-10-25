@@ -27,14 +27,12 @@ library Challenge {
 
   /// @dev returns true if the application/listing has a resolved challenge
   function isResolved(Data storage _self) constant public returns (bool) {
-    return isInitialized(_self) && _self.resolved;
+    return _self.resolved;
   }
 
   /// @dev determines whether voting has concluded in a challenge for a given domain. Throws if no challenge exists.
   function canBeResolved(Data storage _self) constant public returns (bool) {
-    return isInitialized(_self) && 
-      _self.voting.pollEnded(_self.challengeID) &&
-      _self.resolved == false;
+    return _self.voting.pollEnded(_self.challengeID) && _self.resolved == false;
   }
 
   /// @dev determines the number of tokens awarded to the winning party in a challenge.

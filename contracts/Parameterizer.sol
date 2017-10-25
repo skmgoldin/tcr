@@ -224,7 +224,8 @@ contract Parameterizer {
   @param _propID The proposal ID whose challenge to inspect
   */
   function challengeCanBeResolved(bytes32 _propID) constant public returns (bool) {
-    return challenges[proposalMap[_propID].challengeID].canBeResolved();
+    Challenge.Data storage challenge = challenges[proposalMap[_propID].challengeID];
+    return challenge.isInitialized() && challenge.canBeResolved();
   }
 
   /**
