@@ -13,7 +13,12 @@ contract Parameterizer {
   event _ReparameterizationProposal(address proposer, string name, uint value, bytes32 propID);
   event _NewChallenge(address challenger, bytes32 propID, uint pollID);
 
-  mapping(bytes32 => uint) public params;
+
+  // ------
+  // DATA STRUCTURES
+  // ------
+
+  using Challenge for Challenge.Data;
 
   struct ParamProposal {
     uint appExpiry;
@@ -25,17 +30,26 @@ contract Parameterizer {
     uint value;
   }
 
+  // ------
+  // STATE
+  // ------
+
+  mapping(bytes32 => uint) public params;
+
   // Maps challengeIDs to associated challenge data
-  using Challenge for Challenge.Data;
   mapping(uint => Challenge.Data) public challenges;
 
   // maps pollIDs to intended data change if poll passes
-  mapping(bytes32 => ParamProposal) public proposalMap; 
+  mapping(bytes32 => ParamProposal) public proposals; 
 
   // Global Variables
   StandardToken public token;
   PLCRVoting public voting;
   uint public PROCESSBY = 604800; // 7 days
+
+  // ------------
+  // CONSTRUCTOR
+  // ------------
 
   /**
   @dev constructor
@@ -88,7 +102,7 @@ contract Parameterizer {
   }
 
   // -----------------------
-  // TOKEN HOLDER INTERFACE:
+  // TOKEN HOLDER INTERFACE
   // -----------------------
 
   /**
@@ -105,7 +119,7 @@ contract Parameterizer {
     require(token.transferFrom(msg.sender, this, deposit)); // escrow tokens (deposit amt)
 
     // attach name and value to pollID		
-    proposalMap[propID] = ParamProposal({
+    proposals[propID] = ParamProposal({
       appExpiry: now + get("pApplyStageLen"),
       challengeID: 0,
       deposit: deposit,
@@ -125,7 +139,7 @@ contract Parameterizer {
   @param _propID the proposal ID to challenge
   */
   function challengeReparameterization(bytes32 _propID) public returns (uint challengeID) {
-    ParamProposal memory prop = proposalMap[_propID];
+    ParamProposal memory prop = proposals[_propID];
     uint deposit = get("pMinDeposit");
 
     require(propExists(_propID) && prop.challengeID == 0); 
@@ -150,7 +164,7 @@ contract Parameterizer {
         winningTokens: 0
     });
 
-    proposalMap[_propID].challengeID = pollID;       // update listing to store most recent challenge
+    proposals[_propID].challengeID = pollID;       // update listing to store most recent challenge
 
     _NewChallenge(msg.sender, _propID, pollID);
     return pollID;
@@ -161,7 +175,7 @@ contract Parameterizer {
   @param _propID the proposal ID to make a determination and state transition for
   */
   function processProposal(bytes32 _propID) public {
-    ParamProposal storage prop = proposalMap[_propID];
+    ParamProposal storage prop = proposals[_propID];
 
     if (canBeSet(_propID)) {
       set(prop.name, prop.value);
@@ -173,7 +187,7 @@ contract Parameterizer {
       revert();
     }
 
-    delete proposalMap[_propID];
+    delete proposals[_propID];
   }
 
   /**
@@ -186,7 +200,7 @@ contract Parameterizer {
   }
 
   // --------
-  // GETTERS:
+  // GETTERS
   // --------
 
   /**
@@ -206,7 +220,7 @@ contract Parameterizer {
   @param _propID The proposal ID for which to determine whether its application stage passed without a challenge
   */
   function canBeSet(bytes32 _propID) constant public returns (bool) {
-    ParamProposal memory prop = proposalMap[_propID];
+    ParamProposal memory prop = proposals[_propID];
 
     return (now > prop.appExpiry && now < prop.processBy && prop.challengeID == 0);
   }
@@ -216,7 +230,7 @@ contract Parameterizer {
   @param _propID The proposal ID whose existance is to be determined
   */
   function propExists(bytes32 _propID) constant public returns (bool) {
-    return proposalMap[_propID].processBy > 0;
+    return proposals[_propID].processBy > 0;
   }
 
   /**
@@ -224,7 +238,7 @@ contract Parameterizer {
   @param _propID The proposal ID whose challenge to inspect
   */
   function challengeCanBeResolved(bytes32 _propID) constant public returns (bool) {
-    Challenge.Data storage challenge = challenges[proposalMap[_propID].challengeID];
+    Challenge.Data storage challenge = challenges[proposals[_propID].challengeID];
     return challenge.isInitialized() && challenge.canBeResolved();
   }
 
@@ -245,24 +259,15 @@ contract Parameterizer {
   }
 
   // ----------------
-  // PRIVATE FUNCTIONS:
+  // PRIVATE FUNCTIONS
   // ----------------
-
-  /**
-  @dev sets the param keted by the provided name to the provided value
-  @param _name the name of the param to be set
-  @param _value the value to set the param to be set
-  */
-  function set(string _name, uint _value) private {
-    params[keccak256(_name)] = _value;
-  }
 
   /**
   @dev resolves a challenge for the provided _propID. It must be checked in advance whether the _propID has a challenge on it
   @param _propID the proposal ID whose challenge is to be resolved.
   */
   function resolveChallenge(bytes32 _propID) private {
-    ParamProposal memory prop = proposalMap[_propID];
+    ParamProposal memory prop = proposals[_propID];
     Challenge.Data storage challenge = challenges[prop.challengeID];
 
     // winner gets back their full staked deposit, and dispensationPct*loser's stake
@@ -281,6 +286,15 @@ contract Parameterizer {
     challenge.winningTokens =
       challenge.voting.getTotalNumberOfTokensForWinningOption(challenge.challengeID);
     challenge.resolved = true;
+  }
+
+  /**
+  @dev sets the param keted by the provided name to the provided value
+  @param _name the name of the param to be set
+  @param _value the value to set the param to be set
+  */
+  function set(string _name, uint _value) private {
+    params[keccak256(_name)] = _value;
   }
 }
 

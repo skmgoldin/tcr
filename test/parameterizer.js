@@ -28,7 +28,7 @@ contract('Parameterizer', (accounts) => {
       );
 
       const propID = utils.getReceiptValue(receipt, 'propID');
-      const paramProposal = await parameterizer.proposalMap.call(propID);
+      const paramProposal = await parameterizer.proposals.call(propID);
 
       assert.strictEqual(paramProposal[6].toString(10), '51', 'The reparameterization proposal ' +
         'was not created, or not created correctly.');
@@ -194,7 +194,7 @@ contract('Parameterizer', (accounts) => {
       );
 
       const propID = receipt.logs[0].args.propID;
-      const paramProp = await parameterizer.proposalMap.call(propID);
+      const paramProp = await parameterizer.proposals.call(propID);
       const processBy = paramProp[5];
       await utils.increaseTime(processBy.toNumber() + 1);
 
@@ -230,7 +230,7 @@ contract('Parameterizer', (accounts) => {
 
       await utils.as(voter, voting.revealVote, pollID, '0', '420');
 
-      const paramProp = await parameterizer.proposalMap.call(propID);
+      const paramProp = await parameterizer.proposals.call(propID);
       const processBy = paramProp[5];
       await utils.increaseTime(processBy.toNumber() + 1);
 

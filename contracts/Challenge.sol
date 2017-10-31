@@ -5,6 +5,10 @@ import "./historical/StandardToken.sol";
 
 library Challenge {
 
+  // ------
+  // DATA STRUCTURES
+  // ------
+
   struct Data {
     uint rewardPool;        // (remaining) Pool of tokens distributed amongst winning voters
     PLCRVoting voting;      // Address of a PLCRVoting contract
@@ -19,6 +23,10 @@ library Challenge {
         bool))
       tokenClaims;          // maps challengeIDs and address to token claim data
   }
+
+  // --------
+  // GETTERS
+  // --------
 
   /// @dev returns true if the application/listing is initialized
   function isInitialized(Data storage _self) constant public returns (bool) {
@@ -46,7 +54,24 @@ library Challenge {
   }
 
   /**
+  @dev                Calculates the provided voter's token reward for the given poll.
+  @param _voter       The address of the voter whose reward balance is to be returned
+  @param _salt        The salt of the voter's commit hash in the given poll
+  @return             The uint indicating the voter's reward (in nano-ADT)
+  */
+  function voterReward(Data storage _self, address _voter, uint _salt)
+  public constant returns (uint) {
+    uint voterTokens = _self.voting.getNumPassingTokens(_voter, _self.challengeID, _salt);
+    return (voterTokens * _self.rewardPool) / _self.winningTokens;
+  }
+
+  // --------
+  // STATE-CHANGING FUNCTIONS
+  // --------
+
+  /**
   @dev called by a voter to claim his/her reward for each completed vote.
+  @param _voter the address of the voter to claim a reward for
   @param _salt the salt of a voter's commit hash in the given poll
   */
   function claimReward(Data storage _self, address _voter, uint _salt) public returns (uint) {
@@ -68,18 +93,6 @@ library Challenge {
     _self.tokenClaims[_self.challengeID][_voter] = true;
     
     return reward;
-  }
-
-  /**
-  @dev                Calculates the provided voter's token reward for the given poll.
-  @param _voter       The address of the voter whose reward balance is to be returned
-  @param _salt        The salt of the voter's commit hash in the given poll
-  @return             The uint indicating the voter's reward (in nano-ADT)
-  */
-  function voterReward(Data storage _self, address _voter, uint _salt)
-  public constant returns (uint) {
-    uint voterTokens = _self.voting.getNumPassingTokens(_voter, _self.challengeID, _salt);
-    return (voterTokens * _self.rewardPool) / _self.winningTokens;
   }
 }
 
