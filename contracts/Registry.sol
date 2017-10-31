@@ -367,7 +367,9 @@ contract Registry {
             else { _ApplicationRemoved(_domain); }
         }
 
-        challenge.resolve();
+        challenge.winningTokens =
+          challenge.voting.getTotalNumberOfTokensForWinningOption(challenge.challengeID);
+        challenge.resolved = true;
     }
 
     /**
