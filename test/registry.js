@@ -502,7 +502,7 @@ contract('Registry', (accounts) => {
       await utils.as(applicant, registry.apply, domain, minDeposit);
 
       const hash = utils.getDomainHash(domain);
-      const result = await registry.listingMap.call(hash);
+      const result = await registry.listings.call(hash);
 
       // Voting period done (ie. app expired)
       await utils.increaseTime(paramConfig.commitStageLength + paramConfig.revealStageLength + 1);
@@ -518,7 +518,7 @@ contract('Registry', (accounts) => {
       await utils.as(applicant, registry.apply, domain, minDeposit);
 
       const hash = utils.getDomainHash(domain);
-      const result = await registry.listingMap.call(hash);
+      const result = await registry.listings.call(hash);
 
       const isExpired = await registry.isExpired(result[0]);
       assert.strictEqual(isExpired, false, 'application should not have expired.');
@@ -556,10 +556,10 @@ contract('Registry', (accounts) => {
       const domain = 'nochallenge.net';
       // apply with accounts[1]
       await registry.apply(domain, paramConfig.minDeposit, { from: accounts[1] });
-      // hash the domain so we can identify in listingMap
+      // hash the domain so we can identify in listings
       const hash = utils.getDomainHash(domain);
       // get the struct in the mapping
-      const result = await registry.listingMap.call(hash);
+      const result = await registry.listings.call(hash);
       // check that Application is initialized correctly
       assert.strictEqual(result[0] * 1000 > Date.now(), true, 'challenge time < now');
       assert.strictEqual(result[1], false, 'challenged != false');

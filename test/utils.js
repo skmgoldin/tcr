@@ -100,10 +100,10 @@ const utils = {
 
   getUnstakedDeposit: async (domain) => {
     const registry = await Registry.deployed();
-    // hash the domain so we can identify in listingMap
+    // hash the domain so we can identify in listings
     const hash = utils.getDomainHash(domain);
     // get the struct in the mapping
-    const listing = await registry.listingMap.call(hash);
+    const listing = await registry.listings.call(hash);
     // get the unstaked deposit amount from the listing struct
     const unstakedDeposit = await listing[3];
     return unstakedDeposit.toString();
