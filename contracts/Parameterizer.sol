@@ -278,7 +278,9 @@ contract Parameterizer {
       require(token.transfer(challenges[prop.challengeID].challenger, reward));
     }
 
-    challenge.resolve();
+    challenge.winningTokens =
+      challenge.voting.getTotalNumberOfTokensForWinningOption(challenge.challengeID);
+    challenge.resolved = true;
   }
 }
 

@@ -81,12 +81,5 @@ library Challenge {
     uint voterTokens = _self.voting.getNumPassingTokens(_voter, _self.challengeID, _salt);
     return (voterTokens * _self.rewardPool) / _self.winningTokens;
   }
-
-  function resolve(Data storage _self) public {
-    require(canBeResolved(_self));
-
-    _self.winningTokens = _self.voting.getTotalNumberOfTokensForWinningOption(_self.challengeID);
-    _self.resolved = true;
-  }
 }
 
