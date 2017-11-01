@@ -319,6 +319,19 @@ contract Registry {
     return challenges[_challengeID].voterReward(_voter, _salt);
   }
 
+  /**
+  @dev                Determines whether the provided voter has claimed tokens in a challenge
+  @param _challengeID The ID of the challenge to determine whether a voter has claimed tokens for
+  @param _voter       The address of the voter whose claim status is to be determined for the
+                      provided challenge.
+  @return             Bool indicating whether the voter has claimed tokens in the provided
+                      challenge
+  */
+  function tokenClaims(uint _challengeID, address _voter)
+  public constant returns (bool) {
+    return challenges[_challengeID].tokenClaims[_voter];
+  }
+
   // ----------------
   // PRIVATE FUNCTIONS
   // ----------------

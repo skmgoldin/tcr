@@ -85,6 +85,41 @@ contract('Registry', (accounts) => {
 });
 
 contract('Registry', (accounts) => {
+  describe('Function: tokenClaims', () => {
+    const minDeposit = bigTen(paramConfig.minDeposit);
+    const [applicant, challenger, voter] = accounts;
+
+    it('should report properly whether a voter has claimed tokens', async () => {
+      const registry = await Registry.deployed();
+      const voting = await utils.getVoting();
+      const domain = 'claims.com';
+
+      await utils.addToWhitelist(domain, minDeposit, applicant);
+
+      const pollID = await utils.challengeAndGetPollID(domain, challenger);
+
+      await utils.commitVote(pollID, '0', '10', '420', voter);
+      await utils.increaseTime(paramConfig.commitStageLength + 1);
+
+      await utils.as(voter, voting.revealVote, pollID, '0', '420');
+      await utils.increaseTime(paramConfig.revealStageLength + 1);
+
+      await utils.as(challenger, registry.updateStatus, domain);
+
+      const initialHasClaimed = await registry.tokenClaims.call(pollID, voter);
+      assert.strictEqual(initialHasClaimed, false, 'The voter is purported to have claimed ' +
+        'their reward, when in fact they have not');
+
+      await utils.as(voter, registry.claimReward, pollID, '420');
+
+      const finalHasClaimed = await registry.tokenClaims.call(pollID, voter);
+      assert.strictEqual(finalHasClaimed, true, 'The voter is purported to not have claimed ' +
+        'their reward, when in fact they have');
+    });
+  });
+});
+
+contract('Registry', (accounts) => {
   describe('Function: withdraw', () => {
     const minDeposit = bigTen(paramConfig.minDeposit);
     const withdrawAmount = minDeposit.div(bigTen(2));

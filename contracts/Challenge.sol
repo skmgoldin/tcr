@@ -18,10 +18,8 @@ library Challenge {
     bool resolved;          // Indication of if challenge is resolved
     uint stake;             // Number of tokens at risk for either party during challenge
     uint winningTokens;     // (remaining) Amount of tokens used for voting by the winning side
-    mapping(uint =>
-      mapping(address =>
-        bool))
-      tokenClaims;          // maps challengeIDs and address to token claim data
+    mapping(address =>
+            bool) tokenClaims; // maps addresses to token claim data for this challenge
   }
 
   // --------
@@ -76,7 +74,7 @@ library Challenge {
   */
   function claimReward(Data storage _self, address _voter, uint _salt) public returns (uint) {
     // Ensures the voter has not already claimed tokens and challenge results have been processed
-    require(_self.tokenClaims[_self.challengeID][_voter] == false);
+    require(_self.tokenClaims[_voter] == false);
     require(isResolved(_self));
 
     uint voterTokens = _self.voting.getNumPassingTokens(_voter, _self.challengeID, _salt);
@@ -90,7 +88,7 @@ library Challenge {
     require(_self.token.transfer(_voter, reward));
 
     // Ensures a voter cannot claim tokens again
-    _self.tokenClaims[_self.challengeID][_voter] = true;
+    _self.tokenClaims[_voter] = true;
     
     return reward;
   }
