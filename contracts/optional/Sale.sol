@@ -64,12 +64,12 @@ contract Sale {
     /// @dev Sale(): constructor for Sale contract
     /// @param _owner the address which owns the sale, can access owner-only functions
     /// @param _wallet the sale's beneficiary address 
-    /// @param _tokenSupply the total number of AdToken to mint
-    /// @param _tokenName AdToken's human-readable name
-    /// @param _tokenDecimals the number of display decimals in AdToken balances
-    /// @param _tokenSymbol AdToken's human-readable asset symbol
-    /// @param _price price of the token in Wei (ADT/Wei pair price)
-    /// @param _startBlock the block at which this contract will begin selling its ADT balance
+    /// @param _tokenSupply the total number of token to mint
+    /// @param _tokenName token's human-readable name
+    /// @param _tokenDecimals the number of display decimals in token balances
+    /// @param _tokenSymbol token's human-readable asset symbol
+    /// @param _price price of the token in Wei
+    /// @param _startBlock the block at which this contract will begin selling its balance
     function Sale(
         address _owner,
         address _wallet,
@@ -163,8 +163,8 @@ contract Sale {
         foundersTokensDisbursed = true;
     }
 
-    /// @dev purchaseToken(): function that exchanges ETH for ADT (main sale function)
-    /// @notice You're about to purchase the equivalent of `msg.value` Wei in ADT tokens
+    /// @dev purchaseToken(): function that exchanges ETH for tokens (main sale function)
+    /// @notice You're about to purchase the equivalent of `msg.value` Wei in tokens
     function purchaseTokens()
         saleStarted
         payable

@@ -1,0 +1,27 @@
+{
+  "package_name": "tcr",
+  "version": "1.0.0",
+  "description": "A generic, string-keyed TCR",
+  "authors": [
+    "Mike Goldin",
+    "Isaac Kang",
+    "Terry Li",
+    "Irene Lin",
+    "Cem Ozer",
+    "Aspyn Palatnick",
+    "Yorke Rhodes",
+    "Mira Zeitlin"
+  ],
+  "keywords": [
+    "consensys",
+    "plcr",
+    "tokens",
+    "tcr"
+  ],
+  "dependencies": {
+    "tokens": "0.0.3",
+    "dll": "1.0.0",
+    "attrstore": "1.0.0"
+  },
+  "license": "Apache 2.0"
+}

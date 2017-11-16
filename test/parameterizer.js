@@ -1,14 +1,14 @@
 /* eslint-env mocha */
 /* global artifacts assert contract */
 const Parameterizer = artifacts.require('./Parameterizer.sol');
-const Token = artifacts.require('./historical/HumanStandardToken.sol');
+const Token = artifacts.require('./optional/HumanStandardToken.sol');
 
 const fs = require('fs');
 const BN = require('bn.js');
 const utils = require('./utils');
 
-const adchainConfig = JSON.parse(fs.readFileSync('./conf/config.json'));
-const paramConfig = adchainConfig.paramDefaults;
+const config = JSON.parse(fs.readFileSync('./conf/config.json'));
+const paramConfig = config.paramDefaults;
 
 const bigTen = number => new BN(number.toString(10), 10);
 

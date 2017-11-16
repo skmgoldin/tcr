@@ -1,9 +1,9 @@
 {
-  "name": "AdChainRegistry",
+  "name": "sol-tcr",
   "version": "0.0.1",
-  "description": "AdChain node module",
+  "description": "A generic, string-keyed TCR in Solidity",
   "scripts": {
-    "compile": "truffle compile",
+    "compile": "truffle install && truffle compile",
     "deploy-rinkeby": "truffle migrate --network rinkeby",
     "test": "node test.js",
     "fix": "eslint --fix",
@@ -12,7 +12,6 @@
   "author": "Irene Lin <irene.lin@consensys.net>, Mira Zeitlin <miranda.zeitlin@consensys.net>, Yorke Rhodes <yorke.rhodesiv@consensys.net>",
   "license": "ISC",
   "dependencies": {
-    "aws-sdk": "2.107.0",
     "bignumber.js": "4.0.4",
     "bip39": "2.4.0",
     "bn.js": "4.11.8",

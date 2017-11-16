@@ -3,7 +3,7 @@
 const Registry = artifacts.require('Registry.sol');
 const Token = artifacts.require('Token.sol');
 const Parameterizer = artifacts.require('Parameterizer.sol');
-const Sale = artifacts.require('historical/Sale.sol');
+const Sale = artifacts.require('optional/Sale.sol');
 const DLL = artifacts.require('DLL.sol');
 const Challenge = artifacts.require('Challenge.sol');
 const AttributeStore = artifacts.require('AttributeStore.sol');
@@ -56,9 +56,9 @@ module.exports = (deployer, network, accounts) => {
     await approvePLCRFor(accounts);
   }
 
-  const adchainConfig = JSON.parse(fs.readFileSync('./conf/config.json'));
-  const parameterizerConfig = adchainConfig.paramDefaults;
-  let tokenAddress = adchainConfig.TokenAddress;
+  const config = JSON.parse(fs.readFileSync('./conf/config.json'));
+  const parameterizerConfig = config.paramDefaults;
+  let tokenAddress = config.TokenAddress;
 
   deployer.deploy(DLL);
   deployer.deploy(AttributeStore);

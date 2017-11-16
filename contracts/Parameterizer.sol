@@ -1,7 +1,7 @@
 pragma solidity^0.4.11;
 
 import "./PLCRVoting.sol";
-import "./historical/StandardToken.sol";
+import "./optional/StandardToken.sol";
 import "./Challenge.sol";
 
 contract Parameterizer {
@@ -208,7 +208,7 @@ contract Parameterizer {
   @param _voter       The address of the voter whose reward balance is to be returned
   @param _challengeID The ID of the challenge the voter's reward is being calculated for
   @param _salt        The salt of the voter's commit hash in the given poll
-  @return             The uint indicating the voter's reward (in nano-ADT)
+  @return             The uint indicating the voter's reward
   */
   function voterReward(address _voter, uint _challengeID, uint _salt)
   public constant returns (uint) {

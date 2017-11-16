@@ -1,13 +1,13 @@
-const Sale = artifacts.require('historical/Sale.sol');
+const Sale = artifacts.require('optional/Sale.sol');
 const fs = require('fs');
 const BN = require('bn.js');
 
 module.exports = (deployer, network, accounts) => {
   if (network != 'mainnet') {
-    const saleConf = JSON.parse(fs.readFileSync('./conf/historical/sale.json'));
-    const tokenConf = JSON.parse(fs.readFileSync('./conf/historical/token.json'));
-    const preBuyersConf = JSON.parse(fs.readFileSync('./conf/historical/preBuyers.json'));
-    const foundersConf = JSON.parse(fs.readFileSync('./conf/historical/founders.json'));
+    const saleConf = JSON.parse(fs.readFileSync('./conf/optional/sale.json'));
+    const tokenConf = JSON.parse(fs.readFileSync('./conf/optional/token.json'));
+    const preBuyersConf = JSON.parse(fs.readFileSync('./conf/optional/preBuyers.json'));
+    const foundersConf = JSON.parse(fs.readFileSync('./conf/optional/founders.json'));
 
     saleConf.owner = accounts[0];
 
@@ -53,5 +53,5 @@ module.exports = (deployer, network, accounts) => {
         vestingDates,
       ));
   }
-  console.log('skipping optional dev-only deploy of historical contracts.');
+  console.log('skipping optional dev-only deploy of optional contracts.');
 };

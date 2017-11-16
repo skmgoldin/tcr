@@ -7,8 +7,8 @@ const Token = artifacts.require('Token.sol');
 const fs = require('fs');
 const BN = require('bignumber.js');
 
-const adchainConfig = JSON.parse(fs.readFileSync('./conf/config.json'));
-const paramConfig = adchainConfig.paramDefaults;
+const config = JSON.parse(fs.readFileSync('./conf/config.json'));
+const paramConfig = config.paramDefaults;
 
 const utils = require('./utils.js');
 

@@ -1,7 +1,7 @@
 pragma solidity^0.4.11;
 
 import "./PLCRVoting.sol";
-import "./historical/StandardToken.sol";
+import "./optional/StandardToken.sol";
 
 library Challenge {
 
@@ -55,7 +55,7 @@ library Challenge {
   @dev                Calculates the provided voter's token reward for the given poll.
   @param _voter       The address of the voter whose reward balance is to be returned
   @param _salt        The salt of the voter's commit hash in the given poll
-  @return             The uint indicating the voter's reward (in nano-ADT)
+  @return             The uint indicating the voter's reward 
   */
   function voterReward(Data storage _self, address _voter, uint _salt)
   public constant returns (uint) {

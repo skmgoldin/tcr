@@ -1,6 +1,6 @@
 pragma solidity ^0.4.11;
 
-import "./historical/StandardToken.sol";
+import "./optional/StandardToken.sol";
 import "./Parameterizer.sol";
 import "./Challenge.sol";
 import "./PLCRVoting.sol";
@@ -58,7 +58,7 @@ contract Registry {
   /**
   @dev Contructor
   @notice                 Sets the addresses for token, voting, and parameterizer
-  @param _tokenAddr       Address of the native ERC20 token (ADT)
+  @param _tokenAddr       Address of the native ERC20 token
   @param _plcrAddr        Address of a PLCR voting contract for the provided token
   @param _paramsAddr      Address of a Parameterizer contract for the provided PLCR voting contract
   */
@@ -312,7 +312,7 @@ contract Registry {
   @param _voter       The address of the voter whose reward balance is to be returned
   @param _challengeID The ID of the challenge the voter's reward is being calculated for
   @param _salt        The salt of the voter's commit hash in the given poll
-  @return             The uint indicating the voter's reward (in nano-ADT)
+  @return             The uint indicating the voter's reward
   */
   function voterReward(address _voter, uint _challengeID, uint _salt)
   public constant returns (uint) {

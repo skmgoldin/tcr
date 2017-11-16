@@ -11,12 +11,12 @@ const ethRPC = new EthRPC(new HttpProvider('http://localhost:8545'));
 
 const PLCRVoting = artifacts.require('PLCRVoting.sol');
 const Parameterizer = artifacts.require('Parameterizer.sol');
-const Sale = artifacts.require('historical/Sale.sol');
+const Sale = artifacts.require('optional/Sale.sol');
 const Registry = artifacts.require('Registry.sol');
-const Token = artifacts.require('historical/Token.sol');
+const Token = artifacts.require('optional/Token.sol');
 
-const adchainConfig = JSON.parse(fs.readFileSync('./conf/config.json'));
-const paramConfig = adchainConfig.paramDefaults;
+const config = JSON.parse(fs.readFileSync('./conf/config.json'));
+const paramConfig = config.paramDefaults;
 
 const BN = small => new Eth.BN(small.toString(10), 10);
 
