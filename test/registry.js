@@ -860,8 +860,7 @@ contract('Registry', (accounts) => {
 
       const finalApplicantTokenHoldings = await token.balanceOf.call(applicant);
       assert(
-        initialApplicantTokenHoldings.toString(10) >
-        finalApplicantTokenHoldings.toString(10),
+        initialApplicantTokenHoldings.gt(finalApplicantTokenHoldings),
         'the applicant\'s tokens were returned in spite of failing to exit',
       );
 
