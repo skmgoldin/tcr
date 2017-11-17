@@ -3,3 +3,4 @@ build/*
 truffle.js
 secrets.json
 *.swp
+installed_contracts/
