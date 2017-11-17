@@ -2,72 +2,26 @@
 
 [ ![Codeship Status for skmgoldin/tcr](https://app.codeship.com/projects/b140cce0-ac77-0135-0738-52e8b96e2dec/status?branch=master)](https://app.codeship.com/projects/257003)
 
-A string-keyed TCR.
+A string-keyed [token-curated registry (TCR)](https://medium.com/@ilovebagels/token-curated-registries-1-0-61a232f8dac7).
 
+## Initialize
+The only environmental dependency you need is Node. Presently we can guarantee this all works with Node 8.
+```
+npm install
+npm run compile
+```
 
-## Commands
+## Tests
+The repo has a comprehensive test suite. You can run it with `npm run test`. To run the tests with the RPC logs, use `npm run test gas`.
 
-Compile contracts using truffle
+## Composition of the repo
+The repo is composed as a Truffle project, and is largely idiomatic to Truffle's conventions. The tests are in the `test` directory, the contracts are in the `contracts` directory and the migrations (deployment scripts) are in the `migrations` directory. Furthermore there is a `conf` directory containing json files where deployments can be parameterized.
 
-    $ npm run compile
+In both the `contracts` and `conf` directories are subdirectories named `optional`. These contain contracts for a token sale and parameters for that sale, respectively. When deploying to any network other than `mainnet`, the migration script `2_optional_for_test.js` will execute along with special logic in `3_deploy_contracts.js` to deploy a sale and disburse tokens to actors specified in the `optional` subdirectory of the `config` folder. This is relied on by the test scripts and may be useful for deploying test instances on networks like Rinkeby and pre-seeding specified accounts with registry tokens. When deploying to mainnet, a pre-deployed token address should be specified in the main `config.json`. The built-in token sale code should not be used to run a real token sale, and we make no guarantees for its suitability to the purpose.
 
-Run tests
+### Local contracts
+`Registry.sol`, `Parameterizer.sol` and `Challenge.sol` are the repo's local contracts. `Challenge.sol` is a library for challenge logic used by both the registry and the parameterizer.
 
-    $ npm run test
-
-Run tests and log TestRPC stats
-
-    $ npm run test gas
-
-
-## Application Process
-
-A candidate calls `apply()` to create an application and puts down a deposit in the registry's intrinsic token.  The apply stage for the application begins. During the apply stage, the application is waiting to be added to the whitelist, but can be challenged or left unchallenged.
-
-The application is challenged:
-
-1.  A challenger calls `challenge()` and puts down a deposit that matches the candidate's.
-
-2.  A vote starts (see Voter and Reward Process).
-
-3.  After the results are in, the anyone calls `updateStatus()`.  
-        
-If the candidate wins, the listing is moved to the whitelist and they recieve a portion of the challenger's deposit as a reward.  Their own deposit is kept with the listing.
-
-If the challenger wins, their deposit is returned and they recieve a portion of the candidates's deposit as a reward.
-
-The application goes unchallenged:
-
-At the end of the apply stage, `updateStatus()` may be called, which adds their name to the whitelist.
-
-The applicant's deposit is kept with the listing and can be withdrawn with the exit function, which also removes the listing.
-
-To check if a candidate is in the registry, anyone can call `isWhitelisted()` at any time.
-
-
-
-## Rechallenges
-
-1.  Once a listing is whitelisted, it can be challenged at any time. To challenge a listing already on the whitelist, a challenger calls `challenge()` and puts down a deposit in the registry's intrinsic token to match the current minDeposit parameter.
-
-2. If a whitelisted listing is challenged and does not have enough tokens deposited into the contract (ie a whitelist's current deposit is less than the minDeposit parameter), then the listing is automatically removed from the whitelist.
-
-## Listed-candidate Interface
-
-1.  Deposit() - if the minDeposit amount is reparametrized to a higher value, then owners of whitelisted listings can increase their deposit in order to avoid being automatically removed from the whitelist in the event that their listing is challenged.
-
-2.  Withdraw() - if the minDeposit amount is reparametrized to a lower value, then the owners of a whitelisted listing can withdraw unlocked tokens. Tokens locked in a challenge may not be withdrawn.
-
-3.  Exit() - the owner of a listing can call this function in order to voluntarily remove their listing from the whitelist. Domains may not be removed from the whitelist if there is an ongoing challenge on that listing.
-
-
-
-## Voter and Reward Process
-
-1. The vote itself is created and managed by the PLCR voting contract.
-
-2. oters who voted on the losing side gain no reward, but voters who voted on the winning side can call `claimReward()` to claim a portion of the loser's (either the applicant's or the challenger's) deposit proportional to the amount of the registry's intrinsic token they contributed to the vote.
-
-3. No tokens are ever lost or burned because the reward pool of tokens is repartitioned every time `claimReward()` is called. 
-
+### Packages
+The repo consumes several EPM packages. `dll` and `attrstore` are libraries used in the TCR's doubly-linked list abstraction. `tokens` and `plcr` are stateful contracts. `tokens` provides an ERC20-comaptible token implementation. `plcr` is the token-voting system used for challenge resolution in both the registry and the parameterizer. All packages are installed automatically when running `npm run compile`.
 
