@@ -7,7 +7,7 @@ const EthRPC = require('ethjs-rpc');
 const abi = require('ethereumjs-abi');
 const fs = require('fs');
 
-const ethRPC = new EthRPC(new HttpProvider('http://localhost:8545'));
+const ethRPC = new EthRPC(new HttpProvider('http://localhost:7545'));
 
 const PLCRVoting = artifacts.require('PLCRVoting.sol');
 const Parameterizer = artifacts.require('Parameterizer.sol');

@@ -5,7 +5,7 @@
   "scripts": {
     "compile": "truffle install && truffle compile",
     "deploy-rinkeby": "truffle migrate --network rinkeby",
-    "test": "node test.js",
+    "test": "truffle test",
     "fix": "eslint --fix",
     "lint": "eslint"
   },
@@ -23,7 +23,7 @@
     "ethjs-query": "0.2.6",
     "ethjs-rpc": "0.1.5",
     "ethjs-util": "0.1.4",
-    "truffle": "3.4.11",
+    "truffle": "4.0.1",
     "truffle-hdwallet-provider": "0.0.3"
   },
   "devDependencies": {

@@ -109,7 +109,7 @@ module.exports = (deployer, network, accounts) => {
           ),
         )
         .then(async () => {
-          if (network === 'development') {
+          if (network === 'develop' || network === 'test') {
             await setupForTests(tokenAddress);
           }
         }).catch((err) => { throw err; }),
