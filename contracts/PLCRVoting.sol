@@ -153,7 +153,7 @@ contract PLCRVoting {
         // Make sure the reveal period is active
         require(revealStageActive(_pollID));
         require(!hasBeenRevealed(msg.sender, _pollID));                        // prevent user from revealing multiple times
-        require(sha3(_voteOption, _salt) == getCommitHash(msg.sender, _pollID)); // compare resultant hash from inputs to original commitHash
+        require(keccak256(_voteOption, _salt) == getCommitHash(msg.sender, _pollID)); // compare resultant hash from inputs to original commitHash
 
         uint numTokens = getNumTokens(msg.sender, _pollID); 
 
@@ -177,7 +177,7 @@ contract PLCRVoting {
         require(hasBeenRevealed(_voter, _pollID));
 
         uint winningChoice = isPassed(_pollID) ? 1 : 0;
-        bytes32 winnerHash = sha3(winningChoice, _salt);
+        bytes32 winnerHash = keccak256(winningChoice, _salt);
         bytes32 commitHash = getCommitHash(_voter, _pollID);
 
         return (winnerHash == commitHash) ? getNumTokens(_voter, _pollID) : 0;
@@ -386,6 +386,6 @@ contract PLCRVoting {
     @return UUID Hash which is deterministic from _user and _pollID
     */
     function attrUUID(address _user, uint _pollID) public constant returns (bytes32 UUID) {
-        return sha3(_user, _pollID);
+        return keccak256(_user, _pollID);
     }
 }
