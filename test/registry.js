@@ -604,6 +604,9 @@ contract('Registry', (accounts) => {
         paramConfig.minDeposit.toString(10),
         'incorrect unstakedDeposit',
       );
+
+      const inDLL = await registry.getDataForNode.call('1');
+      assert.strictEqual(inDLL, domain, 'the domain was not properly stored in the DLL');
     });
 
     it('should not allow a domain to apply which has a pending application', async () => {

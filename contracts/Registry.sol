@@ -75,7 +75,7 @@ contract Registry {
     token = StandardToken(_tokenAddr);
     voting = PLCRVoting(_plcrAddr);
     parameterizer = Parameterizer(_paramsAddr);
-    nonce = 0;
+    nonce = 1;
   }
 
   // --------------------
@@ -109,6 +109,22 @@ contract Registry {
 
     _Application(_domain, _amount);
   }
+
+  function getDataForNode(uint _nodeID) public view returns (string) {
+    return domains.dll[_nodeID].domain;
+  }
+
+  /*
+  function getAllData() external view returns (string[]) {
+    string[] contents;
+
+    for(uint i = 1; i < nonce; i++) {
+      contents.push(getDataForNode(i)); 
+    }
+
+    return contents;
+  }
+  */
 
   /**
   @notice             Allows the owner of a domain to increase their unstaked deposit.

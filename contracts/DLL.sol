@@ -19,10 +19,6 @@ library DLL {
 		return self.dll[curr].prev;
 	}
 
-  function getNodeDomain(Data storage self, uint node) returns (string) {
-    return self.dll[node].domain;
-  }
-
 	function insert(Data storage self, uint prev, uint curr, uint next) {
 		self.dll[curr].prev = prev;
 		self.dll[curr].next = next;
