@@ -4,6 +4,7 @@ import "./optional/StandardToken.sol";
 import "./Parameterizer.sol";
 import "./Challenge.sol";
 import "./PLCRVoting.sol";
+import "ascsdll/ASCSDLL.sol";
 
 contract Registry {
 
