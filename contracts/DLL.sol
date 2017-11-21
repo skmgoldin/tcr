@@ -2,6 +2,7 @@ pragma solidity^0.4.11;
 
 library DLL {
 	struct Node {
+    string domain;
 		uint next;
 		uint prev;
 	}
@@ -18,12 +19,26 @@ library DLL {
 		return self.dll[curr].prev;
 	}
 
+  function getNodeDomain(Data storage self, uint node) returns (string) {
+    return self.dll[node].domain;
+  }
+
 	function insert(Data storage self, uint prev, uint curr, uint next) {
 		self.dll[curr].prev = prev;
 		self.dll[curr].next = next;
 
 		self.dll[prev].next = curr;
 		self.dll[next].prev = curr;
+	}
+
+	function insertWithData(Data storage self, uint prev, uint curr, uint next, string _domain) {
+		self.dll[curr].prev = prev;
+		self.dll[curr].next = next;
+
+		self.dll[prev].next = curr;
+		self.dll[next].prev = curr;
+
+    self.dll[curr].domain = _domain;
 	}
 
 	function remove(Data storage self, uint curr) {

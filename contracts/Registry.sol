@@ -4,7 +4,7 @@ import "./optional/StandardToken.sol";
 import "./Parameterizer.sol";
 import "./Challenge.sol";
 import "./PLCRVoting.sol";
-import "ascsdll/ASCSDLL.sol";
+import "./DLL.sol";
 
 contract Registry {
 
@@ -41,6 +41,10 @@ contract Registry {
   // STATE
   // ------
 
+  using DLL for DLL.Data;
+  DLL.Data domains;
+  uint public nonce;
+
   // Maps challengeIDs to associated challenge data
   mapping(uint => Challenge.Data) public challenges;
 
@@ -71,6 +75,7 @@ contract Registry {
     token = StandardToken(_tokenAddr);
     voting = PLCRVoting(_plcrAddr);
     parameterizer = Parameterizer(_paramsAddr);
+    nonce = 0;
   }
 
   // --------------------
@@ -98,6 +103,9 @@ contract Registry {
     // Sets apply stage end time
     listing.applicationExpiry = block.timestamp + parameterizer.get("applyStageLen");
     listing.unstakedDeposit = _amount;
+
+    domains.insertWithData(domains.getPrev(0) , nonce, 0, _domain); // add to end of list
+    nonce = nonce + 1;
 
     _Application(_domain, _amount);
   }
