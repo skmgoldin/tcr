@@ -8,6 +8,7 @@ const DLL = artifacts.require('DLL.sol');
 const Challenge = artifacts.require('Challenge.sol');
 const AttributeStore = artifacts.require('AttributeStore.sol');
 const PLCRVoting = artifacts.require('PLCRVoting.sol');
+const GroveLib = artifacts.require('GroveLib.sol');
 
 const fs = require('fs');
 
@@ -63,6 +64,7 @@ module.exports = (deployer, network, accounts) => {
   deployer.deploy(DLL);
   deployer.deploy(AttributeStore);
   deployer.deploy(Challenge);
+  deployer.deploy(GroveLib);
 
   deployer.link(DLL, PLCRVoting);
   deployer.link(AttributeStore, PLCRVoting);
@@ -74,6 +76,7 @@ module.exports = (deployer, network, accounts) => {
   deployer.link(DLL, Registry);
   deployer.link(AttributeStore, Registry);
   deployer.link(Challenge, Registry);
+  deployer.link(GroveLib, Registry);
 
   return deployer.then(async () => {
     if (network !== 'mainnet') {

@@ -4,6 +4,7 @@ import "./optional/StandardToken.sol";
 import "./Parameterizer.sol";
 import "./Challenge.sol";
 import "./PLCRVoting.sol";
+import "./GroveLib.sol";
 
 contract Registry {
 
@@ -34,7 +35,11 @@ contract Registry {
     address owner;          // Owner of Listing
     uint unstakedDeposit;   // Number of unlocked tokens with potential risk if challenged
     uint challengeID;       // Identifier of canonical challenge
+    string humanID;
   }
+
+  using GroveLib for GroveLib.Index;
+  GroveLib.Index listedItems;
 
   // ------
   // STATE
@@ -97,6 +102,8 @@ contract Registry {
     // Sets apply stage end time
     listing.applicationExpiry = block.timestamp + parameterizer.get("applyStageLen");
     listing.unstakedDeposit = _amount;
+
+    listing.humanID = _domain;
 
     _Application(_domain, _amount);
   }
@@ -332,6 +339,14 @@ contract Registry {
     return challenges[_challengeID].tokenClaims[_voter];
   }
 
+  /**
+  @dev                Get a list of all domainHashes for all currently whitelisted domains
+  @return             Array of domainHashes which can be accessed in the listings map
+  */
+  function getAllListings() public view returns (bytes32[]) {
+    return preOrderAccumulator(listedItems.root, new bytes32[](0));
+  }
+
   // ----------------
   // PRIVATE FUNCTIONS
   // ----------------
@@ -387,6 +402,7 @@ contract Registry {
   function whitelistApplication(string _domain) private {
     bytes32 domainHash = keccak256(_domain);
 
+    listedItems.insert(domainHash, int(domainHash));
     listings[domainHash].whitelisted = true;
   }
 
@@ -402,8 +418,39 @@ contract Registry {
     if (listing.unstakedDeposit > 0)
         require(token.transfer(listing.owner, listing.unstakedDeposit));
 
+    listedItems.remove(domainHash);
     delete listings[domainHash];
   }
 
+  /**
+  @dev                Accumulates a list of all domainHashes in the AVL tree in pre-order
+  @param _currNode    The ID (domainHash) of the current node being inspected                
+  @param _nodes       An array of all domainHashes accumulated so far
+  @return             Array of domainHashes which can be accessed in the listings map
+  */
+  function preOrderAccumulator(bytes32 _currNode, bytes32[] _nodes)
+  internal view returns (bytes32[]) {
+    // If this node doesn't exist, return
+    if(!listedItems.exists(_currNode)) { return _nodes; }
 
+    // If this node does exist, create a new, larger nodes array
+    bytes32[] memory nodes = new bytes32[](_nodes.length + 1);
+
+    // And copy over all the data from the old array
+    for(uint i = 0; i < _nodes.length; i++) {
+      nodes[i] = _nodes[i];
+    }
+
+    // Now add the new node's nodeID to the expanded node array
+    nodes[nodes.length - 1] = listedItems.getNodeId(_currNode);
+
+    // Traverse the left subtree and repeat
+    nodes = preOrderAccumulator(listedItems.getNodeLeftChild(_currNode), nodes);
+
+    // Traverse the right subtree and repeat
+    nodes = preOrderAccumulator(listedItems.getNodeRightChild(_currNode), nodes);
+
+    return nodes;
+  }
 }
+
