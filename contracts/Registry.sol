@@ -45,6 +45,8 @@ contract Registry {
   // STATE
   // ------
 
+  bytes32[] scratch;
+
   // Maps challengeIDs to associated challenge data
   mapping(uint => Challenge.Data) public challenges;
 
@@ -343,8 +345,9 @@ contract Registry {
   @dev                Get a list of all domainHashes for all currently whitelisted domains
   @return             Array of domainHashes which can be accessed in the listings map
   */
-  function getAllListings() public view returns (bytes32[]) {
-    return preOrderAccumulator(listedItems.root, new bytes32[](0));
+  function getAllListings() public returns (bytes32[]) {
+    delete scratch;
+    return preOrderAccumulator(listedItems.root);
   }
 
   // ----------------
@@ -425,32 +428,23 @@ contract Registry {
   /**
   @dev                Accumulates a list of all domainHashes in the AVL tree in pre-order
   @param _currNode    The ID (domainHash) of the current node being inspected                
-  @param _nodes       An array of all domainHashes accumulated so far
   @return             Array of domainHashes which can be accessed in the listings map
   */
-  function preOrderAccumulator(bytes32 _currNode, bytes32[] _nodes)
-  internal view returns (bytes32[]) {
+  function preOrderAccumulator(bytes32 _currNode)
+  internal returns (bytes32[]) {
     // If this node doesn't exist, return
-    if(!listedItems.exists(_currNode)) { return _nodes; }
-
-    // If this node does exist, create a new, larger nodes array
-    bytes32[] memory nodes = new bytes32[](_nodes.length + 1);
-
-    // And copy over all the data from the old array
-    for(uint i = 0; i < _nodes.length; i++) {
-      nodes[i] = _nodes[i];
-    }
+    if(!listedItems.exists(_currNode)) { return scratch; }
 
     // Now add the new node's nodeID to the expanded node array
-    nodes[nodes.length - 1] = listedItems.getNodeId(_currNode);
+    scratch.push(listedItems.getNodeId(_currNode));
 
     // Traverse the left subtree and repeat
-    nodes = preOrderAccumulator(listedItems.getNodeLeftChild(_currNode), nodes);
+    preOrderAccumulator(listedItems.getNodeLeftChild(_currNode));
 
     // Traverse the right subtree and repeat
-    nodes = preOrderAccumulator(listedItems.getNodeRightChild(_currNode), nodes);
+    preOrderAccumulator(listedItems.getNodeRightChild(_currNode));
 
-    return nodes;
+    return scratch;
   }
 }
 
