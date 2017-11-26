@@ -3,7 +3,8 @@
   "version": "0.0.1",
   "description": "A generic, string-keyed TCR in Solidity",
   "scripts": {
-    "compile": "truffle install && truffle compile",
+    "compile": "truffle compile",
+    "install": "truffle install",
     "deploy-rinkeby": "truffle migrate --network rinkeby",
     "test": "truffle test",
     "fix": "eslint --fix",
