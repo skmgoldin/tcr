@@ -95,7 +95,7 @@ const utils = {
   },
 
   isEVMException: err => (
-    err.toString().includes('invalid opcode')
+    err.toString().includes('revert')
   ),
 
   getUnstakedDeposit: async (domain) => {
