@@ -80,12 +80,14 @@ module.exports = (deployer, network, accounts) => {
       const sale = await Sale.deployed();
       tokenAddress = await sale.token.call();
     }
-    return deployer.deploy(PLCRVoting,
+    return deployer.deploy(
+      PLCRVoting,
       tokenAddress,
     );
   })
     .then(() =>
-      deployer.deploy(Parameterizer,
+      deployer.deploy(
+        Parameterizer,
         tokenAddress,
         PLCRVoting.address,
         parameterizerConfig.minDeposit,
@@ -102,16 +104,15 @@ module.exports = (deployer, network, accounts) => {
         parameterizerConfig.pVoteQuorum,
       )
         .then(() =>
-          deployer.deploy(Registry,
+          deployer.deploy(
+            Registry,
             tokenAddress,
             PLCRVoting.address,
             Parameterizer.address,
-          ),
-        )
+          ))
         .then(async () => {
           if (network === 'develop' || network === 'test') {
             await setupForTests(tokenAddress);
           }
-        }).catch((err) => { throw err; }),
-    );
+        }).catch((err) => { throw err; }));
 };

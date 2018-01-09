@@ -23,9 +23,7 @@ contract('Parameterizer', (accounts) => {
 
       const applicantStartingBalance = await token.balanceOf.call(proposer);
 
-      const receipt = await utils.as(
-        proposer, parameterizer.proposeReparameterization, 'voteQuorum', '51',
-      );
+      const receipt = await utils.as(proposer, parameterizer.proposeReparameterization, 'voteQuorum', '51');
 
       const propID = utils.getReceiptValue(receipt, 'propID');
       const paramProposal = await parameterizer.proposals.call(propID);
@@ -35,17 +33,17 @@ contract('Parameterizer', (accounts) => {
 
       const applicantFinalBalance = await token.balanceOf.call(proposer);
       const expected = applicantStartingBalance.sub(pMinDeposit);
-      assert.strictEqual(applicantFinalBalance.toString(10), expected.toString(10),
-        'tokens were not properly transferred from proposer');
+      assert.strictEqual(
+        applicantFinalBalance.toString(10), expected.toString(10),
+        'tokens were not properly transferred from proposer',
+      );
     });
 
     it('should not allow a NOOP reparameterization', async () => {
       const parameterizer = await Parameterizer.deployed();
 
       try {
-        await utils.as(
-          proposer, parameterizer.proposeReparameterization, 'voteQuorum', '51',
-        );
+        await utils.as(proposer, parameterizer.proposeReparameterization, 'voteQuorum', '51');
         assert(false, 'Performed NOOP reparameterization');
       } catch (err) {
         assert(utils.isEVMException(err), err.toString());
@@ -59,9 +57,7 @@ contract('Parameterizer', (accounts) => {
       const applicantStartingBalance = await token.balanceOf.call(secondProposer);
 
       try {
-        await utils.as(
-          secondProposer, parameterizer.proposeReparameterization, 'voteQuorum', '51',
-        );
+        await utils.as(secondProposer, parameterizer.proposeReparameterization, 'voteQuorum', '51');
         assert(false, 'should not have been able to make duplicate proposal');
       } catch (err) {
         assert(utils.isEVMException(err), err.toString());
@@ -86,17 +82,13 @@ contract('Parameterizer', (accounts) => {
       const proposerStartingBalance = await token.balanceOf.call(proposer);
       const challengerStartingBalance = await token.balanceOf.call(challenger);
 
-      const receipt = await utils.as(
-        proposer, parameterizer.proposeReparameterization, 'voteQuorum', '51',
-      );
+      const receipt = await utils.as(proposer, parameterizer.proposeReparameterization, 'voteQuorum', '51');
 
-      const propID = receipt.logs[0].args.propID;
+      const { propID } = receipt.logs[0].args;
 
       await utils.as(challenger, parameterizer.challengeReparameterization, propID);
 
-      await utils.increaseTime(
-        paramConfig.pCommitStageLength + paramConfig.pRevealStageLength + 1,
-      );
+      await utils.increaseTime(paramConfig.pCommitStageLength + paramConfig.pRevealStageLength + 1);
 
       await parameterizer.processProposal(propID);
 
@@ -106,14 +98,18 @@ contract('Parameterizer', (accounts) => {
 
       const proposerFinalBalance = await token.balanceOf.call(proposer);
       const proposerExpected = proposerStartingBalance.sub(new BN(paramConfig.pMinDeposit, 10));
-      assert.strictEqual(proposerFinalBalance.toString(10), proposerExpected.toString(10),
-        'The challenge loser\'s token balance is not as expected');
+      assert.strictEqual(
+        proposerFinalBalance.toString(10), proposerExpected.toString(10),
+        'The challenge loser\'s token balance is not as expected',
+      );
 
       // Edge case, challenger gets both deposits back because there were no voters
       const challengerFinalBalance = await token.balanceOf.call(challenger);
       const challengerExpected = challengerStartingBalance.add(new BN(paramConfig.pMinDeposit, 10));
-      assert.strictEqual(challengerFinalBalance.toString(10), challengerExpected.toString(10),
-        'The challenge winner\'s token balance is not as expected');
+      assert.strictEqual(
+        challengerFinalBalance.toString(10), challengerExpected.toString(10),
+        'The challenge winner\'s token balance is not as expected',
+      );
     });
 
     it('should set new parameters if a proposal wins a challenge', async () => {
@@ -124,11 +120,9 @@ contract('Parameterizer', (accounts) => {
       const proposerStartingBalance = await token.balanceOf.call(proposer);
       const challengerStartingBalance = await token.balanceOf.call(challenger);
 
-      const proposalReceipt = await utils.as(
-        proposer, parameterizer.proposeReparameterization, 'voteQuorum', '51',
-      );
+      const proposalReceipt = await utils.as(proposer, parameterizer.proposeReparameterization, 'voteQuorum', '51');
 
-      const propID = proposalReceipt.logs[0].args.propID;
+      const { propID } = proposalReceipt.logs[0].args;
 
       const challengeReceipt =
         await utils.as(challenger, parameterizer.challengeReparameterization, propID);
@@ -148,16 +142,20 @@ contract('Parameterizer', (accounts) => {
         'should have succeeded');
 
       const proposerFinalBalance = await token.balanceOf.call(proposer);
-      const proposerExpected = proposerStartingBalance.add(
-        utils.multiplyByPercentage(paramConfig.pMinDeposit, paramConfig.pDispensationPct),
+      const winnings =
+        utils.multiplyByPercentage(paramConfig.pMinDeposit, paramConfig.pDispensationPct);
+      const proposerExpected = proposerStartingBalance.add(winnings);
+      assert.strictEqual(
+        proposerFinalBalance.toString(10), proposerExpected.toString(10),
+        'The challenge winner\'s token balance is not as expected',
       );
-      assert.strictEqual(proposerFinalBalance.toString(10), proposerExpected.toString(10),
-        'The challenge winner\'s token balance is not as expected');
 
       const challengerFinalBalance = await token.balanceOf.call(challenger);
       const challengerExpected = challengerStartingBalance.sub(new BN(paramConfig.pMinDeposit, 10));
-      assert.strictEqual(challengerFinalBalance.toString(10), challengerExpected.toString(10),
-        'The challenge loser\'s token balance is not as expected');
+      assert.strictEqual(
+        challengerFinalBalance.toString(10), challengerExpected.toString(10),
+        'The challenge loser\'s token balance is not as expected',
+      );
     });
   });
 });
@@ -169,19 +167,16 @@ contract('Parameterizer', (accounts) => {
     it('should set new parameters if a proposal went unchallenged', async () => {
       const parameterizer = await Parameterizer.deployed();
 
-      const receipt = await utils.as(
-        proposer, parameterizer.proposeReparameterization, 'voteQuorum', '51',
-      );
+      const receipt = await utils.as(proposer, parameterizer.proposeReparameterization, 'voteQuorum', '51');
 
-      await utils.increaseTime(
-        paramConfig.pApplyStageLength + 1,
-      );
+      await utils.increaseTime(paramConfig.pApplyStageLength + 1);
 
-      const propID = receipt.logs[0].args.propID;
+      const { propID } = receipt.logs[0].args;
       await parameterizer.processProposal(propID);
 
       const voteQuorum = await parameterizer.get.call('voteQuorum');
-      assert.strictEqual(voteQuorum.toString(10), '51',
+      assert.strictEqual(
+        voteQuorum.toString(10), '51',
         'A proposal which went unchallenged failed to update its parameter',
       );
     });
@@ -189,11 +184,9 @@ contract('Parameterizer', (accounts) => {
     it('should not set new parameters if a proposal\'s processBy date has passed', async () => {
       const parameterizer = await Parameterizer.deployed();
 
-      const receipt = await utils.as(
-        proposer, parameterizer.proposeReparameterization, 'voteQuorum', '69',
-      );
+      const receipt = await utils.as(proposer, parameterizer.proposeReparameterization, 'voteQuorum', '69');
 
-      const propID = receipt.logs[0].args.propID;
+      const { propID } = receipt.logs[0].args;
       const paramProp = await parameterizer.proposals.call(propID);
       const processBy = paramProp[5];
       await utils.increaseTime(processBy.toNumber() + 1);
@@ -201,7 +194,8 @@ contract('Parameterizer', (accounts) => {
       await parameterizer.processProposal(propID);
 
       const voteQuorum = await parameterizer.get.call('voteQuorum');
-      assert.strictEqual(voteQuorum.toString(10), '51',
+      assert.strictEqual(
+        voteQuorum.toString(10), '51',
         'A proposal whose processBy date passed was able to update the parameterizer',
       );
     });
@@ -215,16 +209,14 @@ contract('Parameterizer', (accounts) => {
       const proposerStartingBalance = await token.balanceOf.call(proposer);
       const challengerStartingBalance = await token.balanceOf.call(challenger);
 
-      const receipt = await utils.as(
-        proposer, parameterizer.proposeReparameterization, 'voteQuorum', '69',
-      );
+      const receipt = await utils.as(proposer, parameterizer.proposeReparameterization, 'voteQuorum', '69');
 
-      const propID = receipt.logs[0].args.propID;
+      const { propID } = receipt.logs[0].args;
 
       const challengeReceipt =
         await utils.as(challenger, parameterizer.challengeReparameterization, propID);
 
-      const pollID = challengeReceipt.logs[0].args.pollID;
+      const { pollID } = challengeReceipt.logs[0].args;
       await utils.commitVote(pollID, '0', '10', '420', voter);
       await utils.increaseTime(paramConfig.pCommitStageLength + 1);
 
@@ -237,22 +229,26 @@ contract('Parameterizer', (accounts) => {
       await parameterizer.processProposal(propID);
 
       const voteQuorum = await parameterizer.get.call('voteQuorum');
-      assert.strictEqual(voteQuorum.toString(10), '51',
+      assert.strictEqual(
+        voteQuorum.toString(10), '51',
         'A proposal whose processBy date passed was able to update the parameterizer',
       );
 
       const proposerFinalBalance = await token.balanceOf.call(proposer);
       const proposerExpected = proposerStartingBalance.sub(new BN(paramConfig.pMinDeposit, 10));
-      assert.strictEqual(proposerFinalBalance.toString(10), proposerExpected.toString(10),
+      assert.strictEqual(
+        proposerFinalBalance.toString(10), proposerExpected.toString(10),
         'The challenge loser\'s token balance is not as expected',
       );
 
       const challengerFinalBalance = await token.balanceOf.call(challenger);
-      const challengerExpected = challengerStartingBalance.add(
-        utils.multiplyByPercentage(paramConfig.pMinDeposit, paramConfig.pDispensationPct),
+      const winnings =
+        utils.multiplyByPercentage(paramConfig.pMinDeposit, paramConfig.pDispensationPct);
+      const challengerExpected = challengerStartingBalance.add(winnings);
+      assert.strictEqual(
+        challengerFinalBalance.toString(10), challengerExpected.toString(10),
+        'The challenge winner\'s token balance is not as expected',
       );
-      assert.strictEqual(challengerFinalBalance.toString(10), challengerExpected.toString(10),
-        'The challenge winner\'s token balance is not as expected');
     });
   });
 });
@@ -268,11 +264,9 @@ contract('Parameterizer', (accounts) => {
 
       const voterAliceStartingBalance = await token.balanceOf.call(voterAlice);
 
-      const proposalReceipt = await utils.as(
-        proposer, parameterizer.proposeReparameterization, 'voteQuorum', '51',
-      );
+      const proposalReceipt = await utils.as(proposer, parameterizer.proposeReparameterization, 'voteQuorum', '51');
 
-      const propID = proposalReceipt.logs[0].args.propID;
+      const { propID } = proposalReceipt.logs[0].args;
 
       const challengeReceipt =
         await utils.as(challenger, parameterizer.challengeReparameterization, propID);
@@ -291,17 +285,18 @@ contract('Parameterizer', (accounts) => {
       await utils.as(voterAlice, voting.withdrawVotingRights, '10');
 
       const voterAliceFinalBalance = await token.balanceOf.call(voterAlice);
-      const voterAliceExpected = voterAliceStartingBalance.add(
-        utils.multiplyByPercentage(
-          paramConfig.pMinDeposit,
-          bigTen(100).sub(bigTen(paramConfig.pDispensationPct)),
-        ),
+      const voterAliceExpected = voterAliceStartingBalance.add(utils.multiplyByPercentage(
+        paramConfig.pMinDeposit,
+        bigTen(100).sub(bigTen(paramConfig.pDispensationPct)),
+      ));
+      assert.strictEqual(
+        voterAliceFinalBalance.toString(10), voterAliceExpected.toString(10),
+        'A voterAlice\'s token balance is not as expected after claiming a reward',
       );
-      assert.strictEqual(voterAliceFinalBalance.toString(10), voterAliceExpected.toString(10),
-        'A voterAlice\'s token balance is not as expected after claiming a reward');
     });
 
-    it('should give the correct number of tokens to multiple voters on the winning side.',
+    it(
+      'should give the correct number of tokens to multiple voters on the winning side.',
       async () => {
         const parameterizer = await Parameterizer.deployed();
         // const token = Token.at(await parameterizer.token.call());
@@ -310,11 +305,9 @@ contract('Parameterizer', (accounts) => {
         // const voterAliceStartingBalance = await token.balanceOf.call(voterAlice);
         // const voterBobStartingBalance = await token.balanceOf.call(voterBob);
 
-        const proposalReceipt = await utils.as(
-          proposer, parameterizer.proposeReparameterization, 'voteQuorum', '52',
-        );
+        const proposalReceipt = await utils.as(proposer, parameterizer.proposeReparameterization, 'voteQuorum', '52');
 
-        const propID = proposalReceipt.logs[0].args.propID;
+        const { propID } = proposalReceipt.logs[0].args;
 
         const challengeReceipt =
           await utils.as(challenger, parameterizer.challengeReparameterization, propID);
@@ -331,13 +324,17 @@ contract('Parameterizer', (accounts) => {
 
         await parameterizer.processProposal(propID);
 
-        const voterAliceReward = await parameterizer.voterReward.call(voterAlice,
-          challengeID, '420');
+        const voterAliceReward = await parameterizer.voterReward.call(
+          voterAlice,
+          challengeID, '420',
+        );
         await utils.as(voterAlice, parameterizer.claimReward, challengeID, '420');
         await utils.as(voterAlice, voting.withdrawVotingRights, '10');
 
-        const voterBobReward = await parameterizer.voterReward.call(voterBob,
-          challengeID, '420');
+        const voterBobReward = await parameterizer.voterReward.call(
+          voterBob,
+          challengeID, '420',
+        );
         await utils.as(voterBob, parameterizer.claimReward, challengeID, '420');
         await utils.as(voterBob, voting.withdrawVotingRights, '20');
 
@@ -349,7 +346,8 @@ contract('Parameterizer', (accounts) => {
           'Rewards were not properly distributed between voters',
         );
         // TODO: add asserts for final balances
-      });
+      },
+    );
 
     it('should not transfer tokens for an unresolved challenge', async () => {
       const parameterizer = await Parameterizer.deployed();
@@ -359,11 +357,9 @@ contract('Parameterizer', (accounts) => {
       const proposerStartingBalance = await token.balanceOf.call(proposer);
       const aliceStartingBalance = await token.balanceOf.call(voterAlice);
 
-      const proposalReceipt = await utils.as(
-        proposer, parameterizer.proposeReparameterization, 'pMinDeposit', '5000',
-      );
+      const proposalReceipt = await utils.as(proposer, parameterizer.proposeReparameterization, 'pMinDeposit', '5000');
 
-      const propID = proposalReceipt.logs[0].args.propID;
+      const { propID } = proposalReceipt.logs[0].args;
 
       const challengeReceipt =
         await utils.as(challenger, parameterizer.challengeReparameterization, propID);
@@ -388,10 +384,14 @@ contract('Parameterizer', (accounts) => {
       const aliceEndingBalance = await token.balanceOf.call(voterAlice);
       const aliceExpected = aliceStartingBalance.sub(bigTen(10));
 
-      assert.strictEqual(proposerEndingBalance.toString(10), proposerExpected.toString(10),
-        'proposers ending balance is incorrect');
-      assert.strictEqual(aliceEndingBalance.toString(10), aliceExpected.toString(10),
-        'alices ending balance is incorrect');
+      assert.strictEqual(
+        proposerEndingBalance.toString(10), proposerExpected.toString(10),
+        'proposers ending balance is incorrect',
+      );
+      assert.strictEqual(
+        aliceEndingBalance.toString(10), aliceExpected.toString(10),
+        'alices ending balance is incorrect',
+      );
     });
 
     it('should give zero tokens to a voter who cannot reveal a vote on the winning side.');
@@ -428,8 +428,10 @@ contract('Parameterizer', (accounts) => {
       const expectedVoterReward = (voterTokens.mul(rewardPool)).div(totalTokens); // 250,000
       const voterReward = await parameterizer.voterReward(voterAlice, challengeID, '420');
 
-      assert.strictEqual(expectedVoterReward.toString(10), voterReward.toString(10),
-        'voterReward should have equaled tokens * pool / total');
+      assert.strictEqual(
+        expectedVoterReward.toString(10), voterReward.toString(10),
+        'voterReward should have equaled tokens * pool / total',
+      );
     });
     it('should return zero tokens to a voter who cannot reveal a vote on the winning side.');
   });

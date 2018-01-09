@@ -6,7 +6,7 @@ let mnemonic = '';
 
 if (fs.existsSync('secrets.json')) {
   secrets = JSON.parse(fs.readFileSync('secrets.json', 'utf8'));
-  mnemonic = secrets.mnemonic;
+  ({ mnemonic } = secrets.mnemonic);
 }
 
 module.exports = {

@@ -29,8 +29,10 @@ contract('Registry', (accounts) => {
 
       const unstakedDeposit = await utils.getUnstakedDeposit(domain);
       const expectedAmount = incAmount.add(minDeposit);
-      assert.strictEqual(unstakedDeposit, expectedAmount.toString(10),
-        'Unstaked deposit should be equal to the sum of the original + increase amount');
+      assert.strictEqual(
+        unstakedDeposit, expectedAmount.toString(10),
+        'Unstaked deposit should be equal to the sum of the original + increase amount',
+      );
     });
 
     it('should increase a deposit for a pending application', async () => {
@@ -162,7 +164,7 @@ contract('Registry', (accounts) => {
         assert(utils.isEVMException(err), errMsg);
       }
       // TODO: check balance
-      // TODO: apply, gets challenged, and then minDeposit lowers during challenge. 
+      // TODO: apply, gets challenged, and then minDeposit lowers during challenge.
       // still shouldn't be able to withdraw anything.
       // when challenge ends, should be able to withdraw origDeposit - new minDeposit
     });
@@ -300,8 +302,10 @@ contract('Registry', (accounts) => {
       const aliceExpected = aliceStartingBalance.add(aliceVoterReward);
       const aliceFinalBalance = await token.balanceOf.call(voterAlice);
 
-      assert.strictEqual(aliceFinalBalance.toString(10), aliceExpected.toString(10),
-        'alice should have the same balance as she started');
+      assert.strictEqual(
+        aliceFinalBalance.toString(10), aliceExpected.toString(10),
+        'alice should have the same balance as she started',
+      );
     });
 
     it('should revert if challenge does not exist', async () => {
@@ -342,11 +346,14 @@ contract('Registry', (accounts) => {
       const aliceFinalBalance = await token.balanceOf.call(voterAlice);
       const expectedBalance = applicantStartingBalance.sub(minDeposit);
 
-      assert.strictEqual(applicantFinalBalance.toString(10), expectedBalance.toString(10),
-        'applicants final balance should be what they started with minus the minDeposit');
+      assert.strictEqual(
+        applicantFinalBalance.toString(10), expectedBalance.toString(10),
+        'applicants final balance should be what they started with minus the minDeposit',
+      );
       assert.strictEqual(
         aliceFinalBalance.toString(10), (aliceStartBal.sub(bigTen(500))).toString(10),
-        'alices final balance should be exactly the same as her starting balance');
+        'alices final balance should be exactly the same as her starting balance',
+      );
 
       // Update status
       await utils.as(applicant, registry.updateStatus, domain);
@@ -398,16 +405,16 @@ contract('Registry', (accounts) => {
       const appExpected = applicantStartingBalance.sub(minDeposit);
 
       const aliceEndingBalance = await token.balanceOf.call(voterAlice);
-      const aliceExpected = aliceStartingBalance.add(
-        minDeposit.div(bigTen(2)),
-      ).sub(bigTen(500));
+      const aliceExpected = aliceStartingBalance.add(minDeposit.div(bigTen(2))).sub(bigTen(500));
 
       assert.strictEqual(
         applicantEndingBalance.toString(10), appExpected.toString(10),
-        'applicants ending balance is incorrect');
+        'applicants ending balance is incorrect',
+      );
       assert.strictEqual(
         aliceEndingBalance.toString(10), aliceExpected.toString(10),
-        'alices ending balance is incorrect');
+        'alices ending balance is incorrect',
+      );
     });
 
     it('should not transfer tokens for an unresolved challenge', async () => {
@@ -447,10 +454,12 @@ contract('Registry', (accounts) => {
 
       assert.strictEqual(
         applicantEndingBalance.toString(10), appExpected.toString(10),
-        'applicants ending balance is incorrect');
+        'applicants ending balance is incorrect',
+      );
       assert.strictEqual(
         aliceEndingBalance.toString(10), aliceExpected.toString(10),
-        'alices ending balance is incorrect');
+        'alices ending balance is incorrect',
+      );
     });
   });
 });
@@ -641,7 +650,8 @@ contract('Registry', (accounts) => {
       );
     });
 
-    it('should add a domain to the whitelist which went unchallenged in its application period',
+    it(
+      'should add a domain to the whitelist which went unchallenged in its application period',
       async () => {
         const registry = await Registry.deployed();
         const domain = 'nochallenge.net';
@@ -649,7 +659,8 @@ contract('Registry', (accounts) => {
         await registry.updateStatus(domain);
         const result = await registry.isWhitelisted.call(domain);
         assert.strictEqual(result, true, "domain didn't get whitelisted");
-      });
+      },
+    );
   });
 });
 
@@ -666,9 +677,7 @@ contract('Registry', (accounts) => {
 
       await utils.as(applicant, registry.apply, domain, paramConfig.minDeposit);
       await utils.challengeAndGetPollID(domain, challenger);
-      await utils.increaseTime(
-        paramConfig.commitStageLength + paramConfig.revealStageLength + 1,
-      );
+      await utils.increaseTime(paramConfig.commitStageLength + paramConfig.revealStageLength + 1);
       await registry.updateStatus(domain);
 
       const isWhitelisted = await registry.isWhitelisted.call(domain);
@@ -676,11 +685,12 @@ contract('Registry', (accounts) => {
 
       const challengerFinalBalance = await token.balanceOf.call(challenger);
       // Note edge case: no voters, so challenger gets entire stake
-      const expectedFinalBalance = challengerStartingBalance.add(
-        new BN(paramConfig.minDeposit, 10),
+      const expectedFinalBalance =
+        challengerStartingBalance.add(new BN(paramConfig.minDeposit, 10));
+      assert.strictEqual(
+        challengerFinalBalance.toString(10), expectedFinalBalance.toString(10),
+        'Reward not properly disbursed to challenger',
       );
-      assert.strictEqual(challengerFinalBalance.toString(10), expectedFinalBalance.toString(10),
-        'Reward not properly disbursed to challenger');
     });
 
     it('should successfully challenge a listing', async () => {
@@ -693,9 +703,7 @@ contract('Registry', (accounts) => {
       await utils.addToWhitelist(domain, paramConfig.minDeposit, applicant);
 
       await utils.challengeAndGetPollID(domain, challenger);
-      await utils.increaseTime(
-        paramConfig.commitStageLength + paramConfig.revealStageLength + 1,
-      );
+      await utils.increaseTime(paramConfig.commitStageLength + paramConfig.revealStageLength + 1);
       await registry.updateStatus(domain);
 
       const isWhitelisted = await registry.isWhitelisted.call(domain);
@@ -703,11 +711,12 @@ contract('Registry', (accounts) => {
 
       const challengerFinalBalance = await token.balanceOf.call(challenger);
       // Note edge case: no voters, so challenger gets entire stake
-      const expectedFinalBalance = challengerStartingBalance.add(
-        new BN(paramConfig.minDeposit, 10),
+      const expectedFinalBalance =
+        challengerStartingBalance.add(new BN(paramConfig.minDeposit, 10));
+      assert.strictEqual(
+        challengerFinalBalance.toString(10), expectedFinalBalance.toString(10),
+        'Reward not properly disbursed to challenger',
       );
-      assert.strictEqual(challengerFinalBalance.toString(10), expectedFinalBalance.toString(10),
-        'Reward not properly disbursed to challenger');
     });
 
     it('should unsuccessfully challenge an application', async () => {
@@ -725,17 +734,19 @@ contract('Registry', (accounts) => {
       await registry.updateStatus(domain);
 
       const isWhitelisted = await registry.isWhitelisted.call(domain);
-      assert.strictEqual(isWhitelisted, true, 'An application which should have succeeded failed');
-
-      const unstakedDeposit = await utils.getUnstakedDeposit(domain);
-      const expectedUnstakedDeposit = minDeposit.add(
-        minDeposit.mul(
-          bigTen(paramConfig.dispensationPct).div(bigTen(100)),
-        ),
+      assert.strictEqual(
+        isWhitelisted, true,
+        'An application which should have succeeded failed',
       );
 
-      assert.strictEqual(unstakedDeposit.toString(10), expectedUnstakedDeposit.toString(10),
-        'The challenge winner was not properly disbursed their tokens');
+      const unstakedDeposit = await utils.getUnstakedDeposit(domain);
+      const expectedUnstakedDeposit =
+        minDeposit.add(minDeposit.mul(bigTen(paramConfig.dispensationPct).div(bigTen(100))));
+
+      assert.strictEqual(
+        unstakedDeposit.toString(10), expectedUnstakedDeposit.toString(10),
+        'The challenge winner was not properly disbursed their tokens',
+      );
     });
 
     it('should unsuccessfully challenge a listing', async () => {
@@ -757,11 +768,11 @@ contract('Registry', (accounts) => {
       assert.strictEqual(isWhitelisted, true, 'An application which should have succeeded failed');
 
       const unstakedDeposit = await utils.getUnstakedDeposit(domain);
-      const expectedUnstakedDeposit = minDeposit.add(
-        minDeposit.mul(new BN(paramConfig.dispensationPct, 10).div(new BN('100', 10))),
+      const expectedUnstakedDeposit = minDeposit.add(minDeposit.mul(new BN(paramConfig.dispensationPct, 10).div(new BN('100', 10))));
+      assert.strictEqual(
+        unstakedDeposit.toString(10), expectedUnstakedDeposit.toString(10),
+        'The challenge winner was not properly disbursed their tokens',
       );
-      assert.strictEqual(unstakedDeposit.toString(10), expectedUnstakedDeposit.toString(10),
-        'The challenge winner was not properly disbursed their tokens');
     });
 
     it('should touch-and-remove a listing with a depost below the current minimum', async () => {
@@ -776,8 +787,10 @@ contract('Registry', (accounts) => {
 
       await utils.addToWhitelist(domain, minDeposit, applicant);
 
-      const receipt = await utils.as(proposer, parameterizer.proposeReparameterization,
-        'minDeposit', newMinDeposit);
+      const receipt = await utils.as(
+        proposer, parameterizer.proposeReparameterization,
+        'minDeposit', newMinDeposit,
+      );
       const propID = utils.getReceiptValue(receipt, 'propID');
 
       await utils.increaseTime(paramConfig.pApplyStageLength + 1);
@@ -788,13 +801,17 @@ contract('Registry', (accounts) => {
       utils.as(challenger, registry.challenge, domain);
       const challengerFinalBal = await token.balanceOf.call(challenger);
 
-      assert(challengerStartingBal.eq(challengerFinalBal),
-        'Tokens were not returned to challenger');
+      assert(
+        challengerStartingBal.eq(challengerFinalBal),
+        'Tokens were not returned to challenger',
+      );
 
       const applicantFinalBal = await token.balanceOf.call(applicant);
 
-      assert(applicantStartingBal.eq(applicantFinalBal),
-        'Tokens were not returned to applicant');
+      assert(
+        applicantStartingBal.eq(applicantFinalBal),
+        'Tokens were not returned to applicant',
+      );
 
       assert(!await registry.isWhitelisted.call(domain), 'Domain was not removed');
     });

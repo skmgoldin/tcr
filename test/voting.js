@@ -30,8 +30,10 @@ contract('PLCRVoting', (accounts) => {
       const insertPoint = await voting.getInsertPointForNumTokens.call(voter, 6);
       const expectedInsertPoint = 0;
 
-      assert.strictEqual(insertPoint.toString(10), expectedInsertPoint.toString(10),
-        'The insert point was not correct');
+      assert.strictEqual(
+        insertPoint.toString(10), expectedInsertPoint.toString(10),
+        'The insert point was not correct',
+      );
     });
   });
 });
