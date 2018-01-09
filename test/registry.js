@@ -941,7 +941,7 @@ contract('Registry', (accounts) => {
       const pollID = await utils.challengeAndGetPollID(domain, challenger);
 
       // Make sure it's cool to commit
-      const cpa = await voting.commitStageActive.call(pollID);
+      const cpa = await voting.commitPeriodActive.call(pollID);
       assert.strictEqual(cpa, true, 'Commit period should be active');
 
       // Virgin commit
@@ -956,17 +956,17 @@ contract('Registry', (accounts) => {
       // Reveal
       await utils.increaseTime(paramConfig.commitStageLength + 1);
       // Make sure commit period is inactive
-      const commitStageActive = await voting.commitStageActive.call(pollID);
-      assert.strictEqual(commitStageActive, false, 'Commit period should be inactive');
+      const commitPeriodActive = await voting.commitPeriodActive.call(pollID);
+      assert.strictEqual(commitPeriodActive, false, 'Commit period should be inactive');
       // Make sure reveal period is active
-      let rpa = await voting.revealStageActive.call(pollID);
+      let rpa = await voting.revealPeriodActive.call(pollID);
       assert.strictEqual(rpa, true, 'Reveal period should be active');
 
       await voting.revealVote(pollID, voteOption, salt, { from: voter });
 
       // End reveal period
       await utils.increaseTime(paramConfig.revealStageLength + 1);
-      rpa = await voting.revealStageActive.call(pollID);
+      rpa = await voting.revealPeriodActive.call(pollID);
       assert.strictEqual(rpa, false, 'Reveal period should not be active');
 
       // updateStatus

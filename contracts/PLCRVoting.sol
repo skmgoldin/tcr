@@ -1,7 +1,7 @@
 pragma solidity ^0.4.8;
-import "./optional/HumanStandardToken.sol";
-import "./DLL.sol";
-import "./AttributeStore.sol";
+import "tokens/HumanStandardToken.sol";
+import "dll/DLL.sol";
+import "attrstore/AttributeStore.sol";
 
 /**
 @title Partial-Lock-Commit-Reveal Voting scheme with ERC20 tokens 
@@ -9,6 +9,9 @@ import "./AttributeStore.sol";
 */
 contract PLCRVoting {
 
+    // ============
+    // EVENTS:
+    // ============
 
     event VoteCommitted(address voter, uint pollID, uint numTokens);
     event VoteRevealed(address voter, uint pollID, uint numTokens, uint choice);
@@ -16,8 +19,12 @@ contract PLCRVoting {
     event VotingRightsGranted(address voter, uint numTokens);
     event VotingRightsWithdrawn(address voter, uint numTokens);
 
-    /// maps user's address to voteToken balance
-    mapping(address => uint) public voteTokenBalance;
+    // ============
+    // DATA STRUCTURES:
+    // ============
+
+    using AttributeStore for AttributeStore.Data;
+    using DLL for DLL.Data;
 
     struct Poll {
         uint commitEndDate;     /// expiration date of commit period for poll
@@ -27,28 +34,30 @@ contract PLCRVoting {
         uint votesAgainst;      /// tally of votes countering proposal
     }
     
-    /// maps pollID to Poll struct
-    mapping(uint => Poll) public pollMap;
-    uint pollNonce;
+    // ============
+    // STATE VARIABLES:
+    // ============
 
-    using DLL for DLL.Data;
+    uint constant public INITIAL_POLL_NONCE = 0;
+    uint public pollNonce;
+
+    mapping(uint => Poll) public pollMap; // maps pollID to Poll struct
+    mapping(address => uint) public voteTokenBalance; // maps user's address to voteToken balance
+
     mapping(address => DLL.Data) dllMap;
-
-    using AttributeStore for AttributeStore.Data;
     AttributeStore.Data store;
+
+    HumanStandardToken public token;
 
     // ============
     // CONSTRUCTOR:
     // ============
 
-    uint constant INITIAL_POLL_NONCE = 0;
-    HumanStandardToken public token;
-
     /**
     @dev Initializes voteQuorum, commitDuration, revealDuration, and pollNonce in addition to token contract and trusted mapping
     @param _tokenAddr The address where the ERC20 token contract is deployed
     */
-    function PLCRVoting(address _tokenAddr) {
+    function PLCRVoting(address _tokenAddr) public {
         token = HumanStandardToken(_tokenAddr);
         pollNonce = INITIAL_POLL_NONCE;
     }
@@ -104,7 +113,7 @@ contract PLCRVoting {
     @param _prevPollID The ID of the poll that the user has voted the maximum number of tokens in which is still less than or equal to numTokens 
     */
     function commitVote(uint _pollID, bytes32 _secretHash, uint _numTokens, uint _prevPollID) external {
-        require(commitStageActive(_pollID));
+        require(commitPeriodActive(_pollID));
         require(voteTokenBalance[msg.sender] >= _numTokens); // prevent user from overspending
         require(_pollID != 0);                // prevent user from committing to zero node placeholder
 
@@ -122,8 +131,8 @@ contract PLCRVoting {
 
         bytes32 UUID = attrUUID(msg.sender, _pollID);
 
-        store.attachAttribute(UUID, "numTokens", _numTokens);
-        store.attachAttribute(UUID, "commitHash", uint(_secretHash));
+        store.setAttribute(UUID, "numTokens", _numTokens);
+        store.setAttribute(UUID, "commitHash", uint(_secretHash));
 
         VoteCommitted(msg.sender, _pollID, _numTokens);
     }
@@ -151,7 +160,7 @@ contract PLCRVoting {
     */
     function revealVote(uint _pollID, uint _voteOption, uint _salt) external {
         // Make sure the reveal period is active
-        require(revealStageActive(_pollID));
+        require(revealPeriodActive(_pollID));
         require(!hasBeenRevealed(msg.sender, _pollID));                        // prevent user from revealing multiple times
         require(keccak256(_voteOption, _salt) == getCommitHash(msg.sender, _pollID)); // compare resultant hash from inputs to original commitHash
 
@@ -180,7 +189,9 @@ contract PLCRVoting {
         bytes32 winnerHash = keccak256(winningChoice, _salt);
         bytes32 commitHash = getCommitHash(_voter, _pollID);
 
-        return (winnerHash == commitHash) ? getNumTokens(_voter, _pollID) : 0;
+        require(winnerHash == commitHash);
+
+        return getNumTokens(_voter, _pollID);
     }
 
     // ==================
@@ -253,9 +264,9 @@ contract PLCRVoting {
     @notice Checks if the commit period is still active for the specified poll
     @dev Checks isExpired for the specified poll's commitEndDate
     @param _pollID Integer identifier associated with target poll
-    @return Boolean indication of isCommitStageActive for target poll
+    @return Boolean indication of isCommitPeriodActive for target poll
     */
-    function commitStageActive(uint _pollID) constant public returns (bool active) {
+    function commitPeriodActive(uint _pollID) constant public returns (bool active) {
         require(pollExists(_pollID));
 
         return !isExpired(pollMap[_pollID].commitEndDate);
@@ -266,10 +277,10 @@ contract PLCRVoting {
     @dev Checks isExpired for the specified poll's revealEndDate
     @param _pollID Integer identifier associated with target poll
     */
-    function revealStageActive(uint _pollID) constant public returns (bool active) {
+    function revealPeriodActive(uint _pollID) constant public returns (bool active) {
         require(pollExists(_pollID));
 
-        return !isExpired(pollMap[_pollID].revealEndDate) && !commitStageActive(_pollID);
+        return !isExpired(pollMap[_pollID].revealEndDate) && !commitPeriodActive(_pollID);
     }
 
     /**
@@ -385,7 +396,7 @@ contract PLCRVoting {
     @param _pollID Integer identifier associated with target poll
     @return UUID Hash which is deterministic from _user and _pollID
     */
-    function attrUUID(address _user, uint _pollID) public constant returns (bytes32 UUID) {
+    function attrUUID(address _user, uint _pollID) public pure returns (bytes32 UUID) {
         return keccak256(_user, _pollID);
     }
 }

@@ -1,7 +1,7 @@
 pragma solidity^0.4.11;
 
 import "./PLCRVoting.sol";
-import "./optional/StandardToken.sol";
+import "tokens/StandardToken.sol";
 import "./Challenge.sol";
 
 contract Parameterizer {

@@ -11,9 +11,8 @@ const ethRPC = new EthRPC(new HttpProvider('http://localhost:7545'));
 
 const PLCRVoting = artifacts.require('PLCRVoting.sol');
 const Parameterizer = artifacts.require('Parameterizer.sol');
-const Sale = artifacts.require('optional/Sale.sol');
 const Registry = artifacts.require('Registry.sol');
-const Token = artifacts.require('optional/Token.sol');
+const Token = artifacts.require('HumanStandardToken.sol');
 
 const config = JSON.parse(fs.readFileSync('./conf/config.json'));
 const paramConfig = config.paramDefaults;
@@ -51,15 +50,10 @@ const utils = {
     `0x${abi.soliditySHA3(['string'], [domain]).toString('hex')}`
   ),
 
-  buyTokens: async (address, etherAmount) => {
-    const sale = await Sale.deployed();
-    await sale.purchaseTokens({ from: address, value: etherAmount });
-  },
-
   approvePLCR: async (address, adtAmount) => {
     const registry = await Registry.deployed();
     const plcrAddr = await registry.voting.call();
-    const token = Token.at(await registry.token.call());
+    const token = await Token.deployed();
     await token.approve(plcrAddr, adtAmount, { from: address });
   },
 

@@ -1,6 +1,6 @@
 pragma solidity ^0.4.11;
 
-import "./optional/StandardToken.sol";
+import "tokens/StandardToken.sol";
 import "./Parameterizer.sol";
 import "./Challenge.sol";
 import "./PLCRVoting.sol";

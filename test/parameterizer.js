@@ -1,7 +1,7 @@
 /* eslint-env mocha */
 /* global artifacts assert contract */
 const Parameterizer = artifacts.require('./Parameterizer.sol');
-const Token = artifacts.require('./optional/HumanStandardToken.sol');
+const Token = artifacts.require('HumanStandardToken.sol');
 
 const fs = require('fs');
 const BN = require('bn.js');
@@ -342,7 +342,7 @@ contract('Parameterizer', (accounts) => {
         assert.approximately(
           voterBobReward.toNumber(10),
           voterAliceReward.mul(new BN('2', 10)).toNumber(10),
-          1,
+          2,
           'Rewards were not properly distributed between voters',
         );
         // TODO: add asserts for final balances

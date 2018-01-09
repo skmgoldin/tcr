@@ -1,28 +1,27 @@
 /* global artifacts */
 
 const Registry = artifacts.require('Registry.sol');
-const Token = artifacts.require('Token.sol');
+const Token = artifacts.require('HumanStandardToken.sol');
 const Parameterizer = artifacts.require('Parameterizer.sol');
-const Sale = artifacts.require('optional/Sale.sol');
-const DLL = artifacts.require('DLL.sol');
+const DLL = artifacts.require('dll/DLL.sol');
 const Challenge = artifacts.require('Challenge.sol');
-const AttributeStore = artifacts.require('AttributeStore.sol');
+const AttributeStore = artifacts.require('attrstore/AttributeStore.sol');
 const PLCRVoting = artifacts.require('PLCRVoting.sol');
 
 const fs = require('fs');
 
 module.exports = (deployer, network, accounts) => {
-  async function setupForTests(tokenAddress) {
-    async function buyTokensFor(addresses) {
-      const sale = await Sale.deployed();
+  async function setupForTests() {
+    async function giveTokensTo(addresses) {
+      const token = await Token.deployed();
       const user = addresses[0];
-      await sale.purchaseTokens({ from: user, value: '1000000000000000000' });
+      await token.transfer(user, '100000');
       if (addresses.length === 1) { return true; }
-      return buyTokensFor(addresses.slice(1));
+      return giveTokensTo(addresses.slice(1));
     }
 
     async function approveRegistryFor(addresses) {
-      const token = Token.at(tokenAddress);
+      const token = await Token.deployed();
       const user = addresses[0];
       const balanceOfUser = await token.balanceOf(user);
       await token.approve(Registry.address, balanceOfUser, { from: user });
@@ -31,7 +30,7 @@ module.exports = (deployer, network, accounts) => {
     }
 
     async function approveParameterizerFor(addresses) {
-      const token = Token.at(tokenAddress);
+      const token = await Token.deployed();
       const user = addresses[0];
       const balanceOfUser = await token.balanceOf(user);
       await token.approve(Parameterizer.address, balanceOfUser, { from: user });
@@ -40,7 +39,7 @@ module.exports = (deployer, network, accounts) => {
     }
 
     async function approvePLCRFor(addresses) {
-      const token = Token.at(tokenAddress);
+      const token = await Token.deployed();
       const registry = await Registry.deployed();
       const user = addresses[0];
       const balanceOfUser = await token.balanceOf(user);
@@ -50,7 +49,7 @@ module.exports = (deployer, network, accounts) => {
       return approvePLCRFor(addresses.slice(1));
     }
 
-    await buyTokensFor(accounts);
+    await giveTokensTo(accounts);
     await approveRegistryFor(accounts);
     await approveParameterizerFor(accounts);
     await approvePLCRFor(accounts);
@@ -76,9 +75,8 @@ module.exports = (deployer, network, accounts) => {
   deployer.link(Challenge, Registry);
 
   return deployer.then(async () => {
-    if (network !== 'mainnet') {
-      const sale = await Sale.deployed();
-      tokenAddress = await sale.token.call();
+    if (network === 'test') {
+      tokenAddress = Token.address;
     }
     return deployer.deploy(
       PLCRVoting,
@@ -111,8 +109,8 @@ module.exports = (deployer, network, accounts) => {
             Parameterizer.address,
           ))
         .then(async () => {
-          if (network === 'develop' || network === 'test') {
-            await setupForTests(tokenAddress);
+          if (network === 'test') {
+            await setupForTests();
           }
         }).catch((err) => { throw err; }));
 };
