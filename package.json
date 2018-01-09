@@ -5,7 +5,7 @@
   "scripts": {
     "compile": "truffle install && truffle compile",
     "deploy-rinkeby": "truffle migrate --network rinkeby",
-    "test": "truffle test",
+    "test": "npm run lint ./ && truffle test",
     "fix": "eslint --fix",
     "lint": "eslint"
   },
