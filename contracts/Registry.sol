@@ -11,13 +11,13 @@ contract Registry {
   // EVENTS
   // ------
 
-  event _Application(string domain, uint deposit);
-  event _Challenge(string domain, uint deposit, uint pollID);
-  event _Deposit(string domain, uint added, uint newTotal);
-  event _Withdrawal(string domain, uint withdrew, uint newTotal);
-  event _NewDomainWhitelisted(string domain);
-  event _ApplicationRemoved(string domain);
-  event _ListingRemoved(string domain);
+  event _Application(string listing, uint deposit);
+  event _Challenge(string listing, uint deposit, uint pollID);
+  event _Deposit(string listing, uint added, uint newTotal);
+  event _Withdrawal(string listing, uint withdrew, uint newTotal);
+  event _NewListingWhitelisted(string listing);
+  event _ApplicationRemoved(string listing);
+  event _ListingRemoved(string listing);
   event _ChallengeFailed(uint challengeID);
   event _ChallengeSucceeded(uint challengeID);
   event _RewardClaimed(address voter, uint challengeID, uint reward);
@@ -43,7 +43,7 @@ contract Registry {
   // Maps challengeIDs to associated challenge data
   mapping(uint => Challenge.Data) public challenges;
 
-  // Maps domainHashes to associated listing data
+  // Maps listingHashes to associated listing data
   mapping(bytes32 => Listing) public listings;
 
   // Global Variables
@@ -79,16 +79,16 @@ contract Registry {
   /**
   @notice             Allows a user to start an application.
   @notice             Takes tokens from user and sets apply stage end time.
-  @param _domain      The domain of a potential listing a user is applying to add to the registry
+  @param _listing      The listing of a potential listing a user is applying to add to the registry
   @param _amount      The number of ERC20 tokens a user is willing to potentially stake
   */
-  function apply(string _domain, uint _amount) external {
-    require(!isWhitelisted(_domain));
-    require(!appWasMade(_domain));
+  function apply(string _listing, uint _amount) external {
+    require(!isWhitelisted(_listing));
+    require(!appWasMade(_listing));
     require(_amount >= parameterizer.get("minDeposit"));
 
     // Sets owner
-    Listing storage listing = listings[keccak256(_domain)];
+    Listing storage listing = listings[keccak256(_listing)];
     listing.owner = msg.sender;
 
     // Transfers tokens from user to Registry contract
@@ -98,33 +98,33 @@ contract Registry {
     listing.applicationExpiry = block.timestamp + parameterizer.get("applyStageLen");
     listing.unstakedDeposit = _amount;
 
-    _Application(_domain, _amount);
+    _Application(_listing, _amount);
   }
 
   /**
-  @notice             Allows the owner of a domain to increase their unstaked deposit.
-  @param _domain      The domain of a user's application/listing
+  @notice             Allows the owner of a listing to increase their unstaked deposit.
+  @param _listing      The listing of a user's application/listing
   @param _amount      The number of ERC20 tokens to increase a user's unstaked deposit
   */
-  function deposit(string _domain, uint _amount) external {
-    Listing storage listing = listings[keccak256(_domain)];
+  function deposit(string _listing, uint _amount) external {
+    Listing storage listing = listings[keccak256(_listing)];
 
     require(listing.owner == msg.sender);
     require(token.transferFrom(msg.sender, this, _amount));
 
     listing.unstakedDeposit += _amount;
 
-    _Deposit(_domain, _amount, listing.unstakedDeposit);
+    _Deposit(_listing, _amount, listing.unstakedDeposit);
   }
 
   /**
-  @notice             Allows the owner of a domain to decrease their unstaked deposit.
+  @notice             Allows the owner of a listing to decrease their unstaked deposit.
   @notice             The listing keeps its previous status.
-  @param _domain      The domain of a user's application/listing
+  @param _listing      The listing of a user's application/listing
   @param _amount      The number of ERC20 tokens to decrease a user's unstaked deposit
   */
-  function withdraw(string _domain, uint _amount) external {
-    Listing storage listing = listings[keccak256(_domain)];
+  function withdraw(string _listing, uint _amount) external {
+    Listing storage listing = listings[keccak256(_listing)];
 
     require(listing.owner == msg.sender);
     require(_amount <= listing.unstakedDeposit);
@@ -134,26 +134,26 @@ contract Registry {
 
     listing.unstakedDeposit -= _amount;
 
-    _Withdrawal(_domain, _amount, listing.unstakedDeposit);
+    _Withdrawal(_listing, _amount, listing.unstakedDeposit);
   }
 
   /**
   @notice             Allows the owner of a listing to remove the listing from the whitelist
   @notice             Returns all tokens to the owner of the listing
-  @param _domain      The domain of a user's listing
+  @param _listing      The listing of a user's listing
   */
-  function exit(string _domain) external {
-    Listing storage listing = listings[keccak256(_domain)];
+  function exit(string _listing) external {
+    Listing storage listing = listings[keccak256(_listing)];
 
     require(msg.sender == listing.owner);
-    require(isWhitelisted(_domain));
+    require(isWhitelisted(_listing));
 
     // Cannot exit during ongoing challenge
     require(!challenges[listing.challengeID].isInitialized() ||
             challenges[listing.challengeID].isResolved());
 
-    // Remove domain & return tokens
-    resetListing(_domain);
+    // Remove listing & return tokens
+    resetListing(_listing);
   }
 
   // -----------------------
@@ -161,25 +161,25 @@ contract Registry {
   // -----------------------
 
   /**
-  @notice             Starts a poll for a domain which is either
+  @notice             Starts a poll for a listing which is either
   @notice             in the apply stage or already in the whitelist.
   @dev                Tokens are taken from the challenger and the applicant's deposit is locked.
-  @param _domain      The domain of an applicant's potential listing
+  @param _listing      The listing of an applicant's potential listing
   */
-  function challenge(string _domain) external returns (uint challengeID) {
-    bytes32 domainHash = keccak256(_domain);
-    Listing storage listing = listings[domainHash];
+  function challenge(string _listing) external returns (uint challengeID) {
+    bytes32 listingHash = keccak256(_listing);
+    Listing storage listing = listings[listingHash];
     uint deposit = parameterizer.get("minDeposit");
 
-    // Domain must be in apply stage or already on the whitelist
-    require(appWasMade(_domain) || listing.whitelisted);
+    // Listing must be in apply stage or already on the whitelist
+    require(appWasMade(_listing) || listing.whitelisted);
     // Prevent multiple challenges
     require(!challenges[listing.challengeID].isInitialized() ||
             challenges[listing.challengeID].isResolved());
 
     if (listing.unstakedDeposit < deposit) {
-      // Not enough tokens, domain auto-delisted
-      resetListing(_domain);
+      // Not enough tokens, listing auto-delisted
+      resetListing(_listing);
       return 0;
     }
 
@@ -205,12 +205,12 @@ contract Registry {
     });
 
     // Updates listing to store most recent challenge
-    listings[domainHash].challengeID = pollID;
+    listings[listingHash].challengeID = pollID;
 
     // Locks tokens for listing during challenge
-    listings[domainHash].unstakedDeposit -= deposit;
+    listings[listingHash].unstakedDeposit -= deposit;
 
-    _Challenge(_domain, deposit, pollID);
+    _Challenge(_listing, deposit, pollID);
     return pollID;
   }
 
@@ -227,16 +227,16 @@ contract Registry {
   }
 
   /**
-  @notice             Updates a domain's status from 'application' to 'listing'
+  @notice             Updates a listing's status from 'application' to 'listing'
   @notice             or resolves a challenge if one exists.
-  @param _domain      The domain whose status is being updated
+  @param _listing      The listing whose status is being updated
   */
-  function updateStatus(string _domain) public {
-    if (canBeWhitelisted(_domain)) {
-      whitelistApplication(_domain);
-      _NewDomainWhitelisted(_domain);
-    } else if (challengeCanBeResolved(_domain)) {
-      resolveChallenge(_domain);
+  function updateStatus(string _listing) public {
+    if (canBeWhitelisted(_listing)) {
+      whitelistApplication(_listing);
+      _NewListingWhitelisted(_listing);
+    } else if (challengeCanBeResolved(_listing)) {
+      resolveChallenge(_listing);
     } else {
       revert();
     }
@@ -247,50 +247,50 @@ contract Registry {
   // --------
 
   /**
-  @dev                Determines whether the domain of an application can be whitelisted.
-  @param _domain      The domain whose status should be examined
+  @dev                Determines whether the listing of an application can be whitelisted.
+  @param _listing      The listing whose status should be examined
   */
-  function canBeWhitelisted(string _domain) constant public returns (bool) {
-    bytes32 domainHash = keccak256(_domain);
-    uint challengeID = listings[domainHash].challengeID;
+  function canBeWhitelisted(string _listing) constant public returns (bool) {
+    bytes32 listingHash = keccak256(_listing);
+    uint challengeID = listings[listingHash].challengeID;
 
     // Ensures that the application was made,
     // the application period has ended,
-    // the domain can be whitelisted,
+    // the listing can be whitelisted,
     // and either: the challengeID == 0, or the challenge has been resolved.
     if (
-        appWasMade(_domain) &&
-        isExpired(listings[domainHash].applicationExpiry) &&
-        !isWhitelisted(_domain) &&
+        appWasMade(_listing) &&
+        isExpired(listings[listingHash].applicationExpiry) &&
+        !isWhitelisted(_listing) &&
         (!challenges[challengeID].isInitialized() || challenges[challengeID].isResolved())
     ) { return true; }
 
     return false;
   }
 
-  /// @dev returns true if domain is whitelisted
-  function isWhitelisted(string _domain) constant public returns (bool whitelisted) {
-    return listings[keccak256(_domain)].whitelisted;
+  /// @dev returns true if listing is whitelisted
+  function isWhitelisted(string _listing) constant public returns (bool whitelisted) {
+    return listings[keccak256(_listing)].whitelisted;
   }
 
-  // @dev returns true if apply was called for this domain
-  function appWasMade(string _domain) constant public returns (bool exists) {
-    return listings[keccak256(_domain)].applicationExpiry > 0;
+  // @dev returns true if apply was called for this listing
+  function appWasMade(string _listing) constant public returns (bool exists) {
+    return listings[keccak256(_listing)].applicationExpiry > 0;
   }
 
   // @dev returns true if the application/listing has an unresolved challenge
-  function challengeExists(string _domain) constant public returns (bool) {
-    Challenge.Data storage challenge = challenges[listings[keccak256(_domain)].challengeID];
+  function challengeExists(string _listing) constant public returns (bool) {
+    Challenge.Data storage challenge = challenges[listings[keccak256(_listing)].challengeID];
       return challenge.isInitialized() && !challenge.isResolved();
   }
 
   /**
-  @notice             Determines whether voting has concluded in a challenge for a given domain.
+  @notice             Determines whether voting has concluded in a challenge for a given listing.
   @dev                Throws if no challenge exists.
-  @param _domain      A domain with an unresolved challenge
+  @param _listing      A listing with an unresolved challenge
   */
-  function challengeCanBeResolved(string _domain) constant public returns (bool) {
-    Challenge.Data storage challenge = challenges[listings[keccak256(_domain)].challengeID];
+  function challengeCanBeResolved(string _listing) constant public returns (bool) {
+    Challenge.Data storage challenge = challenges[listings[keccak256(_listing)].challengeID];
     return challenge.isInitialized() && challenge.canBeResolved();
   }
 
@@ -338,39 +338,39 @@ contract Registry {
 
   /**
   @dev Determines the winner in a challenge. Rewards the winner tokens and either whitelists or
-  de-whitelists the domain.
-  @param _domain A domain with a challenge that is to be resolved.
+  de-whitelists the listing.
+  @param _listing A listing with a challenge that is to be resolved.
   */
-  function resolveChallenge(string _domain) private {
-    bytes32 domainHash = keccak256(_domain);
-    Listing storage listing = listings[domainHash];
+  function resolveChallenge(string _listing) private {
+    bytes32 listingHash = keccak256(_listing);
+    Listing storage listing = listings[listingHash];
     Challenge.Data storage challenge = challenges[listing.challengeID];
 
     // Calculates the winner's reward,
     // which is: (winner's full stake) + (dispensationPct * loser's stake)
     uint winnerReward = challenge.challengeWinnerReward();
 
-    // Records whether the domain is a listing or an application
-    bool wasWhitelisted = isWhitelisted(_domain);
+    // Records whether the listing is a listing or an application
+    bool wasWhitelisted = isWhitelisted(_listing);
 
     // Case: challenge failed
     if (voting.isPassed(challenge.challengeID)) {
-      whitelistApplication(_domain);
+      whitelistApplication(_listing);
       // Unlock stake so that it can be retrieved by the applicant
       listing.unstakedDeposit += winnerReward;
 
       _ChallengeFailed(challenge.challengeID);
-      if (!wasWhitelisted) { _NewDomainWhitelisted(_domain); }
+      if (!wasWhitelisted) { _NewListingWhitelisted(_listing); }
     }
     // Case: challenge succeeded
     else {
-      resetListing(_domain);
+      resetListing(_listing);
       // Transfer the reward to the challenger
       require(token.transfer(challenge.challenger, winnerReward));
 
       _ChallengeSucceeded(challenge.challengeID);
-      if (wasWhitelisted) { _ListingRemoved(_domain); }
-      else { _ApplicationRemoved(_domain); }
+      if (wasWhitelisted) { _ListingRemoved(_listing); }
+      else { _ApplicationRemoved(_listing); }
     }
 
     challenge.winningTokens =
@@ -382,27 +382,27 @@ contract Registry {
   @dev Called by updateStatus() if the applicationExpiry date passed without a
   challenge being made
   @dev Called by resolveChallenge() if an application/listing beat a challenge.
-  @param _domain The domain of an application/listing to be whitelisted
+  @param _listing The listing of an application/listing to be whitelisted
   */
-  function whitelistApplication(string _domain) private {
-    bytes32 domainHash = keccak256(_domain);
+  function whitelistApplication(string _listing) private {
+    bytes32 listingHash = keccak256(_listing);
 
-    listings[domainHash].whitelisted = true;
+    listings[listingHash].whitelisted = true;
   }
 
   /**
   @dev deletes a listing from the whitelist and transfers tokens back to owner
-  @param _domain the domain to be removed
+  @param _listing the listing to be removed
   */
-  function resetListing(string _domain) private {
-    bytes32 domainHash = keccak256(_domain);
-    Listing storage listing = listings[domainHash];
+  function resetListing(string _listing) private {
+    bytes32 listingHash = keccak256(_listing);
+    Listing storage listing = listings[listingHash];
 
     // Transfers any remaining balance back to the owner
     if (listing.unstakedDeposit > 0)
         require(token.transfer(listing.owner, listing.unstakedDeposit));
 
-    delete listings[domainHash];
+    delete listings[listingHash];
   }
 
 
