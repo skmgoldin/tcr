@@ -2,7 +2,7 @@
 /* global assert contract artifacts */
 const Registry = artifacts.require('Registry.sol');
 const Parameterizer = artifacts.require('Parameterizer.sol');
-const Token = artifacts.require('Token.sol');
+const Token = artifacts.require('EIP20.sol');
 
 const fs = require('fs');
 const BN = require('bignumber.js');

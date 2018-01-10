@@ -1,6 +1,6 @@
 /* global artifacts */
 
-const Token = artifacts.require('tokens/HumanStandardToken.sol');
+const Token = artifacts.require('tokens/eip20/EIP20.sol');
 
 module.exports = (deployer, network) => {
   if (network === 'test') {

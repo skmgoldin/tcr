@@ -12,7 +12,7 @@ const ethRPC = new EthRPC(new HttpProvider('http://localhost:7545'));
 const PLCRVoting = artifacts.require('PLCRVoting.sol');
 const Parameterizer = artifacts.require('Parameterizer.sol');
 const Registry = artifacts.require('Registry.sol');
-const Token = artifacts.require('HumanStandardToken.sol');
+const Token = artifacts.require('EIP20.sol');
 
 const config = JSON.parse(fs.readFileSync('./conf/config.json'));
 const paramConfig = config.paramDefaults;

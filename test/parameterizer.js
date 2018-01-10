@@ -1,7 +1,7 @@
 /* eslint-env mocha */
 /* global artifacts assert contract */
 const Parameterizer = artifacts.require('./Parameterizer.sol');
-const Token = artifacts.require('HumanStandardToken.sol');
+const Token = artifacts.require('EIP20.sol');
 
 const fs = require('fs');
 const BN = require('bn.js');

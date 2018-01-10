@@ -1,7 +1,7 @@
 /* global artifacts */
 
 const Registry = artifacts.require('Registry.sol');
-const Token = artifacts.require('HumanStandardToken.sol');
+const Token = artifacts.require('EIP20.sol');
 const Parameterizer = artifacts.require('Parameterizer.sol');
 const DLL = artifacts.require('dll/DLL.sol');
 const Challenge = artifacts.require('Challenge.sol');

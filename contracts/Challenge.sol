@@ -1,7 +1,7 @@
 pragma solidity^0.4.11;
 
 import "./PLCRVoting.sol";
-import "tokens/StandardToken.sol";
+import "tokens/eip20/EIP20.sol";
 
 library Challenge {
 
@@ -12,7 +12,7 @@ library Challenge {
   struct Data {
     uint rewardPool;        // (remaining) Pool of tokens distributed amongst winning voters
     PLCRVoting voting;      // Address of a PLCRVoting contract
-    StandardToken token;    // Address of an ERC20 token contract
+    EIP20 token;            // Address of an ERC20 token contract
     uint challengeID;       // An ID corresponding to a pollID in the PLCR contract
     address challenger;     // Owner of Challenge
     bool resolved;          // Indication of if challenge is resolved

@@ -1,7 +1,7 @@
 pragma solidity^0.4.11;
 
 import "./PLCRVoting.sol";
-import "tokens/StandardToken.sol";
+import "tokens/eip20/EIP20.sol";
 import "./Challenge.sol";
 
 contract Parameterizer {
@@ -43,7 +43,7 @@ contract Parameterizer {
   mapping(bytes32 => ParamProposal) public proposals; 
 
   // Global Variables
-  StandardToken public token;
+  EIP20 public token;
   PLCRVoting public voting;
   uint public PROCESSBY = 604800; // 7 days
 
@@ -84,7 +84,7 @@ contract Parameterizer {
     uint _voteQuorum,
     uint _pVoteQuorum
     ) {
-      token = StandardToken(_tokenAddr);
+      token = EIP20(_tokenAddr);
       voting = PLCRVoting(_plcrAddr);
 
       set("minDeposit", _minDeposit);
