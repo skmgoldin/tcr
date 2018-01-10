@@ -46,7 +46,7 @@ const utils = {
     `0x${abi.soliditySHA3(['uint', 'uint'], [vote, salt]).toString('hex')}`
   ),
 
-  getDomainHash: domain => (
+  getListingHash: domain => (
     `0x${abi.soliditySHA3(['string'], [domain]).toString('hex')}`
   ),
 
@@ -94,10 +94,8 @@ const utils = {
 
   getUnstakedDeposit: async (domain) => {
     const registry = await Registry.deployed();
-    // hash the domain so we can identify in listings
-    const hash = utils.getDomainHash(domain);
     // get the struct in the mapping
-    const listing = await registry.listings.call(hash);
+    const listing = await registry.listings.call(domain);
     // get the unstaked deposit amount from the listing struct
     const unstakedDeposit = await listing[3];
     return unstakedDeposit.toString();

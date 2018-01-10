@@ -20,14 +20,14 @@ contract('Registry', (accounts) => {
     const incAmount = minDeposit.div(bigTen(2));
     const [applicant, challenger] = accounts;
 
-    it('should increase the deposit for a specific domain in the listing', async () => {
+    it('should increase the deposit for a specific listing in the listing', async () => {
       const registry = await Registry.deployed();
-      const domain = 'specificdomain.net';
+      const listing = utils.getListingHash('specificlisting.net');
 
-      await utils.addToWhitelist(domain, minDeposit, applicant);
-      await utils.as(applicant, registry.deposit, domain, incAmount);
+      await utils.addToWhitelist(listing, minDeposit, applicant);
+      await utils.as(applicant, registry.deposit, listing, incAmount);
 
-      const unstakedDeposit = await utils.getUnstakedDeposit(domain);
+      const unstakedDeposit = await utils.getUnstakedDeposit(listing);
       const expectedAmount = incAmount.add(minDeposit);
       assert.strictEqual(
         unstakedDeposit, expectedAmount.toString(10),
@@ -37,13 +37,13 @@ contract('Registry', (accounts) => {
 
     it('should increase a deposit for a pending application', async () => {
       const registry = await Registry.deployed();
-      const domain = 'pendingdomain.net';
-      await utils.as(applicant, registry.apply, domain, minDeposit);
+      const listing = utils.getListingHash('pendinglisting.net');
+      await utils.as(applicant, registry.apply, listing, minDeposit);
 
       try {
-        await utils.as(applicant, registry.deposit, domain, incAmount);
+        await utils.as(applicant, registry.deposit, listing, incAmount);
 
-        const unstakedDeposit = await utils.getUnstakedDeposit(domain);
+        const unstakedDeposit = await utils.getUnstakedDeposit(listing);
         const expectedAmount = incAmount.add(minDeposit);
         assert.strictEqual(unstakedDeposit, expectedAmount.toString(10), 'Deposit should have increased for pending application');
       } catch (err) {
@@ -52,32 +52,32 @@ contract('Registry', (accounts) => {
       }
     });
 
-    it('should increase deposit for a whitelisted, challenged domain', async () => {
+    it('should increase deposit for a whitelisted, challenged listing', async () => {
       const registry = await Registry.deployed();
-      const domain = 'challengedomain.net';
-      await utils.addToWhitelist(domain, minDeposit, applicant);
-      const originalDeposit = await utils.getUnstakedDeposit(domain);
+      const listing = utils.getListingHash('challengelisting.net');
+      await utils.addToWhitelist(listing, minDeposit, applicant);
+      const originalDeposit = await utils.getUnstakedDeposit(listing);
 
       // challenge, then increase deposit
-      await utils.as(challenger, registry.challenge, domain);
-      await utils.as(applicant, registry.deposit, domain, incAmount);
+      await utils.as(challenger, registry.challenge, listing);
+      await utils.as(applicant, registry.deposit, listing, incAmount);
 
-      const afterIncDeposit = await utils.getUnstakedDeposit(domain);
+      const afterIncDeposit = await utils.getUnstakedDeposit(listing);
 
       const expectedAmount = (
         bigTen(originalDeposit).add(bigTen(incAmount))
       ).sub(bigTen(minDeposit));
 
-      assert.strictEqual(afterIncDeposit, expectedAmount.toString(10), 'Deposit should have increased for whitelisted, challenged domain');
+      assert.strictEqual(afterIncDeposit, expectedAmount.toString(10), 'Deposit should have increased for whitelisted, challenged listing');
     });
 
     it('should not increase deposit for a listing not owned by the msg.sender', async () => {
       const registry = await Registry.deployed();
-      const domain = 'notowner.com';
-      await utils.addToWhitelist(domain, minDeposit, applicant);
+      const listing = utils.getListingHash('notowner.com');
+      await utils.addToWhitelist(listing, minDeposit, applicant);
 
       try {
-        await utils.as(challenger, registry.deposit, domain, incAmount);
+        await utils.as(challenger, registry.deposit, listing, incAmount);
         assert(false, 'Deposit should not have increased when sent by the wrong msg.sender');
       } catch (err) {
         assert(utils.isEVMException(err), err.toString());
@@ -94,11 +94,11 @@ contract('Registry', (accounts) => {
     it('should report properly whether a voter has claimed tokens', async () => {
       const registry = await Registry.deployed();
       const voting = await utils.getVoting();
-      const domain = 'claims.com';
+      const listing = utils.getListingHash('claims.com');
 
-      await utils.addToWhitelist(domain, minDeposit, applicant);
+      await utils.addToWhitelist(listing, minDeposit, applicant);
 
-      const pollID = await utils.challengeAndGetPollID(domain, challenger);
+      const pollID = await utils.challengeAndGetPollID(listing, challenger);
 
       await utils.commitVote(pollID, '0', '10', '420', voter);
       await utils.increaseTime(paramConfig.commitStageLength + 1);
@@ -106,7 +106,7 @@ contract('Registry', (accounts) => {
       await utils.as(voter, voting.revealVote, pollID, '0', '420');
       await utils.increaseTime(paramConfig.revealStageLength + 1);
 
-      await utils.as(challenger, registry.updateStatus, domain);
+      await utils.as(challenger, registry.updateStatus, listing);
 
       const initialHasClaimed = await registry.tokenClaims.call(pollID, voter);
       assert.strictEqual(initialHasClaimed, false, 'The voter is purported to have claimed ' +
@@ -129,36 +129,36 @@ contract('Registry', (accounts) => {
 
     it('should not withdraw tokens from a listing that has a deposit === minDeposit', async () => {
       const registry = await Registry.deployed();
-      const dontChallengeDomain = 'dontchallenge.net';
+      const dontChallengeListing = 'dontchallenge.net';
       const errMsg = 'applicant was able to withdraw tokens';
 
-      await utils.addToWhitelist(dontChallengeDomain, minDeposit, applicant);
-      const origDeposit = await utils.getUnstakedDeposit(dontChallengeDomain);
+      await utils.addToWhitelist(dontChallengeListing, minDeposit, applicant);
+      const origDeposit = await utils.getUnstakedDeposit(dontChallengeListing);
 
       try {
-        await utils.as(applicant, registry.withdraw, dontChallengeDomain, withdrawAmount);
+        await utils.as(applicant, registry.withdraw, dontChallengeListing, withdrawAmount);
         assert(false, errMsg);
       } catch (err) {
         assert(utils.isEVMException(err), err.toString());
       }
 
-      const afterWithdrawDeposit = await utils.getUnstakedDeposit(dontChallengeDomain);
+      const afterWithdrawDeposit = await utils.getUnstakedDeposit(dontChallengeListing);
 
       assert.strictEqual(afterWithdrawDeposit.toString(10), origDeposit.toString(10), errMsg);
     });
 
-    it('should not withdraw tokens from a domain that is locked in a challenge', async () => {
+    it('should not withdraw tokens from a listing that is locked in a challenge', async () => {
       const registry = await Registry.deployed();
-      const domain = 'shouldntwithdraw.net';
+      const listing = utils.getListingHash('shouldntwithdraw.net');
 
       // Whitelist, then challenge
-      await utils.addToWhitelist(domain, minDeposit, applicant);
-      await utils.as(challenger, registry.challenge, domain);
+      await utils.addToWhitelist(listing, minDeposit, applicant);
+      await utils.as(challenger, registry.challenge, listing);
 
       try {
         // Attempt to withdraw; should fail
-        await utils.as(applicant, registry.withdraw, domain, withdrawAmount);
-        assert.strictEqual(false, 'Applicant should not have been able to withdraw from a challenged, locked domain');
+        await utils.as(applicant, registry.withdraw, listing, withdrawAmount);
+        assert.strictEqual(false, 'Applicant should not have been able to withdraw from a challenged, locked listing');
       } catch (err) {
         const errMsg = err.toString();
         assert(utils.isEVMException(err), errMsg);
@@ -176,86 +176,86 @@ contract('Registry', (accounts) => {
     const [applicant, challenger] = accounts;
     const minDeposit = bigTen(paramConfig.minDeposit);
 
-    it('should whitelist domain if apply stage ended without a challenge', async () => {
+    it('should whitelist listing if apply stage ended without a challenge', async () => {
       const registry = await Registry.deployed();
-      const domain = 'whitelist.io';
+      const listing = utils.getListingHash('whitelist.io');
       // note: this function calls registry.updateStatus at the end
-      await utils.addToWhitelist(domain, minDeposit, applicant);
+      await utils.addToWhitelist(listing, minDeposit, applicant);
 
-      const result = await registry.isWhitelisted.call(domain);
-      assert.strictEqual(result, true, 'Domain should have been whitelisted');
+      const result = await registry.isWhitelisted.call(listing);
+      assert.strictEqual(result, true, 'Listing should have been whitelisted');
     });
 
-    it('should not whitelist a domain that is still pending an application', async () => {
+    it('should not whitelist a listing that is still pending an application', async () => {
       const registry = await Registry.deployed();
-      const domain = 'tooearlybuddy.io';
-      await utils.as(applicant, registry.apply, domain, minDeposit);
+      const listing = utils.getListingHash('tooearlybuddy.io');
+      await utils.as(applicant, registry.apply, listing, minDeposit);
 
       try {
-        await utils.as(applicant, registry.updateStatus, domain);
-        assert(false, 'Domain should not have been whitelisted');
+        await utils.as(applicant, registry.updateStatus, listing);
+        assert(false, 'Listing should not have been whitelisted');
       } catch (err) {
         assert(utils.isEVMException(err), err.toString());
       }
     });
 
-    it('should not whitelist a domain that is currently being challenged', async () => {
+    it('should not whitelist a listing that is currently being challenged', async () => {
       const registry = await Registry.deployed();
-      const domain = 'dontwhitelist.io';
+      const listing = utils.getListingHash('dontwhitelist.io');
 
-      await utils.as(applicant, registry.apply, domain, minDeposit);
-      await utils.as(challenger, registry.challenge, domain);
+      await utils.as(applicant, registry.apply, listing, minDeposit);
+      await utils.as(challenger, registry.challenge, listing);
 
       try {
-        await registry.updateStatus(domain);
-        assert(false, 'Domain should not have been whitelisted');
+        await registry.updateStatus(listing);
+        assert(false, 'Listing should not have been whitelisted');
       } catch (err) {
         assert(utils.isEVMException(err), err.toString());
       }
     });
 
-    it('should not whitelist a domain that failed a challenge', async () => {
+    it('should not whitelist a listing that failed a challenge', async () => {
       const registry = await Registry.deployed();
-      const domain = 'dontwhitelist.net';
+      const listing = utils.getListingHash('dontwhitelist.net');
 
-      await utils.as(applicant, registry.apply, domain, minDeposit);
-      await utils.as(challenger, registry.challenge, domain);
+      await utils.as(applicant, registry.apply, listing, minDeposit);
+      await utils.as(challenger, registry.challenge, listing);
 
       const plcrComplete = paramConfig.revealStageLength + paramConfig.commitStageLength + 1;
       await utils.increaseTime(plcrComplete);
 
-      await registry.updateStatus(domain);
-      const result = await registry.isWhitelisted(domain);
-      assert.strictEqual(result, false, 'Domain should not have been whitelisted');
+      await registry.updateStatus(listing);
+      const result = await registry.isWhitelisted(listing);
+      assert.strictEqual(result, false, 'Listing should not have been whitelisted');
     });
 
-    it('should not be possible to add a domain to the whitelist just by calling updateStatus', async () => {
+    it('should not be possible to add a listing to the whitelist just by calling updateStatus', async () => {
       const registry = await Registry.deployed();
-      const domain = 'updatemenow.net';
+      const listing = utils.getListingHash('updatemenow.net');
 
       try {
-        await utils.as(applicant, registry.updateStatus, domain);
-        assert(false, 'Domain should not have been whitelisted');
+        await utils.as(applicant, registry.updateStatus, listing);
+        assert(false, 'Listing should not have been whitelisted');
       } catch (err) {
         assert(utils.isEVMException(err), err.toString());
       }
     });
 
-    it('should not be possible to add a domain to the whitelist just by calling updateStatus after it has been previously removed', async () => {
+    it('should not be possible to add a listing to the whitelist just by calling updateStatus after it has been previously removed', async () => {
       const registry = await Registry.deployed();
-      const domain = 'somanypossibilities.net';
+      const listing = utils.getListingHash('somanypossibilities.net');
 
-      await utils.addToWhitelist(domain, minDeposit, applicant);
-      const resultOne = await registry.isWhitelisted(domain);
-      assert.strictEqual(resultOne, true, 'Domain should have been whitelisted');
+      await utils.addToWhitelist(listing, minDeposit, applicant);
+      const resultOne = await registry.isWhitelisted(listing);
+      assert.strictEqual(resultOne, true, 'Listing should have been whitelisted');
 
-      await utils.as(applicant, registry.exit, domain);
-      const resultTwo = await registry.isWhitelisted(domain);
-      assert.strictEqual(resultTwo, false, 'Domain should not be in the whitelist');
+      await utils.as(applicant, registry.exit, listing);
+      const resultTwo = await registry.isWhitelisted(listing);
+      assert.strictEqual(resultTwo, false, 'Listing should not be in the whitelist');
 
       try {
-        await utils.as(applicant, registry.updateStatus, domain);
-        assert(false, 'Domain should not have been whitelisted');
+        await utils.as(applicant, registry.updateStatus, listing);
+        assert(false, 'Listing should not have been whitelisted');
       } catch (err) {
         assert(utils.isEVMException(err), err.toString());
       }
@@ -272,14 +272,14 @@ contract('Registry', (accounts) => {
       const registry = await Registry.deployed();
       const voting = await utils.getVoting();
       const token = Token.at(await registry.token.call());
-      const domain = 'claimthis.net';
+      const listing = utils.getListingHash('claimthis.net');
 
       // Apply
-      await utils.as(applicant, registry.apply, domain, minDeposit);
+      await utils.as(applicant, registry.apply, listing, minDeposit);
       const aliceStartingBalance = await token.balanceOf.call(voterAlice);
 
       // Challenge
-      const pollID = await utils.challengeAndGetPollID(domain, challenger);
+      const pollID = await utils.challengeAndGetPollID(listing, challenger);
 
       // Alice is so committed
       await utils.commitVote(pollID, '0', 500, '420', voterAlice);
@@ -290,7 +290,7 @@ contract('Registry', (accounts) => {
       await utils.increaseTime(paramConfig.revealStageLength + 1);
 
       // Update status
-      await utils.as(applicant, registry.updateStatus, domain);
+      await utils.as(applicant, registry.updateStatus, listing);
 
       // Alice claims reward
       const aliceVoterReward = await registry.voterReward(voterAlice, pollID, '420');
@@ -310,8 +310,8 @@ contract('Registry', (accounts) => {
 
     it('should revert if challenge does not exist', async () => {
       const registry = await Registry.deployed();
-      const domain = 'reversion.net';
-      await utils.addToWhitelist(domain, minDeposit, applicant);
+      const listing = utils.getListingHash('reversion.net');
+      await utils.addToWhitelist(listing, minDeposit, applicant);
 
       try {
         const nonPollID = '666';
@@ -324,15 +324,15 @@ contract('Registry', (accounts) => {
 
     it('should revert if provided salt is incorrect', async () => {
       const registry = await Registry.deployed();
-      const domain = 'sugar.net';
+      const listing = utils.getListingHash('sugar.net');
       const voting = await utils.getVoting();
       const token = Token.at(await registry.token.call());
 
       const applicantStartingBalance = await token.balanceOf.call(applicant);
       const aliceStartBal = await token.balanceOf.call(voterAlice);
-      await utils.addToWhitelist(domain, minDeposit, applicant);
+      await utils.addToWhitelist(listing, minDeposit, applicant);
 
-      const pollID = await utils.challengeAndGetPollID(domain, challenger);
+      const pollID = await utils.challengeAndGetPollID(listing, challenger);
 
       // Alice is so committed
       await utils.commitVote(pollID, '0', 500, '420', voterAlice);
@@ -356,7 +356,7 @@ contract('Registry', (accounts) => {
       );
 
       // Update status
-      await utils.as(applicant, registry.updateStatus, domain);
+      await utils.as(applicant, registry.updateStatus, listing);
 
       try {
         await utils.as(voterAlice, registry.claimReward, pollID, '421');
@@ -368,17 +368,17 @@ contract('Registry', (accounts) => {
 
     it('should not transfer tokens if msg.sender has already claimed tokens for a challenge', async () => {
       const registry = await Registry.deployed();
-      const domain = 'sugar.net';
+      const listing = utils.getListingHash('sugar.net');
       const voting = await utils.getVoting();
       const token = Token.at(await registry.token.call());
 
       const applicantStartingBalance = await token.balanceOf.call(applicant);
       const aliceStartingBalance = await token.balanceOf.call(voterAlice);
 
-      await utils.addToWhitelist(domain, minDeposit, applicant);
+      await utils.addToWhitelist(listing, minDeposit, applicant);
 
       // Challenge
-      const pollID = await utils.challengeAndGetPollID(domain, challenger);
+      const pollID = await utils.challengeAndGetPollID(listing, challenger);
 
       // Alice is so committed
       await utils.commitVote(pollID, '0', 500, '420', voterAlice);
@@ -389,7 +389,7 @@ contract('Registry', (accounts) => {
       await utils.increaseTime(paramConfig.revealStageLength + 1);
 
       // Update status
-      await utils.as(applicant, registry.updateStatus, domain);
+      await utils.as(applicant, registry.updateStatus, listing);
 
       // Claim reward
       await utils.as(voterAlice, registry.claimReward, pollID, '420');
@@ -419,17 +419,17 @@ contract('Registry', (accounts) => {
 
     it('should not transfer tokens for an unresolved challenge', async () => {
       const registry = await Registry.deployed();
-      const domain = 'unresolved.net';
+      const listing = utils.getListingHash('unresolved.net');
       const voting = await utils.getVoting();
       const token = Token.at(await registry.token.call());
 
       const applicantStartingBalance = await token.balanceOf.call(applicant);
       const aliceStartingBalance = await token.balanceOf.call(voterAlice);
 
-      await utils.addToWhitelist(domain, minDeposit, applicant);
+      await utils.addToWhitelist(listing, minDeposit, applicant);
 
       // Challenge
-      const pollID = await utils.challengeAndGetPollID(domain, challenger);
+      const pollID = await utils.challengeAndGetPollID(listing, challenger);
 
       // Alice is so committed
       await utils.commitVote(pollID, '0', 500, '420', voterAlice);
@@ -473,8 +473,8 @@ contract('Registry', () => {
 
 contract('Registry', () => {
   describe('Function: canBeWhitelisted', () => {
-    it('should return true for a domain that has passed all tests');
-    it('should return false for a domain that failes any one of the tests');
+    it('should return true for a listing that has passed all tests');
+    it('should return false for a listing that failes any one of the tests');
   });
 });
 
@@ -498,38 +498,38 @@ contract('Registry', (accounts) => {
     const minDeposit = bigTen(paramConfig.minDeposit);
     it('should return true if applicationExpiry was previously initialized', async () => {
       const registry = await Registry.deployed();
-      const domain = 'wasthismade.net';
+      const listing = utils.getListingHash('wasthismade.net');
 
       // Apply
-      await utils.as(applicant, registry.apply, domain, minDeposit);
-      const result = await registry.appWasMade(domain);
-      assert.strictEqual(result, true, 'should have returned true for the applied domain');
+      await utils.as(applicant, registry.apply, listing, minDeposit);
+      const result = await registry.appWasMade(listing);
+      assert.strictEqual(result, true, 'should have returned true for the applied listing');
 
       // Commit stage complete
       await utils.increaseTime(paramConfig.commitStageLength + 1);
-      const resultTwo = await registry.appWasMade(domain);
+      const resultTwo = await registry.appWasMade(listing);
       assert.strictEqual(resultTwo, true, 'should have returned true because app is still not expired');
 
       // Reveal stage complete, update status (whitelist it)
       await utils.increaseTime(paramConfig.revealStageLength + 1);
-      await utils.as(applicant, registry.updateStatus, domain);
-      const isWhitelisted = await registry.isWhitelisted.call(domain);
+      await utils.as(applicant, registry.updateStatus, listing);
+      const isWhitelisted = await registry.isWhitelisted.call(listing);
       assert.strictEqual(isWhitelisted, true, 'should have been whitelisted');
-      const resultThree = await registry.appWasMade(domain);
+      const resultThree = await registry.appWasMade(listing);
       assert.strictEqual(resultThree, true, 'should have returned true because its whitelisted');
 
       // Exit
-      await utils.as(applicant, registry.exit, domain);
-      const resultFour = await registry.appWasMade(domain);
+      await utils.as(applicant, registry.exit, listing);
+      const resultFour = await registry.appWasMade(listing);
       assert.strictEqual(resultFour, false, 'should have returned false because exit');
     });
 
     it('should return false if applicationExpiry was uninitialized', async () => {
       const registry = await Registry.deployed();
-      const domain = 'falseapp.net';
+      const listing = utils.getListingHash('falseapp.net');
 
-      const result = await registry.appWasMade(domain);
-      assert.strictEqual(result, false, 'should have returned false because domain was never applied');
+      const result = await registry.appWasMade(listing);
+      assert.strictEqual(result, false, 'should have returned false because listing was never applied');
     });
   });
 });
@@ -541,12 +541,11 @@ contract('Registry', (accounts) => {
   describe('Function: isExpired', () => {
     it('should return true if the argument is greater than the current block.timestamp', async () => {
       const registry = await Registry.deployed();
-      const domain = 'expireddomain.net';
+      const listing = utils.getListingHash('expiredlisting.net');
 
-      await utils.as(applicant, registry.apply, domain, minDeposit);
+      await utils.as(applicant, registry.apply, listing, minDeposit);
 
-      const hash = utils.getDomainHash(domain);
-      const result = await registry.listings.call(hash);
+      const result = await registry.listings.call(listing);
 
       // Voting period done (ie. app expired)
       await utils.increaseTime(paramConfig.commitStageLength + paramConfig.revealStageLength + 1);
@@ -557,12 +556,11 @@ contract('Registry', (accounts) => {
 
     it('should return false if the argument is less than the current block.timestamp', async () => {
       const registry = await Registry.deployed();
-      const domain = 'notexpired.net';
+      const listing = utils.getListingHash('notexpired.net');
 
-      await utils.as(applicant, registry.apply, domain, minDeposit);
+      await utils.as(applicant, registry.apply, listing, minDeposit);
 
-      const hash = utils.getDomainHash(domain);
-      const result = await registry.listings.call(hash);
+      const result = await registry.listings.call(listing);
 
       const isExpired = await registry.isExpired(result[0]);
       assert.strictEqual(isExpired, false, 'application should not have expired.');
@@ -574,19 +572,19 @@ contract('Registry', (accounts) => {
   describe('Function: isWhitelisted', () => {
     const [applicant] = accounts;
 
-    it('should verify a domain is not in the whitelist', async () => {
+    it('should verify a listing is not in the whitelist', async () => {
       const registry = await Registry.deployed();
-      const domain = 'eth.eth'; // the domain to be tested
-      const result = await registry.isWhitelisted.call(domain);
-      assert.strictEqual(result, false, 'Domain should not be whitelisted');
+      const listing = utils.getListingHash('eth.eth'); // the listing to be tested
+      const result = await registry.isWhitelisted.call(listing);
+      assert.strictEqual(result, false, 'Listing should not be whitelisted');
     });
 
-    it('should verify a domain is in the whitelist', async () => {
+    it('should verify a listing is in the whitelist', async () => {
       const registry = await Registry.deployed();
-      const domain = 'eth.eth';
-      await utils.addToWhitelist(domain, paramConfig.minDeposit, applicant);
-      const result = await registry.isWhitelisted.call(domain);
-      assert.strictEqual(result, true, 'Domain should have been whitelisted');
+      const listing = utils.getListingHash('eth.eth');
+      await utils.addToWhitelist(listing, paramConfig.minDeposit, applicant);
+      const result = await registry.isWhitelisted.call(listing);
+      assert.strictEqual(result, true, 'Listing should have been whitelisted');
     });
   });
 });
@@ -595,15 +593,13 @@ contract('Registry', (accounts) => {
   describe('Function: apply', () => {
     const [applicant] = accounts;
 
-    it('should allow a new domain to apply', async () => {
+    it('should allow a new listing to apply', async () => {
       const registry = await Registry.deployed();
-      const domain = 'nochallenge.net';
+      const listing = utils.getListingHash('nochallenge.net');
       // apply with accounts[1]
-      await registry.apply(domain, paramConfig.minDeposit, { from: accounts[1] });
-      // hash the domain so we can identify in listings
-      const hash = utils.getDomainHash(domain);
+      await registry.apply(listing, paramConfig.minDeposit, { from: accounts[1] });
       // get the struct in the mapping
-      const result = await registry.listings.call(hash);
+      const result = await registry.listings.call(listing);
       // check that Application is initialized correctly
       assert.strictEqual(result[0] * 1000 > Date.now(), true, 'challenge time < now');
       assert.strictEqual(result[1], false, 'challenged != false');
@@ -615,28 +611,28 @@ contract('Registry', (accounts) => {
       );
     });
 
-    it('should not allow a domain to apply which has a pending application', async () => {
+    it('should not allow a listing to apply which has a pending application', async () => {
       const registry = await Registry.deployed();
-      const domain = 'doubledomain.net';
-      await utils.as(applicant, registry.apply, domain, paramConfig.minDeposit);
+      const listing = utils.getListingHash('doublelisting.net');
+      await utils.as(applicant, registry.apply, listing, paramConfig.minDeposit);
       try {
-        await utils.as(applicant, registry.apply, domain, paramConfig.minDeposit);
-        assert(false, 'application was made for domain with an already pending application');
+        await utils.as(applicant, registry.apply, listing, paramConfig.minDeposit);
+        assert(false, 'application was made for listing with an already pending application');
       } catch (err) {
         const errMsg = err.toString();
         assert(utils.isEVMException(err), errMsg);
       }
     });
 
-    it('should not allow a domain to apply which is already listed', async () => {
+    it('should not allow a listing to apply which is already listed', async () => {
       const registry = await Registry.deployed();
       const token = Token.at(await registry.token.call());
-      const domain = 'nochallenge.net';
+      const listing = utils.getListingHash('nochallenge.net');
       const initialAmnt = await token.balanceOf.call(registry.address);
-      // apply with accounts[1] with the same domain, should fail since there's
+      // apply with accounts[1] with the same listing, should fail since there's
       // an existing application already
       try {
-        await registry.apply(domain, paramConfig.minDeposit, { from: accounts[2] });
+        await registry.apply(listing, paramConfig.minDeposit, { from: accounts[2] });
       } catch (err) {
         // TODO: Check if EVM error
         const errMsg = err.toString();
@@ -651,14 +647,14 @@ contract('Registry', (accounts) => {
     });
 
     it(
-      'should add a domain to the whitelist which went unchallenged in its application period',
+      'should add a listing to the whitelist which went unchallenged in its application period',
       async () => {
         const registry = await Registry.deployed();
-        const domain = 'nochallenge.net';
+        const listing = utils.getListingHash('nochallenge.net');
         await utils.increaseTime(paramConfig.applyStageLength + 1);
-        await registry.updateStatus(domain);
-        const result = await registry.isWhitelisted.call(domain);
-        assert.strictEqual(result, true, "domain didn't get whitelisted");
+        await registry.updateStatus(listing);
+        const result = await registry.isWhitelisted.call(listing);
+        assert.strictEqual(result, true, "listing didn't get whitelisted");
       },
     );
   });
@@ -671,16 +667,16 @@ contract('Registry', (accounts) => {
     it('should successfully challenge an application', async () => {
       const registry = await Registry.deployed();
       const token = Token.at(await registry.token.call());
-      const domain = 'failure.net';
+      const listing = utils.getListingHash('failure.net');
 
       const challengerStartingBalance = await token.balanceOf.call(challenger);
 
-      await utils.as(applicant, registry.apply, domain, paramConfig.minDeposit);
-      await utils.challengeAndGetPollID(domain, challenger);
+      await utils.as(applicant, registry.apply, listing, paramConfig.minDeposit);
+      await utils.challengeAndGetPollID(listing, challenger);
       await utils.increaseTime(paramConfig.commitStageLength + paramConfig.revealStageLength + 1);
-      await registry.updateStatus(domain);
+      await registry.updateStatus(listing);
 
-      const isWhitelisted = await registry.isWhitelisted.call(domain);
+      const isWhitelisted = await registry.isWhitelisted.call(listing);
       assert.strictEqual(isWhitelisted, false, 'An application which should have failed succeeded');
 
       const challengerFinalBalance = await token.balanceOf.call(challenger);
@@ -696,17 +692,17 @@ contract('Registry', (accounts) => {
     it('should successfully challenge a listing', async () => {
       const registry = await Registry.deployed();
       const token = Token.at(await registry.token.call());
-      const domain = 'failure.net';
+      const listing = utils.getListingHash('failure.net');
 
       const challengerStartingBalance = await token.balanceOf.call(challenger);
 
-      await utils.addToWhitelist(domain, paramConfig.minDeposit, applicant);
+      await utils.addToWhitelist(listing, paramConfig.minDeposit, applicant);
 
-      await utils.challengeAndGetPollID(domain, challenger);
+      await utils.challengeAndGetPollID(listing, challenger);
       await utils.increaseTime(paramConfig.commitStageLength + paramConfig.revealStageLength + 1);
-      await registry.updateStatus(domain);
+      await registry.updateStatus(listing);
 
-      const isWhitelisted = await registry.isWhitelisted.call(domain);
+      const isWhitelisted = await registry.isWhitelisted.call(listing);
       assert.strictEqual(isWhitelisted, false, 'An application which should have failed succeeded');
 
       const challengerFinalBalance = await token.balanceOf.call(challenger);
@@ -722,24 +718,24 @@ contract('Registry', (accounts) => {
     it('should unsuccessfully challenge an application', async () => {
       const registry = await Registry.deployed();
       const voting = await utils.getVoting();
-      const domain = 'winner.net';
+      const listing = utils.getListingHash('winner.net');
       const minDeposit = new BN(paramConfig.minDeposit, 10);
 
-      await utils.as(applicant, registry.apply, domain, minDeposit);
-      const pollID = await utils.challengeAndGetPollID(domain, challenger);
+      await utils.as(applicant, registry.apply, listing, minDeposit);
+      const pollID = await utils.challengeAndGetPollID(listing, challenger);
       await utils.commitVote(pollID, 1, 10, 420, voter);
       await utils.increaseTime(paramConfig.commitStageLength + 1);
       await utils.as(voter, voting.revealVote, pollID, 1, 420);
       await utils.increaseTime(paramConfig.revealStageLength + 1);
-      await registry.updateStatus(domain);
+      await registry.updateStatus(listing);
 
-      const isWhitelisted = await registry.isWhitelisted.call(domain);
+      const isWhitelisted = await registry.isWhitelisted.call(listing);
       assert.strictEqual(
         isWhitelisted, true,
         'An application which should have succeeded failed',
       );
 
-      const unstakedDeposit = await utils.getUnstakedDeposit(domain);
+      const unstakedDeposit = await utils.getUnstakedDeposit(listing);
       const expectedUnstakedDeposit =
         minDeposit.add(minDeposit.mul(bigTen(paramConfig.dispensationPct).div(bigTen(100))));
 
@@ -752,22 +748,22 @@ contract('Registry', (accounts) => {
     it('should unsuccessfully challenge a listing', async () => {
       const registry = await Registry.deployed();
       const voting = await utils.getVoting();
-      const domain = 'winner2.net';
+      const listing = utils.getListingHash('winner2.net');
       const minDeposit = new BN(paramConfig.minDeposit, 10);
 
-      await utils.addToWhitelist(domain, minDeposit, applicant);
+      await utils.addToWhitelist(listing, minDeposit, applicant);
 
-      const pollID = await utils.challengeAndGetPollID(domain, challenger);
+      const pollID = await utils.challengeAndGetPollID(listing, challenger);
       await utils.commitVote(pollID, 1, 10, 420, voter);
       await utils.increaseTime(paramConfig.commitStageLength + 1);
       await utils.as(voter, voting.revealVote, pollID, 1, 420);
       await utils.increaseTime(paramConfig.revealStageLength + 1);
-      await registry.updateStatus(domain);
+      await registry.updateStatus(listing);
 
-      const isWhitelisted = await registry.isWhitelisted.call(domain);
+      const isWhitelisted = await registry.isWhitelisted.call(listing);
       assert.strictEqual(isWhitelisted, true, 'An application which should have succeeded failed');
 
-      const unstakedDeposit = await utils.getUnstakedDeposit(domain);
+      const unstakedDeposit = await utils.getUnstakedDeposit(listing);
       const expectedUnstakedDeposit = minDeposit.add(minDeposit.mul(new BN(paramConfig.dispensationPct, 10).div(new BN('100', 10))));
       assert.strictEqual(
         unstakedDeposit.toString(10), expectedUnstakedDeposit.toString(10),
@@ -779,13 +775,13 @@ contract('Registry', (accounts) => {
       const registry = await Registry.deployed();
       const parameterizer = await Parameterizer.deployed();
       const token = Token.at(await registry.token.call());
-      const domain = 'touchandremove.net';
+      const listing = utils.getListingHash('touchandremove.net');
       const minDeposit = new BN(paramConfig.minDeposit, 10);
       const newMinDeposit = minDeposit.add(new BN('1', 10));
 
       const applicantStartingBal = await token.balanceOf.call(applicant);
 
-      await utils.addToWhitelist(domain, minDeposit, applicant);
+      await utils.addToWhitelist(listing, minDeposit, applicant);
 
       const receipt = await utils.as(
         proposer, parameterizer.proposeReparameterization,
@@ -798,7 +794,7 @@ contract('Registry', (accounts) => {
       await parameterizer.processProposal(propID);
 
       const challengerStartingBal = await token.balanceOf.call(challenger);
-      utils.as(challenger, registry.challenge, domain);
+      utils.as(challenger, registry.challenge, listing);
       const challengerFinalBal = await token.balanceOf.call(challenger);
 
       assert(
@@ -813,7 +809,7 @@ contract('Registry', (accounts) => {
         'Tokens were not returned to applicant',
       );
 
-      assert(!await registry.isWhitelisted.call(domain), 'Domain was not removed');
+      assert(!await registry.isWhitelisted.call(listing), 'Listing was not removed');
     });
   });
 });
@@ -825,19 +821,19 @@ contract('Registry', (accounts) => {
     it('should allow a listing to exit when no challenge exists', async () => {
       const registry = await Registry.deployed();
       const token = Token.at(await registry.token.call());
-      const domain = 'consensys.net';
+      const listing = utils.getListingHash('consensys.net');
 
       const initialApplicantTokenHoldings = await token.balanceOf.call(applicant);
 
-      await utils.addToWhitelist(domain, paramConfig.minDeposit, applicant);
+      await utils.addToWhitelist(listing, paramConfig.minDeposit, applicant);
 
-      const isWhitelisted = await registry.isWhitelisted.call(domain);
-      assert.strictEqual(isWhitelisted, true, 'the domain was not added to the registry');
+      const isWhitelisted = await registry.isWhitelisted.call(listing);
+      assert.strictEqual(isWhitelisted, true, 'the listing was not added to the registry');
 
-      await registry.exit(domain, { from: applicant });
+      await registry.exit(listing, { from: applicant });
 
-      const isWhitelistedAfterExit = await registry.isWhitelisted.call(domain);
-      assert.strictEqual(isWhitelistedAfterExit, false, 'the domain was not removed on exit');
+      const isWhitelistedAfterExit = await registry.isWhitelisted.call(listing);
+      assert.strictEqual(isWhitelistedAfterExit, false, 'the listing was not removed on exit');
 
       const finalApplicantTokenHoldings = await token.balanceOf.call(applicant);
       assert.strictEqual(
@@ -850,29 +846,29 @@ contract('Registry', (accounts) => {
     it('should not allow a listing to exit when a challenge does exist', async () => {
       const registry = await Registry.deployed();
       const token = Token.at(await registry.token.call());
-      const domain = 'consensys.net';
+      const listing = utils.getListingHash('consensys.net');
 
       const initialApplicantTokenHoldings = await token.balanceOf.call(applicant);
 
-      await utils.addToWhitelist(domain, paramConfig.minDeposit, applicant);
+      await utils.addToWhitelist(listing, paramConfig.minDeposit, applicant);
 
-      const isWhitelisted = await registry.isWhitelisted.call(domain);
-      assert.strictEqual(isWhitelisted, true, 'the domain was not added to the registry');
+      const isWhitelisted = await registry.isWhitelisted.call(listing);
+      assert.strictEqual(isWhitelisted, true, 'the listing was not added to the registry');
 
-      await registry.challenge(domain, { from: challenger });
+      await registry.challenge(listing, { from: challenger });
       try {
-        await registry.exit(domain, { from: applicant });
+        await registry.exit(listing, { from: applicant });
         assert(false, 'exit succeeded when it should have failed');
       } catch (err) {
         const errMsg = err.toString();
         assert(utils.isEVMException(err), errMsg);
       }
 
-      const isWhitelistedAfterExit = await registry.isWhitelisted.call(domain);
+      const isWhitelistedAfterExit = await registry.isWhitelisted.call(listing);
       assert.strictEqual(
         isWhitelistedAfterExit,
         true,
-        'the domain was able to exit while a challenge was active',
+        'the listing was able to exit while a challenge was active',
       );
 
       const finalApplicantTokenHoldings = await token.balanceOf.call(applicant);
@@ -883,27 +879,27 @@ contract('Registry', (accounts) => {
 
       // Clean up state, remove consensys.net (it fails its challenge due to draw)
       await utils.increaseTime(paramConfig.commitStageLength + paramConfig.revealStageLength + 1);
-      await registry.updateStatus(domain);
+      await registry.updateStatus(listing);
     });
 
     it('should not allow a listing to be exited by someone who doesn\'t own it', async () => {
       const registry = await Registry.deployed();
-      const domain = 'consensys.net';
+      const listing = utils.getListingHash('consensys.net');
 
-      await utils.addToWhitelist(domain, paramConfig.minDeposit, applicant);
+      await utils.addToWhitelist(listing, paramConfig.minDeposit, applicant);
 
       try {
-        await registry.exit(domain, { from: voter });
+        await registry.exit(listing, { from: voter });
         assert(false, 'exit succeeded when it should have failed');
       } catch (err) {
         const errMsg = err.toString();
         assert(utils.isEVMException(err), errMsg);
       }
-      const isWhitelistedAfterExit = await registry.isWhitelisted.call(domain);
+      const isWhitelistedAfterExit = await registry.isWhitelisted.call(listing);
       assert.strictEqual(
         isWhitelistedAfterExit,
         true,
-        'the domain was exited by someone other than its owner',
+        'the listing was exited by someone other than its owner',
       );
     });
   });
@@ -914,31 +910,31 @@ contract('Registry', (accounts) => {
     const [applicant, challenger, voter] = accounts;
     const minDeposit = bigTen(paramConfig.minDeposit);
 
-    it('should apply, fail challenge, and reject domain', async () => {
+    it('should apply, fail challenge, and reject listing', async () => {
       const registry = await Registry.deployed();
-      const domain = 'failChallenge.net'; // domain to apply with
+      const listing = utils.getListingHash('failChallenge.net'); // listing to apply with
       // apply with accounts[2]
-      await registry.apply(domain, paramConfig.minDeposit, { from: applicant });
+      await registry.apply(listing, paramConfig.minDeposit, { from: applicant });
       // challenge with accounts[1]
-      await registry.challenge(domain, { from: challenger });
+      await registry.challenge(listing, { from: challenger });
 
       await utils.increaseTime(paramConfig.revealStageLength + paramConfig.commitStageLength + 1);
-      await registry.updateStatus(domain);
+      await registry.updateStatus(listing);
 
       // should not have been added to whitelist
-      const result = await registry.isWhitelisted(domain);
-      assert.strictEqual(result, false, 'domain should not be whitelisted');
+      const result = await registry.isWhitelisted(listing);
+      assert.strictEqual(result, false, 'listing should not be whitelisted');
     });
 
-    it('should apply, pass challenge, and whitelist domain', async () => {
+    it('should apply, pass challenge, and whitelist listing', async () => {
       const registry = await Registry.deployed();
       const voting = await utils.getVoting();
-      const domain = 'passChallenge.net';
+      const listing = utils.getListingHash('passChallenge.net');
 
-      await utils.as(applicant, registry.apply, domain, minDeposit);
+      await utils.as(applicant, registry.apply, listing, minDeposit);
 
       // Challenge and get back the pollID
-      const pollID = await utils.challengeAndGetPollID(domain, challenger);
+      const pollID = await utils.challengeAndGetPollID(listing, challenger);
 
       // Make sure it's cool to commit
       const cpa = await voting.commitPeriodActive.call(pollID);
@@ -974,9 +970,9 @@ contract('Registry', (accounts) => {
       assert.strictEqual(pollResult, true, 'Poll should have passed');
 
       // Add to whitelist
-      await registry.updateStatus(domain);
-      const result = await registry.isWhitelisted(domain);
-      assert.strictEqual(result, true, 'Domain should be whitelisted');
+      await registry.updateStatus(listing);
+      const result = await registry.isWhitelisted(listing);
+      assert.strictEqual(result, true, 'Listing should be whitelisted');
     });
   });
 });
