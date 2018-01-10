@@ -11,13 +11,13 @@ contract Registry {
   // EVENTS
   // ------
 
-  event _Application(string listing, uint deposit);
-  event _Challenge(string listing, uint deposit, uint pollID);
-  event _Deposit(string listing, uint added, uint newTotal);
-  event _Withdrawal(string listing, uint withdrew, uint newTotal);
-  event _NewListingWhitelisted(string listing);
-  event _ApplicationRemoved(string listing);
-  event _ListingRemoved(string listing);
+  event _Application(bytes32 listing, uint deposit);
+  event _Challenge(bytes32 listing, uint deposit, uint pollID);
+  event _Deposit(bytes32 listing, uint added, uint newTotal);
+  event _Withdrawal(bytes32 listing, uint withdrew, uint newTotal);
+  event _NewListingWhitelisted(bytes32 listing);
+  event _ApplicationRemoved(bytes32 listing);
+  event _ListingRemoved(bytes32 listing);
   event _ChallengeFailed(uint challengeID);
   event _ChallengeSucceeded(uint challengeID);
   event _RewardClaimed(address voter, uint challengeID, uint reward);
@@ -79,16 +79,16 @@ contract Registry {
   /**
   @notice             Allows a user to start an application.
   @notice             Takes tokens from user and sets apply stage end time.
-  @param _listing      The listing of a potential listing a user is applying to add to the registry
+  @param _listing     The listing hash of a potential listing a user is applying to add 
   @param _amount      The number of ERC20 tokens a user is willing to potentially stake
   */
-  function apply(string _listing, uint _amount) external {
+  function apply(bytes32 _listing, uint _amount) external {
     require(!isWhitelisted(_listing));
     require(!appWasMade(_listing));
     require(_amount >= parameterizer.get("minDeposit"));
 
     // Sets owner
-    Listing storage listing = listings[keccak256(_listing)];
+    Listing storage listing = listings[_listing];
     listing.owner = msg.sender;
 
     // Transfers tokens from user to Registry contract
@@ -103,11 +103,11 @@ contract Registry {
 
   /**
   @notice             Allows the owner of a listing to increase their unstaked deposit.
-  @param _listing      The listing of a user's application/listing
+  @param _listing     The listing hash of a user's application/listing
   @param _amount      The number of ERC20 tokens to increase a user's unstaked deposit
   */
-  function deposit(string _listing, uint _amount) external {
-    Listing storage listing = listings[keccak256(_listing)];
+  function deposit(bytes32 _listing, uint _amount) external {
+    Listing storage listing = listings[_listing];
 
     require(listing.owner == msg.sender);
     require(token.transferFrom(msg.sender, this, _amount));
@@ -120,11 +120,11 @@ contract Registry {
   /**
   @notice             Allows the owner of a listing to decrease their unstaked deposit.
   @notice             The listing keeps its previous status.
-  @param _listing      The listing of a user's application/listing
+  @param _listing     The listing hash of a user's application/listing
   @param _amount      The number of ERC20 tokens to decrease a user's unstaked deposit
   */
-  function withdraw(string _listing, uint _amount) external {
-    Listing storage listing = listings[keccak256(_listing)];
+  function withdraw(bytes32 _listing, uint _amount) external {
+    Listing storage listing = listings[_listing];
 
     require(listing.owner == msg.sender);
     require(_amount <= listing.unstakedDeposit);
@@ -140,10 +140,10 @@ contract Registry {
   /**
   @notice             Allows the owner of a listing to remove the listing from the whitelist
   @notice             Returns all tokens to the owner of the listing
-  @param _listing      The listing of a user's listing
+  @param _listing     The listing hash of a user's listing
   */
-  function exit(string _listing) external {
-    Listing storage listing = listings[keccak256(_listing)];
+  function exit(bytes32 _listing) external {
+    Listing storage listing = listings[_listing];
 
     require(msg.sender == listing.owner);
     require(isWhitelisted(_listing));
@@ -164,11 +164,10 @@ contract Registry {
   @notice             Starts a poll for a listing which is either
   @notice             in the apply stage or already in the whitelist.
   @dev                Tokens are taken from the challenger and the applicant's deposit is locked.
-  @param _listing      The listing of an applicant's potential listing
+  @param _listing     The listing hash to be considered
   */
-  function challenge(string _listing) external returns (uint challengeID) {
-    bytes32 listingHash = keccak256(_listing);
-    Listing storage listing = listings[listingHash];
+  function challenge(bytes32 _listing) external returns (uint challengeID) {
+    Listing storage listing = listings[_listing];
     uint deposit = parameterizer.get("minDeposit");
 
     // Listing must be in apply stage or already on the whitelist
@@ -205,10 +204,10 @@ contract Registry {
     });
 
     // Updates listing to store most recent challenge
-    listings[listingHash].challengeID = pollID;
+    listings[_listing].challengeID = pollID;
 
     // Locks tokens for listing during challenge
-    listings[listingHash].unstakedDeposit -= deposit;
+    listings[_listing].unstakedDeposit -= deposit;
 
     _Challenge(_listing, deposit, pollID);
     return pollID;
@@ -231,7 +230,7 @@ contract Registry {
   @notice             or resolves a challenge if one exists.
   @param _listing      The listing whose status is being updated
   */
-  function updateStatus(string _listing) public {
+  function updateStatus(bytes32 _listing) public {
     if (canBeWhitelisted(_listing)) {
       whitelistApplication(_listing);
       _NewListingWhitelisted(_listing);
@@ -247,12 +246,11 @@ contract Registry {
   // --------
 
   /**
-  @dev                Determines whether the listing of an application can be whitelisted.
-  @param _listing      The listing whose status should be examined
+  @dev                Determines whether the listing hash of an application can be whitelisted.
+  @param _listing     The listing whose status should be examined
   */
-  function canBeWhitelisted(string _listing) constant public returns (bool) {
-    bytes32 listingHash = keccak256(_listing);
-    uint challengeID = listings[listingHash].challengeID;
+  function canBeWhitelisted(bytes32 _listing) constant public returns (bool) {
+    uint challengeID = listings[_listing].challengeID;
 
     // Ensures that the application was made,
     // the application period has ended,
@@ -260,7 +258,7 @@ contract Registry {
     // and either: the challengeID == 0, or the challenge has been resolved.
     if (
         appWasMade(_listing) &&
-        isExpired(listings[listingHash].applicationExpiry) &&
+        isExpired(listings[_listing].applicationExpiry) &&
         !isWhitelisted(_listing) &&
         (!challenges[challengeID].isInitialized() || challenges[challengeID].isResolved())
     ) { return true; }
@@ -269,18 +267,18 @@ contract Registry {
   }
 
   /// @dev returns true if listing is whitelisted
-  function isWhitelisted(string _listing) constant public returns (bool whitelisted) {
-    return listings[keccak256(_listing)].whitelisted;
+  function isWhitelisted(bytes32 _listing) constant public returns (bool whitelisted) {
+    return listings[_listing].whitelisted;
   }
 
   // @dev returns true if apply was called for this listing
-  function appWasMade(string _listing) constant public returns (bool exists) {
-    return listings[keccak256(_listing)].applicationExpiry > 0;
+  function appWasMade(bytes32 _listing) constant public returns (bool exists) {
+    return listings[_listing].applicationExpiry > 0;
   }
 
   // @dev returns true if the application/listing has an unresolved challenge
-  function challengeExists(string _listing) constant public returns (bool) {
-    Challenge.Data storage challenge = challenges[listings[keccak256(_listing)].challengeID];
+  function challengeExists(bytes32 _listing) constant public returns (bool) {
+    Challenge.Data storage challenge = challenges[listings[_listing].challengeID];
       return challenge.isInitialized() && !challenge.isResolved();
   }
 
@@ -289,8 +287,8 @@ contract Registry {
   @dev                Throws if no challenge exists.
   @param _listing      A listing with an unresolved challenge
   */
-  function challengeCanBeResolved(string _listing) constant public returns (bool) {
-    Challenge.Data storage challenge = challenges[listings[keccak256(_listing)].challengeID];
+  function challengeCanBeResolved(bytes32 _listing) constant public returns (bool) {
+    Challenge.Data storage challenge = challenges[listings[_listing].challengeID];
     return challenge.isInitialized() && challenge.canBeResolved();
   }
 
@@ -341,9 +339,8 @@ contract Registry {
   de-whitelists the listing.
   @param _listing A listing with a challenge that is to be resolved.
   */
-  function resolveChallenge(string _listing) private {
-    bytes32 listingHash = keccak256(_listing);
-    Listing storage listing = listings[listingHash];
+  function resolveChallenge(bytes32 _listing) private {
+    Listing storage listing = listings[_listing];
     Challenge.Data storage challenge = challenges[listing.challengeID];
 
     // Calculates the winner's reward,
@@ -382,27 +379,24 @@ contract Registry {
   @dev Called by updateStatus() if the applicationExpiry date passed without a
   challenge being made
   @dev Called by resolveChallenge() if an application/listing beat a challenge.
-  @param _listing The listing of an application/listing to be whitelisted
+  @param _listing The listing hash of an application/listing to be whitelisted
   */
-  function whitelistApplication(string _listing) private {
-    bytes32 listingHash = keccak256(_listing);
-
-    listings[listingHash].whitelisted = true;
+  function whitelistApplication(bytes32 _listing) private {
+    listings[_listing].whitelisted = true;
   }
 
   /**
   @dev deletes a listing from the whitelist and transfers tokens back to owner
   @param _listing the listing to be removed
   */
-  function resetListing(string _listing) private {
-    bytes32 listingHash = keccak256(_listing);
-    Listing storage listing = listings[listingHash];
+  function resetListing(bytes32 _listing) private {
+    Listing storage listing = listings[_listing];
 
     // Transfers any remaining balance back to the owner
     if (listing.unstakedDeposit > 0)
         require(token.transfer(listing.owner, listing.unstakedDeposit));
 
-    delete listings[listingHash];
+    delete listings[_listing];
   }
 
 
