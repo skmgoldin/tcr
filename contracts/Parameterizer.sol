@@ -83,7 +83,7 @@ contract Parameterizer {
     uint _pDispensationPct,
     uint _voteQuorum,
     uint _pVoteQuorum
-    ) {
+    ) public {
       token = EIP20(_tokenAddr);
       voting = PLCRVoting(_plcrAddr);
 

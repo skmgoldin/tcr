@@ -66,7 +66,7 @@ contract Registry {
     address _tokenAddr,
     address _plcrAddr,
     address _paramsAddr
-  ) {
+  ) public {
     token = EIP20(_tokenAddr);
     voting = PLCRVoting(_plcrAddr);
     parameterizer = Parameterizer(_paramsAddr);
