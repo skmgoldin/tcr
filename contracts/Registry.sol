@@ -10,7 +10,7 @@ contract Registry {
     // EVENTS
     // ------
 
-    event _Application(bytes32 listing, uint deposit);
+    event _Application(string listing, uint deposit);
     event _Challenge(bytes32 listing, uint deposit, uint pollID);
     event _Deposit(bytes32 listing, uint added, uint newTotal);
     event _Withdrawal(bytes32 listing, uint withdrew, uint newTotal);
@@ -80,13 +80,14 @@ contract Registry {
     @param _listing      The listing of a potential listing a user is applying to add to the registry
     @param _amount      The number of ERC20 tokens a user is willing to potentially stake
     */
-    function apply(bytes32 _listing, uint _amount) external {
-        require(!isWhitelisted(_listing));
-        require(!appWasMade(_listing));
+    function apply(string _listing, uint _amount) external {
+        bytes32 listingHash = keccak256(_listing);
+        require(!isWhitelisted(listingHash));
+        require(!appWasMade(listingHash));
         require(_amount >= parameterizer.get("minDeposit"));
 
         // Sets owner
-        Listing storage listing = listings[_listing];
+        Listing storage listing = listings[listingHash];
         listing.owner = msg.sender;
 
         // Transfers tokens from user to Registry contract
