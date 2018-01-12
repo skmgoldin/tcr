@@ -262,7 +262,7 @@ contract Registry {
     @return             The uint indicating the voter's reward (in nano-ADT)
     */
     function voterReward(address _voter, uint _challengeID, uint _salt)
-    public constant returns (uint) {
+    public view returns (uint) {
         uint totalTokens = challenges[_challengeID].totalTokens;
         uint rewardPool = challenges[_challengeID].rewardPool;
         uint voterTokens = voting.getNumPassingTokens(_voter, _challengeID, _salt);
@@ -277,7 +277,7 @@ contract Registry {
     @dev                Determines whether the listing of an application can be whitelisted.
     @param _listing      The listing whose status should be examined
     */
-    function canBeWhitelisted(bytes32 _listing) constant public returns (bool) {
+    function canBeWhitelisted(bytes32 _listing) view public returns (bool) {
         bytes32 listingHash = _listing;
         uint challengeID = listings[listingHash].challengeID;
 
@@ -296,17 +296,17 @@ contract Registry {
     }
 
     // Returns true if listing is whitelisted
-    function isWhitelisted(bytes32 _listing) constant public returns (bool whitelisted) {
+    function isWhitelisted(bytes32 _listing) view public returns (bool whitelisted) {
         return listings[_listing].whitelisted;
     }
 
     // Returns true if apply(listing) was called for this listing
-    function appWasMade(bytes32 _listing) constant public returns (bool exists) {
+    function appWasMade(bytes32 _listing) view public returns (bool exists) {
         return listings[_listing].applicationExpiry > 0;
     }
 
     // Returns true if the application/listing has an unresolved challenge
-    function challengeExists(bytes32 _listing) constant public returns (bool) {
+    function challengeExists(bytes32 _listing) view public returns (bool) {
         bytes32 listingHash = _listing;
         uint challengeID = listings[listingHash].challengeID;
 
@@ -318,7 +318,7 @@ contract Registry {
     @dev                Throws if no challenge exists.
     @param _listing      A listing with an unresolved challenge
     */
-    function challengeCanBeResolved(bytes32 _listing) constant public returns (bool) {
+    function challengeCanBeResolved(bytes32 _listing) view public returns (bool) {
         bytes32 listingHash = _listing;
         uint challengeID = listings[listingHash].challengeID;
 
@@ -331,7 +331,7 @@ contract Registry {
     @notice             Determines the number of tokens awarded to the winning party in a challenge.
     @param _challengeID The challengeID to determine a reward for
     */
-    function determineReward(uint _challengeID) public constant returns (uint) {
+    function determineReward(uint _challengeID) public view returns (uint) {
         require(!challenges[_challengeID].resolved && voting.pollEnded(_challengeID));
 
         // Edge case, nobody voted, give all tokens to the challenger.
@@ -347,7 +347,7 @@ contract Registry {
     }
 
     // Returns true if the provided termDate has passed
-    function isExpired(uint _termDate) constant public returns (bool expired) {
+    function isExpired(uint _termDate) view public returns (bool expired) {
         return _termDate < block.timestamp;
     }
 

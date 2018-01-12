@@ -229,7 +229,7 @@ contract Parameterizer {
   @return             The uint indicating the voter's reward
   */
   function voterReward(address _voter, uint _challengeID, uint _salt)
-  public constant returns (uint) {
+  public view returns (uint) {
     uint winningTokens = challenges[_challengeID].winningTokens;
     uint rewardPool = challenges[_challengeID].rewardPool;
     uint voterTokens = voting.getNumPassingTokens(_voter, _challengeID, _salt);
@@ -240,7 +240,7 @@ contract Parameterizer {
   @notice Determines whether a proposal passed its application stage without a challenge
   @param _propID The proposal ID for which to determine whether its application stage passed without a challenge
   */
-  function canBeSet(bytes32 _propID) constant public returns (bool) {
+  function canBeSet(bytes32 _propID) view public returns (bool) {
     ParamProposal memory prop = proposals[_propID];
 
     return (now > prop.appExpiry && now < prop.processBy && prop.challengeID == 0);
@@ -250,7 +250,7 @@ contract Parameterizer {
   @notice Determines whether a proposal exists for the provided proposal ID
   @param _propID The proposal ID whose existance is to be determined
   */
-  function propExists(bytes32 _propID) constant public returns (bool) {
+  function propExists(bytes32 _propID) view public returns (bool) {
     return proposals[_propID].processBy > 0;
   }
 
@@ -258,7 +258,7 @@ contract Parameterizer {
   @notice Determines whether the provided proposal ID has a challenge which can be resolved
   @param _propID The proposal ID whose challenge to inspect
   */
-  function challengeCanBeResolved(bytes32 _propID) constant public returns (bool) {
+  function challengeCanBeResolved(bytes32 _propID) view public returns (bool) {
     ParamProposal memory prop = proposals[_propID];
     Challenge memory challenge = challenges[prop.challengeID];
 
@@ -270,7 +270,7 @@ contract Parameterizer {
   @notice Determines the number of tokens to awarded to the winning party in a challenge
   @param _challengeID The challengeID to determine a reward for
   */
-  function challengeWinnerReward(uint _challengeID) public constant returns (uint) {
+  function challengeWinnerReward(uint _challengeID) public view returns (uint) {
     if(voting.getTotalNumberOfTokensForWinningOption(_challengeID) == 0) {
       // Edge case, nobody voted, give all tokens to the winner.
       return 2 * challenges[_challengeID].stake;
@@ -283,7 +283,7 @@ contract Parameterizer {
   @notice gets the parameter keyed by the provided name value from the params mapping
   @param _name the key whose value is to be determined
   */
-  function get(string _name) public constant returns (uint value) {
+  function get(string _name) public view returns (uint value) {
     return params[keccak256(_name)];
   }
 
