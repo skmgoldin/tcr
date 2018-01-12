@@ -35,6 +35,7 @@ contract Registry {
         bool resolved;          // Indication of if challenge is resolved
         uint stake;             // Number of tokens at risk for either party during challenge
         uint totalTokens;       // (remaining) Amount of tokens used for voting by the winning side
+        mapping(address => bool) tokenClaims;
     }
 
     // Maps challengeIDs to associated challenge data
@@ -42,10 +43,6 @@ contract Registry {
 
     // Maps listingHashes to associated listing data
     mapping(bytes32 => Listing) public listings;
-
-    // Maps challengeIDs and address to token claim data
-    mapping(uint => mapping(address => bool)) public tokenClaims;
-
 
     // Global Variables
     EIP20 public token;
@@ -238,7 +235,7 @@ contract Registry {
     */
     function claimReward(uint _challengeID, uint _salt) public {
         // Ensures the voter has not already claimed tokens and challenge results have been processed
-        require(tokenClaims[_challengeID][msg.sender] == false);
+        require(challenges[_challengeID].tokenClaims[msg.sender] == false);
         require(challenges[_challengeID].resolved == true);
 
         uint voterTokens = voting.getNumPassingTokens(msg.sender, _challengeID, _salt);
@@ -252,7 +249,7 @@ contract Registry {
         require(token.transfer(msg.sender, reward));
 
         // Ensures a voter cannot claim tokens again
-        tokenClaims[_challengeID][msg.sender] = true;
+        challenges[_challengeID].tokenClaims[msg.sender] = true;
 
         _RewardClaimed(msg.sender, _challengeID, reward);
     }
@@ -343,6 +340,10 @@ contract Registry {
         }
 
         return (2 * challenges[_challengeID].stake) - challenges[_challengeID].rewardPool;
+    }
+
+    function tokenClaims(uint _challengeID, address _voter) public view returns (bool) {
+      return challenges[_challengeID].tokenClaims[_voter];
     }
 
     // Returns true if the provided termDate has passed
