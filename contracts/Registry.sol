@@ -10,7 +10,7 @@ contract Registry {
     // EVENTS
     // ------
 
-    event _Application(bytes32 listing, uint deposit);
+    event _Application(string listing, uint deposit);
     event _Challenge(bytes32 listing, uint deposit, uint pollID);
     event _Deposit(bytes32 listing, uint added, uint newTotal);
     event _Withdrawal(bytes32 listing, uint withdrew, uint newTotal);
@@ -80,13 +80,14 @@ contract Registry {
     @param _listing      The listing of a potential listing a user is applying to add to the registry
     @param _amount      The number of ERC20 tokens a user is willing to potentially stake
     */
-    function apply(bytes32 _listing, uint _amount) external {
-        require(!isWhitelisted(_listing));
-        require(!appWasMade(_listing));
+    function apply(string _listing, uint _amount) external {
+        bytes32 listingHash = keccak256(_listing);
+        require(!isWhitelisted(listingHash));
+        require(!appWasMade(listingHash));
         require(_amount >= parameterizer.get("minDeposit"));
 
         // Sets owner
-        Listing storage listing = listings[_listing];
+        Listing storage listing = listings[listingHash];
         listing.owner = msg.sender;
 
         // Transfers tokens from user to Registry contract
@@ -164,8 +165,7 @@ contract Registry {
     @param _listing      The listing of an applicant's potential listing
     */
     function challenge(bytes32 _listing) external returns (uint challengeID) {
-        bytes32 listingHash = _listing;
-        Listing storage listing = listings[listingHash];
+        Listing storage listing = listings[_listing];
         uint deposit = parameterizer.get("minDeposit");
 
         // Listing must be in apply stage or already on the whitelist
@@ -198,10 +198,10 @@ contract Registry {
         });
 
         // Updates listing to store most recent challenge
-        listings[listingHash].challengeID = pollID;
+        listings[_listing].challengeID = pollID;
 
         // Locks tokens for listing during challenge
-        listings[listingHash].unstakedDeposit -= deposit;
+        listings[_listing].unstakedDeposit -= deposit;
 
         _Challenge(_listing, deposit, pollID);
         return pollID;
@@ -278,8 +278,7 @@ contract Registry {
     @param _listing      The listing whose status should be examined
     */
     function canBeWhitelisted(bytes32 _listing) view public returns (bool) {
-        bytes32 listingHash = _listing;
-        uint challengeID = listings[listingHash].challengeID;
+        uint challengeID = listings[_listing].challengeID;
 
         // Ensures that the application was made,
         // the application period has ended,
@@ -287,7 +286,7 @@ contract Registry {
         // and either: the challengeID == 0, or the challenge has been resolved.
         if (
             appWasMade(_listing) &&
-            isExpired(listings[listingHash].applicationExpiry) &&
+            isExpired(listings[_listing].applicationExpiry) &&
             !isWhitelisted(_listing) &&
             (challengeID == 0 || challenges[challengeID].resolved == true)
         ) { return true; }
@@ -307,10 +306,9 @@ contract Registry {
 
     // Returns true if the application/listing has an unresolved challenge
     function challengeExists(bytes32 _listing) view public returns (bool) {
-        bytes32 listingHash = _listing;
-        uint challengeID = listings[listingHash].challengeID;
+        uint challengeID = listings[_listing].challengeID;
 
-        return (listings[listingHash].challengeID > 0 && !challenges[challengeID].resolved);
+        return (listings[_listing].challengeID > 0 && !challenges[challengeID].resolved);
     }
 
     /**
@@ -319,8 +317,7 @@ contract Registry {
     @param _listing      A listing with an unresolved challenge
     */
     function challengeCanBeResolved(bytes32 _listing) view public returns (bool) {
-        bytes32 listingHash = _listing;
-        uint challengeID = listings[listingHash].challengeID;
+        uint challengeID = listings[_listing].challengeID;
 
         require(challengeExists(_listing));
 
@@ -353,14 +350,13 @@ contract Registry {
 
     // Deletes a listing from the whitelist and transfers tokens back to owner
     function resetListing(bytes32 _listing) internal {
-        bytes32 listingHash = _listing;
-        Listing storage listing = listings[listingHash];
+        Listing storage listing = listings[_listing];
 
         // Transfers any remaining balance back to the owner
         if (listing.unstakedDeposit > 0)
             require(token.transfer(listing.owner, listing.unstakedDeposit));
 
-        delete listings[listingHash];
+        delete listings[_listing];
     }
 
     // ----------------
@@ -373,8 +369,7 @@ contract Registry {
     @param _listing      A listing with a challenge that is to be resolved
     */
     function resolveChallenge(bytes32 _listing) private {
-        bytes32 listingHash = _listing;
-        uint challengeID = listings[listingHash].challengeID;
+        uint challengeID = listings[_listing].challengeID;
 
         // Calculates the winner's reward,
         // which is: (winner's full stake) + (dispensationPct * loser's stake)
@@ -387,7 +382,7 @@ contract Registry {
         if (voting.isPassed(challengeID)) {
             whitelistApplication(_listing);
             // Unlock stake so that it can be retrieved by the applicant
-            listings[listingHash].unstakedDeposit += reward;
+            listings[_listing].unstakedDeposit += reward;
 
             _ChallengeFailed(challengeID);
             if (!wasWhitelisted) { _NewListingWhitelisted(_listing); }
@@ -417,8 +412,6 @@ contract Registry {
     @param _listing      The listing of an application/listing to be whitelisted
     */
     function whitelistApplication(bytes32 _listing) private {
-        bytes32 listingHash = _listing;
-
-        listings[listingHash].whitelisted = true;
+        listings[_listing].whitelisted = true;
     }
 }
