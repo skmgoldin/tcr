@@ -1,7 +1,6 @@
 /* eslint-env mocha */
 /* global assert contract artifacts */
 const Registry = artifacts.require('Registry.sol');
-const Token = artifacts.require('EIP20.sol');
 
 const fs = require('fs');
 
@@ -35,37 +34,14 @@ contract('Registry', (accounts) => {
 
     it('should not allow a listing to apply which has a pending application', async () => {
       const registry = await Registry.deployed();
-      const listing = utils.getListingHash('doublelisting.net');
-      await utils.as(applicant, registry.apply, listing, paramConfig.minDeposit);
+      const listing = utils.getListingHash('nochallenge.net');
       try {
         await utils.as(applicant, registry.apply, listing, paramConfig.minDeposit);
-        assert(false, 'application was made for listing with an already pending application');
       } catch (err) {
-        const errMsg = err.toString();
-        assert(utils.isEVMException(err), errMsg);
+        assert(utils.isEVMException(err), err.toString());
+        return;
       }
-    });
-
-    it('should not allow a listing to apply which is already listed', async () => {
-      const registry = await Registry.deployed();
-      const token = Token.at(await registry.token.call());
-      const listing = utils.getListingHash('nochallenge.net');
-      const initialAmnt = await token.balanceOf.call(registry.address);
-      // apply with accounts[1] with the same listing, should fail since there's
-      // an existing application already
-      try {
-        await registry.apply(listing, paramConfig.minDeposit, { from: accounts[2] });
-      } catch (err) {
-        // TODO: Check if EVM error
-        const errMsg = err.toString();
-        assert(utils.isEVMException(err), errMsg);
-      }
-      const finalAmt = await token.balanceOf.call(registry.address);
-      assert.strictEqual(
-        finalAmt.toString(10),
-        initialAmnt.toString(10),
-        'why did my wallet balance change',
-      );
+      assert(false, 'application was made for listing with an already pending application');
     });
 
     it(
@@ -79,6 +55,21 @@ contract('Registry', (accounts) => {
         assert.strictEqual(result, true, "listing didn't get whitelisted");
       },
     );
+
+    it('should not allow a listing to apply which is already listed', async () => {
+      const registry = await Registry.deployed();
+      const listing = utils.getListingHash('nochallenge.net');
+
+      try {
+        await utils.as(applicant, registry.apply, listing, paramConfig.minDeposit);
+      } catch (err) {
+        // TODO: Check if EVM error
+        const errMsg = err.toString();
+        assert(utils.isEVMException(err), errMsg);
+        return;
+      }
+      assert(false, 'application was made for an already-listed entry');
+    });
   });
 });
 
