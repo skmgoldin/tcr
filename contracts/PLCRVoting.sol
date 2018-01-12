@@ -292,10 +292,7 @@ contract PLCRVoting {
     function hasBeenRevealed(address _voter, uint _pollID) constant public returns (bool revealed) {
         require(pollExists(_pollID));
 
-        uint prevID = dllMap[_voter].getPrev(_pollID);
-        uint nextID = dllMap[_voter].getNext(_pollID);
-
-        return (prevID == _pollID) && (nextID == _pollID);
+        return !dllMap[_voter].contains(_pollID);
     }
 
     /**
