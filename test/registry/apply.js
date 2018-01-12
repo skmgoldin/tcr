@@ -17,14 +17,15 @@ contract('Registry', (accounts) => {
     it('should allow a new listing to apply', async () => {
       const registry = await Registry.deployed();
       const listing = utils.getListingHash('nochallenge.net');
-      // apply with accounts[1]
-      await registry.apply(listing, paramConfig.minDeposit, { from: accounts[1] });
+
+      await utils.as(applicant, registry.apply, listing, paramConfig.minDeposit);
+
       // get the struct in the mapping
       const result = await registry.listings.call(listing);
       // check that Application is initialized correctly
-      assert.strictEqual(result[0] * 1000 > Date.now(), true, 'challenge time < now');
-      assert.strictEqual(result[1], false, 'challenged != false');
-      assert.strictEqual(result[2], accounts[1], 'owner of application != address that applied');
+      assert.strictEqual(result[0].gt(0), true, 'challenge time < now');
+      assert.strictEqual(result[1], false, 'whitelisted != false');
+      assert.strictEqual(result[2], applicant, 'owner of application != address that applied');
       assert.strictEqual(
         result[3].toString(10),
         paramConfig.minDeposit.toString(10),

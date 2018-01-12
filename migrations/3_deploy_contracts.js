@@ -4,7 +4,6 @@ const Registry = artifacts.require('Registry.sol');
 const Token = artifacts.require('EIP20.sol');
 const Parameterizer = artifacts.require('Parameterizer.sol');
 const DLL = artifacts.require('dll/DLL.sol');
-const Challenge = artifacts.require('Challenge.sol');
 const AttributeStore = artifacts.require('attrstore/AttributeStore.sol');
 const PLCRVoting = artifacts.require('PLCRVoting.sol');
 
@@ -61,18 +60,15 @@ module.exports = (deployer, network, accounts) => {
 
   deployer.deploy(DLL);
   deployer.deploy(AttributeStore);
-  deployer.deploy(Challenge);
 
   deployer.link(DLL, PLCRVoting);
   deployer.link(AttributeStore, PLCRVoting);
 
   deployer.link(DLL, Parameterizer);
   deployer.link(AttributeStore, Parameterizer);
-  deployer.link(Challenge, Parameterizer);
 
   deployer.link(DLL, Registry);
   deployer.link(AttributeStore, Registry);
-  deployer.link(Challenge, Registry);
 
   return deployer.then(async () => {
     if (network === 'test') {
