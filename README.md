@@ -25,3 +25,8 @@ In both the `contracts` and `conf` directories are subdirectories named `optiona
 ### Packages
 The repo consumes several EPM packages. `dll` and `attrstore` are libraries used in the TCR's doubly-linked list abstraction. `tokens` and `plcr` are stateful contracts. `tokens` provides an ERC20-comaptible token implementation. `plcr` is the token-voting system used for challenge resolution in both the registry and the parameterizer. All packages are installed automatically when running `npm run compile`.
 
+### Workflow diagram
+
+![Simple overview](./assets/workflow-simple.png)
+
+![Detailed overview](./assets/workflow-detail.png)
