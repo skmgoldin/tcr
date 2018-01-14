@@ -48,6 +48,7 @@ contract Registry {
     EIP20 public token;
     PLCRVoting public voting;
     Parameterizer public parameterizer;
+    string public version = '1';
 
     // ------------
     // CONSTRUCTOR:
