@@ -287,7 +287,7 @@ contract Registry {
         // and either: the challengeID == 0, or the challenge has been resolved.
         if (
             appWasMade(_listingHash) &&
-            isExpired(listings[listingHashHash].applicationExpiry) &&
+            listings[listingHashHash].applicationExpiry < now &&
             !isWhitelisted(_listingHash) &&
             (challengeID == 0 || challenges[challengeID].resolved == true)
         ) { return true; }
@@ -358,11 +358,6 @@ contract Registry {
     */
     function tokenClaims(uint _challengeID, address _voter) public view returns (bool) {
       return challenges[_challengeID].tokenClaims[_voter];
-    }
-
-    // TODO: remove
-    function isExpired(uint _termDate) view public returns (bool expired) {
-        return _termDate < block.timestamp;
     }
 
     // ----------------
