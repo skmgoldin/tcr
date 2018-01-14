@@ -36,7 +36,7 @@ contract('Registry', (accounts) => {
     it('should increase a deposit for a pending application', async () => {
       const registry = await Registry.deployed();
       const listing = utils.getListingHash('pendinglisting.net');
-      await utils.as(applicant, registry.apply, listing, minDeposit);
+      await utils.as(applicant, registry.apply, listing, minDeposit, '');
 
       try {
         await utils.as(applicant, registry.deposit, listing, incAmount);
@@ -57,7 +57,7 @@ contract('Registry', (accounts) => {
       const originalDeposit = await utils.getUnstakedDeposit(listing);
 
       // challenge, then increase deposit
-      await utils.as(challenger, registry.challenge, listing);
+      await utils.as(challenger, registry.challenge, listing, '');
       await utils.as(applicant, registry.deposit, listing, incAmount);
 
       const afterIncDeposit = await utils.getUnstakedDeposit(listing);

@@ -21,7 +21,7 @@ contract('Registry', (accounts) => {
       const listing = utils.getListingHash('wasthismade.net');
 
       // Apply
-      await utils.as(applicant, registry.apply, listing, minDeposit);
+      await utils.as(applicant, registry.apply, listing, minDeposit, '');
       const result = await registry.appWasMade(listing);
       assert.strictEqual(result, true, 'should have returned true for the applied listing');
 

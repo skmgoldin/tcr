@@ -30,7 +30,7 @@ contract('Registry', (accounts) => {
     it('should not whitelist a listing that is still pending an application', async () => {
       const registry = await Registry.deployed();
       const listing = utils.getListingHash('tooearlybuddy.io');
-      await utils.as(applicant, registry.apply, listing, minDeposit);
+      await utils.as(applicant, registry.apply, listing, minDeposit, '');
 
       try {
         await utils.as(applicant, registry.updateStatus, listing);
@@ -44,8 +44,8 @@ contract('Registry', (accounts) => {
       const registry = await Registry.deployed();
       const listing = utils.getListingHash('dontwhitelist.io');
 
-      await utils.as(applicant, registry.apply, listing, minDeposit);
-      await utils.as(challenger, registry.challenge, listing);
+      await utils.as(applicant, registry.apply, listing, minDeposit, '');
+      await utils.as(challenger, registry.challenge, listing, '');
 
       try {
         await registry.updateStatus(listing);
@@ -59,8 +59,8 @@ contract('Registry', (accounts) => {
       const registry = await Registry.deployed();
       const listing = utils.getListingHash('dontwhitelist.net');
 
-      await utils.as(applicant, registry.apply, listing, minDeposit);
-      await utils.as(challenger, registry.challenge, listing);
+      await utils.as(applicant, registry.apply, listing, minDeposit, '');
+      await utils.as(challenger, registry.challenge, listing, '');
 
       const plcrComplete = paramConfig.revealStageLength + paramConfig.commitStageLength + 1;
       await utils.increaseTime(plcrComplete);

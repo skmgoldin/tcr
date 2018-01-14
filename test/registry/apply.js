@@ -17,7 +17,7 @@ contract('Registry', (accounts) => {
       const registry = await Registry.deployed();
       const listing = utils.getListingHash('nochallenge.net');
 
-      await utils.as(applicant, registry.apply, listing, paramConfig.minDeposit);
+      await utils.as(applicant, registry.apply, listing, paramConfig.minDeposit, '');
 
       // get the struct in the mapping
       const result = await registry.listings.call(listing);
@@ -36,7 +36,7 @@ contract('Registry', (accounts) => {
       const registry = await Registry.deployed();
       const listing = utils.getListingHash('nochallenge.net');
       try {
-        await utils.as(applicant, registry.apply, listing, paramConfig.minDeposit);
+        await utils.as(applicant, registry.apply, listing, paramConfig.minDeposit, '');
       } catch (err) {
         assert(utils.isEVMException(err), err.toString());
         return;
@@ -61,7 +61,7 @@ contract('Registry', (accounts) => {
       const listing = utils.getListingHash('nochallenge.net');
 
       try {
-        await utils.as(applicant, registry.apply, listing, paramConfig.minDeposit);
+        await utils.as(applicant, registry.apply, listing, paramConfig.minDeposit, '');
       } catch (err) {
         // TODO: Check if EVM error
         const errMsg = err.toString();

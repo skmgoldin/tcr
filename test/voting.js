@@ -20,8 +20,8 @@ contract('PLCRVoting', (accounts) => {
       const secondDomain = 'second.net';
       const minDeposit = new BN(paramConfig.minDeposit, 10);
 
-      await utils.as(applicant, registry.apply, firstDomain, minDeposit);
-      await utils.as(applicant, registry.apply, secondDomain, minDeposit);
+      await utils.as(applicant, registry.apply, firstDomain, minDeposit, '');
+      await utils.as(applicant, registry.apply, secondDomain, minDeposit, '');
       const firstPollID = await utils.challengeAndGetPollID(firstDomain, challenger);
       const secondPollID = await utils.challengeAndGetPollID(secondDomain, challenger);
       await utils.commitVote(firstPollID, 1, 7, 420, voter);
