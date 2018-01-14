@@ -25,23 +25,23 @@ contract Registry {
         uint applicationExpiry; // Expiration date of apply stage
         bool whitelisted;       // Indicates registry status
         address owner;          // Owner of Listing
-        uint unstakedDeposit;   // Number of unlocked tokens with potential risk if challenged
-        uint challengeID;       // Identifier of canonical challenge
+        uint unstakedDeposit;   // Number of tokens in the listing not locked in a challenge
+        uint challengeID;       // Corresponds to a PollID in PLCRVoting
     }
 
     struct Challenge {
-        uint rewardPool;        // (remaining) Pool of tokens distributed amongst winning voters
+        uint rewardPool;        // (remaining) Pool of tokens to be distributed to winning voters
         address challenger;     // Owner of Challenge
         bool resolved;          // Indication of if challenge is resolved
-        uint stake;             // Number of tokens at risk for either party during challenge
-        uint totalTokens;       // (remaining) Amount of tokens used for voting by the winning side
-        mapping(address => bool) tokenClaims;
+        uint stake;             // Number of tokens at stake for either party during challenge
+        uint totalTokens;       // (remaining) Number of tokens used in voting by the winning side
+        mapping(address => bool) tokenClaims; // Indicates whether a voter has claimed a reward yet
     }
 
     // Maps challengeIDs to associated challenge data
     mapping(uint => Challenge) public challenges;
 
-    // Maps listingHashHashes to associated listingHash data
+    // Maps listingHashes to associated listingHash data
     mapping(bytes32 => Listing) public listings;
 
     // Global Variables
@@ -54,11 +54,10 @@ contract Registry {
     // ------------
 
     /**
-    @dev Contructor
-    @notice                 Sets the addresses for token, voting, and parameterizer
-    @param _tokenAddr       Address of the native ERC20 token (ADT)
+    @dev Contructor         Sets the addresses for token, voting, and parameterizer
+    @param _tokenAddr       Address of the TCR's intrinsic ERC20 token
     @param _plcrAddr        Address of a PLCR voting contract for the provided token
-    @param _paramsAddr      Address of a Parameterizer contract for the provided PLCR voting contract
+    @param _paramsAddr      Address of a Parameterizer contract 
     */
     function Registry(
         address _tokenAddr,
@@ -75,10 +74,11 @@ contract Registry {
     // --------------------
 
     /**
-    @notice             Allows a user to start an application.
-    @notice             Takes tokens from user and sets apply stage end time.
-    @param _listingHash      The listingHash of a potential listingHash a user is applying to add to the registry
+    @dev                Allows a user to start an application. Takes tokens from user and sets
+                        apply stage end time.
+    @param _listingHash The hash of a potential listing a user is applying to add to the registry
     @param _amount      The number of ERC20 tokens a user is willing to potentially stake
+    @param _data        Extra data relevant to the application. Think IPFS hashes.
     */
     function apply(bytes32 _listingHash, uint _amount, string _data) external {
         require(!isWhitelisted(_listingHash));
@@ -100,8 +100,8 @@ contract Registry {
     }
 
     /**
-    @notice             Allows the owner of a listingHash to increase their unstaked deposit.
-    @param _listingHash      The listingHash of a user's application/listingHash
+    @dev                Allows the owner of a listingHash to increase their unstaked deposit.
+    @param _listingHash A listingHash msg.sender is the owner of
     @param _amount      The number of ERC20 tokens to increase a user's unstaked deposit
     */
     function deposit(bytes32 _listingHash, uint _amount) external {
@@ -116,10 +116,9 @@ contract Registry {
     }
 
     /**
-    @notice             Allows the owner of a listingHash to decrease their unstaked deposit.
-    @notice             The listingHash keeps its previous status.
-    @param _listingHash      The listingHash of a user's application/listingHash
-    @param _amount      The number of ERC20 tokens to decrease a user's unstaked deposit
+    @dev                Allows the owner of a listingHash to decrease their unstaked deposit.
+    @param _listingHash A listingHash msg.sender is the owner of.
+    @param _amount      The number of ERC20 tokens to withdraw from the unstaked deposit.
     */
     function withdraw(bytes32 _listingHash, uint _amount) external {
         Listing storage listingHash = listings[_listingHash];
@@ -136,9 +135,9 @@ contract Registry {
     }
 
     /**
-    @notice             Allows the owner of a listingHash to remove the listingHash from the whitelist
-    @notice             Returns all tokens to the owner of the listingHash
-    @param _listingHash      The listingHash of a user's listingHash
+    @dev                Allows the owner of a listingHash to remove the listingHash from the whitelist
+                        Returns all tokens to the owner of the listingHash
+    @param _listingHash A listingHash msg.sender is the owner of.
     */
     function exit(bytes32 _listingHash) external {
         Listing storage listingHash = listings[_listingHash];
@@ -158,10 +157,11 @@ contract Registry {
     // -----------------------
 
     /**
-    @notice             Starts a poll for a listingHash which is either
-    @notice             in the apply stage or already in the whitelist.
-    @dev                Tokens are taken from the challenger and the applicant's deposit is locked.
-    @param _listingHash      The listingHash of an applicant's potential listingHash
+    @dev                Starts a poll for a listingHash which is either in the apply stage or
+                        already in the whitelist. Tokens are taken from the challenger and the
+                        applicant's deposits are locked.
+    @param _listingHash The listingHash being challenged, whether listed or in application
+    @param _data        Extra data relevant to the challenge. Think IPFS hashes.
     */
     function challenge(bytes32 _listingHash, string _data) external returns (uint challengeID) {
         bytes32 listingHashHash = _listingHash;
@@ -208,9 +208,9 @@ contract Registry {
     }
 
     /**
-    @notice             Updates a listingHash's status from 'application' to 'listingHash'
-    @notice             or resolves a challenge if one exists.
-    @param _listingHash      The listingHash whose status is being updated
+    @dev                Updates a listingHash's status from 'application' to 'listing' or resolves
+                        a challenge if one exists.
+    @param _listingHash The listingHash whose status is being updated
     */
     function updateStatus(bytes32 _listingHash) public {
         if (canBeWhitelisted(_listingHash)) {
@@ -228,9 +228,9 @@ contract Registry {
     // ----------------
 
     /**
-    @notice             Called by a voter to claim his/her reward for each completed vote.
-    @dev                Someone must call updateStatus() before this can be called.
-    @param _challengeID The pollID of the challenge a reward is being claimed for
+    @dev                Called by a voter to claim their reward for each completed vote. Someone
+                        must call updateStatus() before this can be called.
+    @param _challengeID The PLCR pollID of the challenge a reward is being claimed for
     @param _salt        The salt of a voter's commit hash in the given poll
     */
     function claimReward(uint _challengeID, uint _salt) public {
@@ -254,12 +254,16 @@ contract Registry {
         _RewardClaimed(msg.sender, _challengeID, reward);
     }
 
+    // --------
+    // GETTERS:
+    // --------
+
     /**
     @dev                Calculates the provided voter's token reward for the given poll.
     @param _voter       The address of the voter whose reward balance is to be returned
     @param _challengeID The pollID of the challenge a reward balance is being queried for
     @param _salt        The salt of the voter's commit hash in the given poll
-    @return             The uint indicating the voter's reward (in nano-ADT)
+    @return             The uint indicating the voter's reward
     */
     function voterReward(address _voter, uint _challengeID, uint _salt)
     public view returns (uint) {
@@ -269,13 +273,9 @@ contract Registry {
         return (voterTokens * rewardPool) / totalTokens;
     }
 
-    // --------
-    // GETTERS:
-    // --------
-
     /**
-    @dev                Determines whether the listingHash of an application can be whitelisted.
-    @param _listingHash      The listingHash whose status should be examined
+    @dev                Determines whether the given listingHash be whitelisted.
+    @param _listingHash The listingHash whose status is to be examined
     */
     function canBeWhitelisted(bytes32 _listingHash) view public returns (bool) {
         bytes32 listingHashHash = _listingHash;
@@ -295,17 +295,26 @@ contract Registry {
         return false;
     }
 
-    // Returns true if listingHash is whitelisted
+    /**
+    @dev                Returns true if the provided listingHash is whitelisted
+    @param _listingHash The listingHash whose status is to be examined
+    */
     function isWhitelisted(bytes32 _listingHash) view public returns (bool whitelisted) {
         return listings[_listingHash].whitelisted;
     }
 
-    // Returns true if apply(listingHash) was called for this listingHash
+    /**
+    @dev                Returns true if apply was called for this listingHash
+    @param _listingHash The listingHash whose status is to be examined
+    */
     function appWasMade(bytes32 _listingHash) view public returns (bool exists) {
         return listings[_listingHash].applicationExpiry > 0;
     }
 
-    // Returns true if the application/listingHash has an unresolved challenge
+    /**
+    @dev                Returns true if the application/listingHash has an unresolved challenge
+    @param _listingHash The listingHash whose status is to be examined
+    */
     function challengeExists(bytes32 _listingHash) view public returns (bool) {
         bytes32 listingHashHash = _listingHash;
         uint challengeID = listings[listingHashHash].challengeID;
@@ -314,9 +323,9 @@ contract Registry {
     }
 
     /**
-    @notice             Determines whether voting has concluded in a challenge for a given listingHash.
-    @dev                Throws if no challenge exists.
-    @param _listingHash      A listingHash with an unresolved challenge
+    @dev                Determines whether voting has concluded in a challenge for a given
+                        listingHash. Throws if no challenge exists.
+    @param _listingHash A listingHash with an unresolved challenge
     */
     function challengeCanBeResolved(bytes32 _listingHash) view public returns (bool) {
         bytes32 listingHashHash = _listingHash;
@@ -328,7 +337,7 @@ contract Registry {
     }
 
     /**
-    @notice             Determines the number of tokens awarded to the winning party in a challenge.
+    @dev                Determines the number of tokens awarded to the winning party in a challenge.
     @param _challengeID The challengeID to determine a reward for
     */
     function determineReward(uint _challengeID) public view returns (uint) {
@@ -342,25 +351,18 @@ contract Registry {
         return (2 * challenges[_challengeID].stake) - challenges[_challengeID].rewardPool;
     }
 
+    /**
+    @dev                Getter for Challenge tokenClaims mappings
+    @param _challengeID The challengeID to query
+    @param _voter       The voter whose claim status to query for the provided challengeID
+    */
     function tokenClaims(uint _challengeID, address _voter) public view returns (bool) {
       return challenges[_challengeID].tokenClaims[_voter];
     }
 
-    // Returns true if the provided termDate has passed
+    // TODO: remove
     function isExpired(uint _termDate) view public returns (bool expired) {
         return _termDate < block.timestamp;
-    }
-
-    // Deletes a listingHash from the whitelist and transfers tokens back to owner
-    function resetListing(bytes32 _listingHash) internal {
-        bytes32 listingHashHash = _listingHash;
-        Listing storage listingHash = listings[listingHashHash];
-
-        // Transfers any remaining balance back to the owner
-        if (listingHash.unstakedDeposit > 0)
-            require(token.transfer(listingHash.owner, listingHash.unstakedDeposit));
-
-        delete listings[listingHashHash];
     }
 
     // ----------------
@@ -368,9 +370,9 @@ contract Registry {
     // ----------------
 
     /**
-    @notice             Determines the winner in a challenge.
-    @notice             Rewards the winner tokens and either whitelists or de-whitelists the listingHash.
-    @param _listingHash      A listingHash with a challenge that is to be resolved
+    @dev                Determines the winner in a challenge. Rewards the winner tokens and
+                        either whitelists or de-whitelists the listingHash.
+    @param _listingHash A listingHash with a challenge that is to be resolved
     */
     function resolveChallenge(bytes32 _listingHash) private {
         bytes32 listingHashHash = _listingHash;
@@ -412,11 +414,27 @@ contract Registry {
     }
 
     /**
-    @dev                Called by updateStatus() if the applicationExpiry date passed without a challenge being made.
-    @dev                Called by resolveChallenge() if an application/listingHash beat a challenge.
-    @param _listingHash      The listingHash of an application/listingHash to be whitelisted
+    @dev                Called by updateStatus() if the applicationExpiry date passed without a
+                        challenge being made. Called by resolveChallenge() if an
+                        application/listing beat a challenge.
+    @param _listingHash The listingHash of an application/listingHash to be whitelisted
     */
     function whitelistApplication(bytes32 _listingHash) private {
         listings[_listingHash].whitelisted = true;
+    }
+
+    /**
+    @dev                Deletes a listingHash from the whitelist and transfers tokens back to owner
+    @param _listingHash The listing hash to delete
+    */
+    function resetListing(bytes32 _listingHash) private {
+        bytes32 listingHashHash = _listingHash;
+        Listing storage listingHash = listings[listingHashHash];
+
+        // Transfers any remaining balance back to the owner
+        if (listingHash.unstakedDeposit > 0)
+            require(token.transfer(listingHash.owner, listingHash.unstakedDeposit));
+
+        delete listings[listingHashHash];
     }
 }
