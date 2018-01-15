@@ -17,9 +17,6 @@ module.exports = (deployer, network, accounts) => {
     return approvePLCRFor(addresses.slice(1));
   }
 
-  deployer.deploy(DLL);
-  deployer.deploy(AttributeStore);
-
   deployer.link(DLL, PLCRVoting);
   deployer.link(AttributeStore, PLCRVoting);
 
