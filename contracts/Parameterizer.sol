@@ -318,7 +318,7 @@ contract Parameterizer {
   }
 
   /**
-  @dev sets the param keted by the provided name to the provided value
+  @dev sets the param keyed by the provided name to the provided value
   @param _name the name of the param to be set
   @param _value the value to set the param to be set
   */
