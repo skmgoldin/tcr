@@ -19,8 +19,8 @@ module.exports = (deployer, network, accounts) => {
     ' TEST tokens to: ', user);
     await token.transfer(user, '100000');
 
-    if (addresses.length === 1) { return; }
-    giveTokensTo(addresses.slice(1));
+    if (addresses.length === 1) { return true; }
+    return giveTokensTo(addresses.slice(1));
   }
 
   const config = JSON.parse(fs.readFileSync('./conf/config.json'));
