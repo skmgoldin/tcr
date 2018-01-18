@@ -358,7 +358,7 @@ contract PLCRVoting {
     @dev Gets the prevNode a new node should be inserted after given the sort factor
     @param _voter The voter whose DLL will be searched
     @param _numTokens The value for the numTokens attribute in the node to be inserted
-    @return the node which the propoded node should be inserted after
+    @return the node which the proposed node should be inserted after
     */
     function getInsertPointForNumTokens(address _voter, uint _numTokens)
     constant public returns (uint prevNode) {
