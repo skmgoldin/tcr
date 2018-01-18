@@ -63,14 +63,14 @@ contract Parameterizer {
   @param _plcrAddr         address of a PLCR voting contract for the provided token
   @param _minDeposit       minimum deposit for listing to be whitelisted  
   @param _pMinDeposit      minimum deposit to propose a reparameterization
-  @param _applyStageLen    period over which applicants wait to be whitelisted
-  @param _pApplyStageLen   period over which reparmeterization proposals wait to be processed 
+  @param _applyStageLen    period over which applicant's wait to be whitelisted
+  @param _pApplyStageLen   period over which reparmeterization proposal's wait to be processed 
   @param _dispensationPct  percentage of losing party's deposit distributed to winning party
   @param _pDispensationPct percentage of losing party's deposit distributed to winning party in parameterizer
-  @param _commitStageLen  length of commit period for voting
-  @param _pCommitStageLen length of commit period for voting in parameterizer
-  @param _revealStageLen  length of reveal period for voting
-  @param _pRevealStageLen length of reveal period for voting in parameterizer
+  @param _commitStageLen   length of commit period for voting
+  @param _pCommitStageLen  length of commit period for voting in parameterizer
+  @param _revealStageLen   length of reveal period for voting
+  @param _pRevealStageLen  length of reveal period for voting in parameterizer
   @param _voteQuorum       type of majority out of 100 necessary for vote success
   @param _pVoteQuorum      type of majority out of 100 necessary for vote success in parameterizer
   */
