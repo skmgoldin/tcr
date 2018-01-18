@@ -13,5 +13,12 @@
 		"voteQuorum": 50,
 		"pVoteQuorum": 50
 	},
-	"TokenAddress": "0x337cDDa6D41A327c5ad456166CCB781a9722AFf9"
+	"TokenAddress": "0x337cDDa6D41A327c5ad456166CCB781a9722AFf9",
+  "testnets": {
+    "rinkeby": {
+      "tokenHolders": [
+        "0x1a5cdcFBA600e0c669795e0B65c344D5A37a4d5A"
+      ] 
+    }
+  }
 }
