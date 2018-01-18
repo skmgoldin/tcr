@@ -267,7 +267,7 @@ contract Parameterizer {
   }
 
   /**
-  @notice Determines the number of tokens to awarded to the winning party in a challenge
+  @notice Determines the number of tokens to be awarded to the winning party in a challenge
   @param _challengeID The challengeID to determine a reward for
   */
   function challengeWinnerReward(uint _challengeID) public view returns (uint) {
