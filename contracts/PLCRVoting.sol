@@ -1,4 +1,5 @@
 pragma solidity ^0.4.8;
+
 import "tokens/eip20/EIP20.sol";
 import "dll/DLL.sol";
 import "attrstore/AttributeStore.sol";
