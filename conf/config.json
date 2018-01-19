@@ -17,7 +17,9 @@
   "testnets": {
     "rinkeby": {
       "tokenHolders": [
-        "0x1a5cdcFBA600e0c669795e0B65c344D5A37a4d5A"
+        "0x1a5cdcFBA600e0c669795e0B65c344D5A37a4d5A",
+        "0x2a5cdcFBA600e0c669795e0B65c344D5A37a4d5A",
+        "0x3a5cdcFBA600e0c669795e0B65c344D5A37a4d5A"
       ] 
     }
   }
