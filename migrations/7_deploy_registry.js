@@ -26,7 +26,7 @@ module.exports = (deployer, network, accounts) => {
     const config = JSON.parse(fs.readFileSync('./conf/config.json'));
     let tokenAddress = config.TokenAddress;
 
-    if (network === 'test') {
+    if (network !== 'mainnet') {
       tokenAddress = Token.address;
     }
 

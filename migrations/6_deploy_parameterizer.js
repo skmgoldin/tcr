@@ -26,7 +26,7 @@ module.exports = (deployer, network, accounts) => {
     const parameterizerConfig = config.paramDefaults;
     let tokenAddress = config.TokenAddress;
 
-    if (network === 'test') {
+    if (network !== 'mainnet') {
       tokenAddress = Token.address;
     }
 
