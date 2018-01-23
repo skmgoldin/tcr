@@ -87,15 +87,15 @@ contract Registry {
         require(_amount >= parameterizer.get("minDeposit"));
 
         // Sets owner
-        Listing storage listingHash = listings[_listingHash];
-        listingHash.owner = msg.sender;
+        Listing storage listing = listings[_listingHash];
+        listing.owner = msg.sender;
 
         // Transfers tokens from user to Registry contract
-        require(token.transferFrom(listingHash.owner, this, _amount));
+        require(token.transferFrom(listing.owner, this, _amount));
 
         // Sets apply stage end time
-        listingHash.applicationExpiry = block.timestamp + parameterizer.get("applyStageLen");
-        listingHash.unstakedDeposit = _amount;
+        listing.applicationExpiry = block.timestamp + parameterizer.get("applyStageLen");
+        listing.unstakedDeposit = _amount;
 
         _Application(_listingHash, _amount, _data);
     }
@@ -106,14 +106,14 @@ contract Registry {
     @param _amount      The number of ERC20 tokens to increase a user's unstaked deposit
     */
     function deposit(bytes32 _listingHash, uint _amount) external {
-        Listing storage listingHash = listings[_listingHash];
+        Listing storage listing = listings[_listingHash];
 
-        require(listingHash.owner == msg.sender);
+        require(listing.owner == msg.sender);
         require(token.transferFrom(msg.sender, this, _amount));
 
-        listingHash.unstakedDeposit += _amount;
+        listing.unstakedDeposit += _amount;
 
-        _Deposit(_listingHash, _amount, listingHash.unstakedDeposit);
+        _Deposit(_listingHash, _amount, listing.unstakedDeposit);
     }
 
     /**
@@ -122,17 +122,17 @@ contract Registry {
     @param _amount      The number of ERC20 tokens to withdraw from the unstaked deposit.
     */
     function withdraw(bytes32 _listingHash, uint _amount) external {
-        Listing storage listingHash = listings[_listingHash];
+        Listing storage listing = listings[_listingHash];
 
-        require(listingHash.owner == msg.sender);
-        require(_amount <= listingHash.unstakedDeposit);
-        require(listingHash.unstakedDeposit - _amount >= parameterizer.get("minDeposit"));
+        require(listing.owner == msg.sender);
+        require(_amount <= listing.unstakedDeposit);
+        require(listing.unstakedDeposit - _amount >= parameterizer.get("minDeposit"));
 
         require(token.transfer(msg.sender, _amount));
 
-        listingHash.unstakedDeposit -= _amount;
+        listing.unstakedDeposit -= _amount;
 
-        _Withdrawal(_listingHash, _amount, listingHash.unstakedDeposit);
+        _Withdrawal(_listingHash, _amount, listing.unstakedDeposit);
     }
 
     /**
@@ -141,13 +141,13 @@ contract Registry {
     @param _listingHash A listingHash msg.sender is the owner of.
     */
     function exit(bytes32 _listingHash) external {
-        Listing storage listingHash = listings[_listingHash];
+        Listing storage listing = listings[_listingHash];
 
-        require(msg.sender == listingHash.owner);
+        require(msg.sender == listing.owner);
         require(isWhitelisted(_listingHash));
 
         // Cannot exit during ongoing challenge
-        require(listingHash.challengeID == 0 || challenges[listingHash.challengeID].resolved);
+        require(listing.challengeID == 0 || challenges[listing.challengeID].resolved);
 
         // Remove listingHash & return tokens
         resetListing(_listingHash);
@@ -165,16 +165,15 @@ contract Registry {
     @param _data        Extra data relevant to the challenge. Think IPFS hashes.
     */
     function challenge(bytes32 _listingHash, string _data) external returns (uint challengeID) {
-        bytes32 listingHashHash = _listingHash;
-        Listing storage listingHash = listings[listingHashHash];
+        Listing storage listing = listings[_listingHash];
         uint deposit = parameterizer.get("minDeposit");
 
         // Listing must be in apply stage or already on the whitelist
-        require(appWasMade(_listingHash) || listingHash.whitelisted);
+        require(appWasMade(_listingHash) || listing.whitelisted);
         // Prevent multiple challenges
-        require(listingHash.challengeID == 0 || challenges[listingHash.challengeID].resolved);
+        require(listing.challengeID == 0 || challenges[listing.challengeID].resolved);
 
-        if (listingHash.unstakedDeposit < deposit) {
+        if (listing.unstakedDeposit < deposit) {
             // Not enough tokens, listingHash auto-delisted
             resetListing(_listingHash);
             return 0;
@@ -199,10 +198,10 @@ contract Registry {
         });
 
         // Updates listingHash to store most recent challenge
-        listings[listingHashHash].challengeID = pollID;
+        listing.challengeID = pollID;
 
         // Locks tokens for listingHash during challenge
-        listings[listingHashHash].unstakedDeposit -= deposit;
+        listing.unstakedDeposit -= deposit;
 
         _Challenge(_listingHash, deposit, pollID, _data);
         return pollID;
@@ -279,8 +278,7 @@ contract Registry {
     @param _listingHash The listingHash whose status is to be examined
     */
     function canBeWhitelisted(bytes32 _listingHash) view public returns (bool) {
-        bytes32 listingHashHash = _listingHash;
-        uint challengeID = listings[listingHashHash].challengeID;
+        uint challengeID = listings[_listingHash].challengeID;
 
         // Ensures that the application was made,
         // the application period has ended,
@@ -288,7 +286,7 @@ contract Registry {
         // and either: the challengeID == 0, or the challenge has been resolved.
         if (
             appWasMade(_listingHash) &&
-            listings[listingHashHash].applicationExpiry < now &&
+            listings[_listingHash].applicationExpiry < now &&
             !isWhitelisted(_listingHash) &&
             (challengeID == 0 || challenges[challengeID].resolved == true)
         ) { return true; }
@@ -317,10 +315,9 @@ contract Registry {
     @param _listingHash The listingHash whose status is to be examined
     */
     function challengeExists(bytes32 _listingHash) view public returns (bool) {
-        bytes32 listingHashHash = _listingHash;
-        uint challengeID = listings[listingHashHash].challengeID;
+        uint challengeID = listings[_listingHash].challengeID;
 
-        return (listings[listingHashHash].challengeID > 0 && !challenges[challengeID].resolved);
+        return (listings[_listingHash].challengeID > 0 && !challenges[challengeID].resolved);
     }
 
     /**
@@ -329,8 +326,7 @@ contract Registry {
     @param _listingHash A listingHash with an unresolved challenge
     */
     function challengeCanBeResolved(bytes32 _listingHash) view public returns (bool) {
-        bytes32 listingHashHash = _listingHash;
-        uint challengeID = listings[listingHashHash].challengeID;
+        uint challengeID = listings[_listingHash].challengeID;
 
         require(challengeExists(_listingHash));
 
@@ -371,8 +367,7 @@ contract Registry {
     @param _listingHash A listingHash with a challenge that is to be resolved
     */
     function resolveChallenge(bytes32 _listingHash) private {
-        bytes32 listingHashHash = _listingHash;
-        uint challengeID = listings[listingHashHash].challengeID;
+        uint challengeID = listings[_listingHash].challengeID;
 
         // Calculates the winner's reward,
         // which is: (winner's full stake) + (dispensationPct * loser's stake)
@@ -385,7 +380,7 @@ contract Registry {
         if (voting.isPassed(challengeID)) {
             whitelistApplication(_listingHash);
             // Unlock stake so that it can be retrieved by the applicant
-            listings[listingHashHash].unstakedDeposit += reward;
+            listings[_listingHash].unstakedDeposit += reward;
 
             _ChallengeFailed(challengeID);
             if (!wasWhitelisted) { _NewListingWhitelisted(_listingHash); }
@@ -424,13 +419,12 @@ contract Registry {
     @param _listingHash The listing hash to delete
     */
     function resetListing(bytes32 _listingHash) private {
-        bytes32 listingHashHash = _listingHash;
-        Listing storage listingHash = listings[listingHashHash];
+        Listing storage listing = listings[_listingHash];
 
         // Transfers any remaining balance back to the owner
-        if (listingHash.unstakedDeposit > 0)
-            require(token.transfer(listingHash.owner, listingHash.unstakedDeposit));
+        if (listing.unstakedDeposit > 0)
+            require(token.transfer(listing.owner, listing.unstakedDeposit));
 
-        delete listings[listingHashHash];
+        delete listings[_listingHash];
     }
 }
