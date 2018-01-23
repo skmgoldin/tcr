@@ -22,9 +22,9 @@ module.exports = (deployer, network, accounts) => {
 
   return deployer.then(async () => {
     const config = JSON.parse(fs.readFileSync('./conf/config.json'));
-    let tokenAddress = config.TokenAddress;
+    let tokenAddress = config.token.address;
 
-    if (network !== 'mainnet') {
+    if (config.token.deployToken) {
       tokenAddress = Token.address;
     }
 
