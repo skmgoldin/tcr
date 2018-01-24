@@ -1,5 +1,4 @@
 pragma solidity ^0.4.8;
-
 import "tokens/eip20/EIP20.sol";
 import "dll/DLL.sol";
 import "attrstore/AttributeStore.sol";
@@ -30,8 +29,8 @@ contract PLCRVoting {
     struct Poll {
         uint commitEndDate;     /// expiration date of commit period for poll
         uint revealEndDate;     /// expiration date of reveal period for poll
-        uint voteQuorum;	    /// number of votes required for a proposal to pass
-        uint votesFor;		    /// tally of votes supporting proposal
+        uint voteQuorum;	      /// number of votes required for a proposal to pass
+        uint votesFor;		      /// tally of votes supporting proposal
         uint votesAgainst;      /// tally of votes countering proposal
     }
     
@@ -292,6 +291,7 @@ contract PLCRVoting {
     */
     function hasBeenRevealed(address _voter, uint _pollID) constant public returns (bool revealed) {
         require(pollExists(_pollID));
+        require(getCommitHash(_voter, _pollID) != 0);
 
         return !dllMap[_voter].contains(_pollID);
     }
@@ -358,7 +358,7 @@ contract PLCRVoting {
     @dev Gets the prevNode a new node should be inserted after given the sort factor
     @param _voter The voter whose DLL will be searched
     @param _numTokens The value for the numTokens attribute in the node to be inserted
-    @return the node which the proposed node should be inserted after
+    @return the node which the propoded node should be inserted after
     */
     function getInsertPointForNumTokens(address _voter, uint _numTokens)
     constant public returns (uint prevNode) {
