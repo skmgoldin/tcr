@@ -14,7 +14,7 @@ const utils = require('../utils.js');
 const bigTen = number => new BN(number.toString(10), 10);
 
 contract('Registry', (accounts) => {
-  describe('Function: claimReward', () => {
+  describe('Function: claimVoterReward', () => {
     const [applicant, challenger, voterAlice] = accounts;
     const minDeposit = bigTen(paramConfig.minDeposit);
 
@@ -44,7 +44,7 @@ contract('Registry', (accounts) => {
 
       // Alice claims reward
       const aliceVoterReward = await registry.voterReward(voterAlice, pollID, '420');
-      await utils.as(voterAlice, registry.claimReward, pollID, '420');
+      await utils.as(voterAlice, registry.claimVoterReward, pollID, '420');
 
       // Alice withdraws her voting rights
       await utils.as(voterAlice, voting.withdrawVotingRights, '500');
@@ -65,8 +65,8 @@ contract('Registry', (accounts) => {
 
       try {
         const nonPollID = '666';
-        await utils.as(voterAlice, registry.claimReward, nonPollID, '420');
-        assert(false, 'should not have been able to claimReward for non-existant challengeID');
+        await utils.as(voterAlice, registry.claimVoterReward, nonPollID, '420');
+        assert(false, 'should not have been able to claimVoterReward for non-existant challengeID');
       } catch (err) {
         assert(utils.isEVMException(err), err.toString());
       }
@@ -109,8 +109,8 @@ contract('Registry', (accounts) => {
       await utils.as(applicant, registry.updateStatus, listing);
 
       try {
-        await utils.as(voterAlice, registry.claimReward, pollID, '421');
-        assert(false, 'should not have been able to claimReward with the wrong salt');
+        await utils.as(voterAlice, registry.claimVoterReward, pollID, '421');
+        assert(false, 'should not have been able to claimVoterReward with the wrong salt');
       } catch (err) {
         assert(utils.isEVMException(err), err.toString());
       }
@@ -142,11 +142,11 @@ contract('Registry', (accounts) => {
       await utils.as(applicant, registry.updateStatus, listing);
 
       // Claim reward
-      await utils.as(voterAlice, registry.claimReward, pollID, '420');
+      await utils.as(voterAlice, registry.claimVoterReward, pollID, '420');
 
       try {
-        await utils.as(voterAlice, registry.claimReward, pollID, '420');
-        assert(false, 'should not have been able to call claimReward twice');
+        await utils.as(voterAlice, registry.claimVoterReward, pollID, '420');
+        assert(false, 'should not have been able to call claimVoterReward twice');
       } catch (err) {
         assert(utils.isEVMException(err), err.toString());
       }
@@ -190,8 +190,8 @@ contract('Registry', (accounts) => {
       await utils.increaseTime(paramConfig.revealStageLength + 1);
 
       try {
-        await utils.as(voterAlice, registry.claimReward, pollID, '420');
-        assert(false, 'should not have been able to claimReward for unresolved challenge');
+        await utils.as(voterAlice, registry.claimVoterReward, pollID, '420');
+        assert(false, 'should not have been able to claimVoterReward for unresolved challenge');
       } catch (err) {
         assert(utils.isEVMException(err), err.toString());
       }
