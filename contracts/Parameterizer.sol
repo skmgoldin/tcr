@@ -33,7 +33,7 @@ contract Parameterizer {
     bool resolved;          // indication of if challenge is resolved
     uint stake;             // number of tokens at risk for either party during challenge
     uint winningTokens;     // (remaining) amount of tokens used for voting by the winning side
-    mapping(address => bool) tokenClaims;
+    mapping(address => bool) voterCanClaimReward;
   }
 
   // ------
@@ -198,9 +198,9 @@ contract Parameterizer {
   @param _challengeID the challenge ID to claim tokens for
   @param _salt the salt used to vote in the challenge being withdrawn for
   */
-  function claimReward(uint _challengeID, uint _salt) public {
+  function claimVoterReward(uint _challengeID, uint _salt) public {
     // ensure voter has not already claimed tokens and challenge results have been processed
-    require(challenges[_challengeID].tokenClaims[msg.sender] == false);
+    require(challenges[_challengeID].voterCanClaimReward[msg.sender] == false);
     require(challenges[_challengeID].resolved == true);
 
     uint voterTokens = voting.getNumPassingTokens(msg.sender, _challengeID, _salt);
@@ -214,7 +214,7 @@ contract Parameterizer {
     require(token.transfer(msg.sender, reward));
     
     // ensures a voter cannot claim tokens again
-    challenges[_challengeID].tokenClaims[msg.sender] = true;
+    challenges[_challengeID].voterCanClaimReward[msg.sender] = true;
   }
 
   // --------

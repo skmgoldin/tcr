@@ -13,7 +13,7 @@ const utils = require('../utils.js');
 const bigTen = number => new BN(number.toString(10), 10);
 
 contract('Registry', (accounts) => {
-  describe('Function: tokenClaims', () => {
+  describe('Function: voterCanClaimReward', () => {
     const minDeposit = bigTen(paramConfig.minDeposit);
     const [applicant, challenger, voter] = accounts;
 
@@ -34,13 +34,13 @@ contract('Registry', (accounts) => {
 
       await utils.as(challenger, registry.updateStatus, listing);
 
-      const initialHasClaimed = await registry.tokenClaims.call(pollID, voter);
+      const initialHasClaimed = await registry.voterCanClaimReward.call(pollID, voter);
       assert.strictEqual(initialHasClaimed, false, 'The voter is purported to have claimed ' +
         'their reward, when in fact they have not');
 
-      await utils.as(voter, registry.claimReward, pollID, '420');
+      await utils.as(voter, registry.claimVoterReward, pollID, '420');
 
-      const finalHasClaimed = await registry.tokenClaims.call(pollID, voter);
+      const finalHasClaimed = await registry.voterCanClaimReward.call(pollID, voter);
       assert.strictEqual(finalHasClaimed, true, 'The voter is purported to not have claimed ' +
         'their reward, when in fact they have');
     });

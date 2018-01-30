@@ -13,7 +13,7 @@ const paramConfig = config.paramDefaults;
 const bigTen = number => new BN(number.toString(10), 10);
 
 contract('Parameterizer', (accounts) => {
-  describe('Function: claimReward', () => {
+  describe('Function: claimVoterReward', () => {
     const [proposer, challenger, voterAlice, voterBob] = accounts;
 
     it('should give the correct number of tokens to a voter on the winning side.', async () => {
@@ -40,7 +40,7 @@ contract('Parameterizer', (accounts) => {
 
       await parameterizer.processProposal(propID);
 
-      await utils.as(voterAlice, parameterizer.claimReward, challengeID, '420');
+      await utils.as(voterAlice, parameterizer.claimVoterReward, challengeID, '420');
       await utils.as(voterAlice, voting.withdrawVotingRights, '10');
 
       const voterAliceFinalBalance = await token.balanceOf.call(voterAlice);
@@ -87,14 +87,14 @@ contract('Parameterizer', (accounts) => {
           voterAlice,
           challengeID, '420',
         );
-        await utils.as(voterAlice, parameterizer.claimReward, challengeID, '420');
+        await utils.as(voterAlice, parameterizer.claimVoterReward, challengeID, '420');
         await utils.as(voterAlice, voting.withdrawVotingRights, '10');
 
         const voterBobReward = await parameterizer.voterReward.call(
           voterBob,
           challengeID, '420',
         );
-        await utils.as(voterBob, parameterizer.claimReward, challengeID, '420');
+        await utils.as(voterBob, parameterizer.claimVoterReward, challengeID, '420');
         await utils.as(voterBob, voting.withdrawVotingRights, '20');
 
         // TODO: do better than approximately.
@@ -132,8 +132,8 @@ contract('Parameterizer', (accounts) => {
       await utils.increaseTime(paramConfig.pRevealStageLength + 1);
 
       try {
-        await utils.as(voterAlice, parameterizer.claimReward, challengeID, '420');
-        assert(false, 'should not have been able to claimReward for unresolved challenge');
+        await utils.as(voterAlice, parameterizer.claimVoterReward, challengeID, '420');
+        assert(false, 'should not have been able to claimVoterReward for unresolved challenge');
       } catch (err) {
         assert(utils.isEVMException(err), err.toString());
       }

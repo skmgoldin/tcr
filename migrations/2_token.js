@@ -16,6 +16,7 @@ module.exports = (deployer, network) => {
       0,
       tokenHolder.amount.length - parseInt(config.token.decimals, 10),
     );
+    // eslint-disable-next-line no-console
     console.log(`Allocating ${displayAmt} ${config.token.symbol} tokens to ` +
     `${tokenHolder.address}.`);
 
@@ -31,6 +32,7 @@ module.exports = (deployer, network) => {
     )
       .then(async () => giveTokensTo(config.token.tokenHolders));
   } else {
+    // eslint-disable-next-line no-console
     console.log('skipping optional token deploy and using the token at address ' +
       `${config.token.address} on network ${network}.`);
   }
