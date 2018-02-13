@@ -2,7 +2,7 @@
 
 [ ![Codeship Status for skmgoldin/tcr](https://app.codeship.com/projects/b140cce0-ac77-0135-0738-52e8b96e2dec/status?branch=master)](https://app.codeship.com/projects/257003)
 
-A string-keyed [token-curated registry (TCR)](https://medium.com/@ilovebagels/token-curated-registries-1-0-61a232f8dac7).
+A hash-keyed [token-curated registry (TCR)](https://medium.com/@ilovebagels/token-curated-registries-1-0-61a232f8dac7).
 
 ## Initialize
 The only environmental dependency you need is Node. Presently we can guarantee this all works with Node 8.
@@ -12,7 +12,7 @@ npm run compile
 ```
 
 ## Tests
-The repo has a comprehensive test suite. You can run it with `npm run test`. To run the tests with the RPC logs, use `npm run test gas`.
+The repo has a comprehensive test suite. You can run it with `npm run test`.
 
 ## Composition of the repo
 The repo is composed as a Truffle project, and is largely idiomatic to Truffle's conventions. The tests are in the `test` directory, the contracts are in the `contracts` directory and the migrations (deployment scripts) are in the `migrations` directory. Furthermore there is a `conf` directory containing json files where deployments can be parameterized.
