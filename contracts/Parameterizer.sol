@@ -40,6 +40,8 @@ contract Parameterizer {
   // STATE
   // ------
 
+  Parameterizer masterCopy; // THIS MUST ALWAYS BE THE FIRST STATE VARIABLE DECLARED!!!!!!
+
   mapping(bytes32 => uint) public params;
 
   // maps challengeIDs to associated challenge data
@@ -90,6 +92,42 @@ contract Parameterizer {
     uint _voteQuorum,
     uint _pVoteQuorum
     ) public {
+      setup(
+         _tokenAddr,
+         _plcrAddr,
+         _minDeposit,
+         _pMinDeposit,
+         _applyStageLen,
+         _pApplyStageLen,
+         _commitStageLen,
+         _pCommitStageLen,
+         _revealStageLen,
+         _pRevealStageLen,
+         _dispensationPct,
+         _pDispensationPct,
+         _voteQuorum,
+         _pVoteQuorum
+      );
+  }
+
+  function setup(
+    address _tokenAddr,
+    address _plcrAddr,
+    uint _minDeposit,
+    uint _pMinDeposit,
+    uint _applyStageLen,
+    uint _pApplyStageLen,
+    uint _commitStageLen,
+    uint _pCommitStageLen,
+    uint _revealStageLen,
+    uint _pRevealStageLen,
+    uint _dispensationPct,
+    uint _pDispensationPct,
+    uint _voteQuorum,
+    uint _pVoteQuorum
+    ) public {
+      require(address(token) == 0);
+
       token = EIP20(_tokenAddr);
       voting = PLCRVoting(_plcrAddr);
 

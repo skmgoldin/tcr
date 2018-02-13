@@ -21,6 +21,10 @@ contract Registry {
     event _ChallengeSucceeded(uint challengeID);
     event _RewardClaimed(address voter, uint challengeID, uint reward);
 
+    // ------
+    // DATA STRUCTURES
+    // ------
+
     struct Listing {
         uint applicationExpiry; // Expiration date of apply stage
         bool whitelisted;       // Indicates registry status
@@ -37,6 +41,12 @@ contract Registry {
         uint totalTokens;       // (remaining) Number of tokens used in voting by the winning side
         mapping(address => bool) voterCanClaimReward; // Indicates whether a voter has claimed a reward yet
     }
+
+    // ------
+    // STATE
+    // ------
+
+    Registry masterCopy; // THIS MUST ALWAYS BE THE FIRST STATE VARIABLE DECLARED!!!!!!
 
     // Maps challengeIDs to associated challenge data
     mapping(uint => Challenge) public challenges;
@@ -65,11 +75,21 @@ contract Registry {
         address _plcrAddr,
         address _paramsAddr
     ) public {
+      setup(_tokenAddr, _plcrAddr, _paramsAddr);
+    }
+
+    function setup(
+        address _tokenAddr,
+        address _plcrAddr,
+        address _paramsAddr
+    ) public {
+        require(address(token) == 0);
+
         token = EIP20(_tokenAddr);
         voting = PLCRVoting(_plcrAddr);
         parameterizer = Parameterizer(_paramsAddr);
     }
-
+    
     // --------------------
     // PUBLISHER INTERFACE:
     // --------------------

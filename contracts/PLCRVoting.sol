@@ -29,14 +29,16 @@ contract PLCRVoting {
     struct Poll {
         uint commitEndDate;     /// expiration date of commit period for poll
         uint revealEndDate;     /// expiration date of reveal period for poll
-        uint voteQuorum;	      /// number of votes required for a proposal to pass
-        uint votesFor;		      /// tally of votes supporting proposal
+        uint voteQuorum;        /// number of votes required for a proposal to pass
+        uint votesFor;          /// tally of votes supporting proposal
         uint votesAgainst;      /// tally of votes countering proposal
     }
     
     // ============
     // STATE VARIABLES:
     // ============
+
+    PLCRVoting masterCopy; // THIS MUST ALWAYS BE THE FIRST STATE VARIABLE DECLARED!!!!!!
 
     uint constant public INITIAL_POLL_NONCE = 0;
     uint public pollNonce;
@@ -54,10 +56,21 @@ contract PLCRVoting {
     // ============
 
     /**
-    @dev Initializes voteQuorum, commitDuration, revealDuration, and pollNonce in addition to token contract and trusted mapping
-    @param _tokenAddr The address where the ERC20 token contract is deployed
+    @dev uses the setup function to initialize PLCR by specifying the token used for voting
+    @param _tokenAddr The address of the ERC20 token to be used for voting
     */
     function PLCRVoting(address _tokenAddr) public {
+        setup(_tokenAddr);
+    }
+
+    /**
+    @dev initializes the contract by spcifying the token used for voting. Can be called by proxy
+    contracts to initialize their state.
+    @param _tokenAddr The address of the ERC20 token to be used for voting
+    */
+    function setup(address _tokenAddr) public {
+        require(address(token) == 0);
+
         token = EIP20(_tokenAddr);
         pollNonce = INITIAL_POLL_NONCE;
     }
