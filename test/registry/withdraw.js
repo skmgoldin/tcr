@@ -1,6 +1,7 @@
 /* eslint-env mocha */
 /* global assert contract artifacts */
 const Registry = artifacts.require('Registry.sol');
+const EIP20 = artifacts.require('tokens/eip20/EIP20.sol');
 
 const fs = require('fs');
 const BN = require('bignumber.js');
@@ -17,6 +18,42 @@ contract('Registry', (accounts) => {
     const minDeposit = bigTen(paramConfig.minDeposit);
     const withdrawAmount = minDeposit.div(bigTen(2));
     const [applicant, challenger] = accounts;
+
+    it('should withdraw tokens for a listing that has deposit > minDeposit', async () => {
+      const registry = await Registry.deployed();
+      const token = EIP20.at(await registry.token());
+      const listing = utils.getListingHash('bigfish.net');
+      const errMsg = 'applicant was not able to withdraw tokens';
+
+      // Add the listing to the whitelist, then increase the listing's deposit by 1
+      await utils.addToWhitelist(listing, minDeposit, applicant);
+      await utils.as(applicant, registry.deposit, listing, '1');
+
+      // Capture initial state
+      const startingDeposit = await utils.getUnstakedDeposit(listing);
+      const startingBalance = await token.balanceOf.call(applicant);
+
+      // Withdraw 1 from the deposit
+      await utils.as(applicant, registry.withdraw, listing, '1');
+
+      // Get final state
+      const finalDeposit = await utils.getUnstakedDeposit(listing);
+      const finalBalance = await token.balanceOf.call(applicant);
+
+      // The final deposit should be the starting deposit minus 1.
+      assert.strictEqual(
+        finalDeposit.toString(10),
+        new BN(startingDeposit, 10).minus(new BN('1', 10)).toString(10),
+        errMsg,
+      );
+
+      // The final balance should be the starting balance plus 1.
+      assert.strictEqual(
+        finalBalance.toString(10),
+        startingBalance.plus(new BN('1', 10)).toString(10),
+        errMsg,
+      );
+    });
 
     it('should not withdraw tokens from a listing that has a deposit === minDeposit', async () => {
       const registry = await Registry.deployed();
