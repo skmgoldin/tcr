@@ -20,7 +20,7 @@
   ],
   "dependencies": {
     "tokens": "1.0.0",
-    "dll": "1.0.3",
+    "dll": "1.0.4",
     "attrstore": "1.0.0"
   },
   "license": "Apache 2.0"
