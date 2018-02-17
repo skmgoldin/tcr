@@ -26,7 +26,7 @@ contract('Registry', (accounts) => {
       const isWhitelisted = await registry.isWhitelisted.call(listing);
       assert.strictEqual(isWhitelisted, true, 'the listing was not added to the registry');
 
-      await registry.exit(listing, { from: applicant });
+      const receipt = await registry.exit(listing, { from: applicant });
 
       const isWhitelistedAfterExit = await registry.isWhitelisted.call(listing);
       assert.strictEqual(isWhitelistedAfterExit, false, 'the listing was not removed on exit');
@@ -37,6 +37,9 @@ contract('Registry', (accounts) => {
         finalApplicantTokenHoldings.toString(10),
         'the applicant\'s tokens were not returned to them after exiting the registry',
       );
+
+      const removedListing = utils.getReceiptValue(receipt, 'listingHash');
+      assert.strictEqual(removedListing, listing, 'The _ListingRemoved event did not fire properly');
     });
 
     it('should not allow a listing to exit when a challenge does exist', async () => {

@@ -176,6 +176,8 @@ contract Registry {
 
         // Remove listingHash & return tokens
         resetListing(_listingHash);
+
+        _ListingRemoved(_listingHash);
     }
 
     // -----------------------
