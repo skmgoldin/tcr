@@ -35,6 +35,7 @@ module.exports = (deployer, network, accounts) => {
       tokenAddress,
       PLCRVoting.address,
       Parameterizer.address,
+      config.name,
     );
   })
     .then(async () => {

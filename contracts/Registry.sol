@@ -58,7 +58,9 @@ contract Registry {
     EIP20 public token;
     PLCRVoting public voting;
     Parameterizer public parameterizer;
+
     string public version = '1';
+    string public name;
 
     // ------------
     // CONSTRUCTOR:
@@ -73,21 +75,24 @@ contract Registry {
     function Registry(
         address _tokenAddr,
         address _plcrAddr,
-        address _paramsAddr
+        address _paramsAddr,
+        string _name
     ) public {
-      setup(_tokenAddr, _plcrAddr, _paramsAddr);
+      setup(_tokenAddr, _plcrAddr, _paramsAddr, _name);
     }
 
     function setup(
         address _tokenAddr,
         address _plcrAddr,
-        address _paramsAddr
+        address _paramsAddr,
+        string _name
     ) public {
         require(address(token) == 0);
 
         token = EIP20(_tokenAddr);
         voting = PLCRVoting(_plcrAddr);
         parameterizer = Parameterizer(_paramsAddr);
+        name = _name;
     }
     
     // --------------------

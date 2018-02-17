@@ -13,6 +13,7 @@
     "voteQuorum": 50,
     "pVoteQuorum": 50
 	},
+  "name": "The TestChain Registry",
   "token": {
     "address": "0x337cDDa6D41A327c5ad456166CCB781a9722AFf9",
     "deployToken": true,
