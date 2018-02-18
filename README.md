@@ -31,3 +31,8 @@ You can use [https://iancoleman.io/bip39/](https://iancoleman.io/bip39/) to gene
 ## Packages
 The repo consumes several EPM packages. `dll` and `attrstore` are libraries used in PLCRVoting's doubly-linked list abstraction. `tokens` provides an ERC20-comaptible token implementation. All packages are installed automatically when running `npm install`.
 
+### Workflow diagram
+
+![Simple overview](./assets/workflow-simple.png)
+
+![Detailed overview](./assets/workflow-detail.png)
