@@ -423,8 +423,8 @@ contract Registry {
     @param _listingHash The listingHash of an application/listingHash to be whitelisted
     */
     function whitelistApplication(bytes32 _listingHash) private {
-        listings[_listingHash].whitelisted = true;
         if (!listings[_listingHash].whitelisted) { _NewListingWhitelisted(_listingHash); }
+        listings[_listingHash].whitelisted = true;
     }
 
     /**
