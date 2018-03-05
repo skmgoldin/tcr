@@ -238,7 +238,6 @@ contract Registry {
     function updateStatus(bytes32 _listingHash) public {
         if (canBeWhitelisted(_listingHash)) {
           whitelistApplication(_listingHash);
-          _NewListingWhitelisted(_listingHash);
         } else if (challengeCanBeResolved(_listingHash)) {
           resolveChallenge(_listingHash);
         } else {
@@ -396,16 +395,11 @@ contract Registry {
         // which is: (winner's full stake) + (dispensationPct * loser's stake)
         uint reward = challengeWinnerReward(challengeID);
 
-        // Records whether the listingHash is a listingHash or an application
-        bool wasWhitelisted = isWhitelisted(_listingHash);
-
         // Case: challenge failed
         if (voting.isPassed(challengeID)) {
             whitelistApplication(_listingHash);
             // Unlock stake so that it can be retrieved by the applicant
             listings[_listingHash].unstakedDeposit += reward;
-
-            if (!wasWhitelisted) { _NewListingWhitelisted(_listingHash); }
         }
         // Case: challenge succeeded
         else {
@@ -430,6 +424,7 @@ contract Registry {
     */
     function whitelistApplication(bytes32 _listingHash) private {
         listings[_listingHash].whitelisted = true;
+        if (!listings[_listingHash].whitelisted) { _NewListingWhitelisted(_listingHash); }
     }
 
     /**
