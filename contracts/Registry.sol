@@ -167,15 +167,13 @@ contract Registry {
         Listing storage listing = listings[_listingHash];
 
         require(msg.sender == listing.owner);
-        require(isWhitelisted(_listingHash));
+        require(listing.whitelisted);
 
         // Cannot exit during ongoing challenge
         require(listing.challengeID == 0 || challenges[listing.challengeID].resolved);
 
         // Remove listingHash & return tokens
         resetListing(_listingHash);
-
-        _ListingRemoved(_listingHash);
     }
 
     // -----------------------
@@ -414,9 +412,6 @@ contract Registry {
             resetListing(_listingHash);
             // Transfer the reward to the challenger
             require(token.transfer(challenges[challengeID].challenger, reward));
-
-            if (wasWhitelisted) { _ListingRemoved(_listingHash); }
-            else { _ApplicationRemoved(_listingHash); }
         }
 
         // Sets flag on challenge being processed
@@ -448,6 +443,11 @@ contract Registry {
         if (listing.unstakedDeposit > 0)
             require(token.transfer(listing.owner, listing.unstakedDeposit));
 
+        if (listing.whitelisted) {
+            _ListingRemoved(_listingHash);
+        } else {
+            _ApplicationRemoved(_listingHash);
+        }
         delete listings[_listingHash];
     }
 }
