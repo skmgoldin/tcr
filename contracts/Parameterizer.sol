@@ -220,6 +220,7 @@ contract Parameterizer {
 
     if (canBeSet(_propID)) {
       set(prop.name, prop.value);
+      require(token.transfer(prop.owner, prop.deposit));
     } else if (challengeCanBeResolved(_propID)) {
       resolveChallenge(_propID);
     } else if (now > prop.processBy) {
