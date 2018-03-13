@@ -148,7 +148,7 @@ contract('Registry', (accounts) => {
       await parameterizer.processProposal(propID);
 
       const challengerStartingBal = await token.balanceOf.call(challenger);
-      utils.as(challenger, registry.challenge, listing, '');
+      utils.as(challenger, registry.challenge, listing);
       const challengerFinalBal = await token.balanceOf.call(challenger);
 
       assert(

@@ -45,7 +45,7 @@ contract('Registry', (accounts) => {
       const listing = utils.getListingHash('dontwhitelist.io');
 
       await utils.as(applicant, registry.apply, listing, minDeposit, '');
-      await utils.as(challenger, registry.challenge, listing, '');
+      await utils.as(challenger, registry.challenge, listing);
 
       try {
         await registry.updateStatus(listing);
@@ -60,7 +60,7 @@ contract('Registry', (accounts) => {
       const listing = utils.getListingHash('dontwhitelist.net');
 
       await utils.as(applicant, registry.apply, listing, minDeposit, '');
-      await utils.as(challenger, registry.challenge, listing, '');
+      await utils.as(challenger, registry.challenge, listing);
 
       const plcrComplete = paramConfig.revealStageLength + paramConfig.commitStageLength + 1;
       await utils.increaseTime(plcrComplete);

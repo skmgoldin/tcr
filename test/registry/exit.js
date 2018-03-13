@@ -54,7 +54,7 @@ contract('Registry', (accounts) => {
       const isWhitelisted = await registry.isWhitelisted.call(listing);
       assert.strictEqual(isWhitelisted, true, 'the listing was not added to the registry');
 
-      await registry.challenge(listing, '', { from: challenger });
+      await registry.challenge(listing, { from: challenger });
       try {
         await registry.exit(listing, { from: applicant });
         assert(false, 'exit succeeded when it should have failed');

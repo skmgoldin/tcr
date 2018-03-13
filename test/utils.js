@@ -103,7 +103,7 @@ const utils = {
 
   challengeAndGetPollID: async (domain, actor) => {
     const registry = await Registry.deployed();
-    const receipt = await utils.as(actor, registry.challenge, domain, '');
+    const receipt = await utils.as(actor, registry.challenge, domain);
     return receipt.logs[0].args.pollID;
   },
 

@@ -81,7 +81,7 @@ contract('Registry', (accounts) => {
 
       // Whitelist, then challenge
       await utils.addToWhitelist(listing, minDeposit, applicant);
-      await utils.as(challenger, registry.challenge, listing, '');
+      await utils.as(challenger, registry.challenge, listing);
 
       try {
         // Attempt to withdraw; should fail
