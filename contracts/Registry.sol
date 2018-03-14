@@ -70,7 +70,7 @@ contract Registry {
     @dev Contructor         Sets the addresses for token, voting, and parameterizer
     @param _tokenAddr       Address of the TCR's intrinsic ERC20 token
     @param _plcrAddr        Address of a PLCR voting contract for the provided token
-    @param _paramsAddr      Address of a Parameterizer contract 
+    @param _paramsAddr      Address of a Parameterizer contract
     */
     function Registry(
         address _tokenAddr,
@@ -94,7 +94,7 @@ contract Registry {
         parameterizer = Parameterizer(_paramsAddr);
         name = _name;
     }
-    
+
     // --------------------
     // PUBLISHER INTERFACE:
     // --------------------
@@ -203,6 +203,11 @@ contract Registry {
         if (listing.unstakedDeposit < deposit) {
             // Not enough tokens, listingHash auto-delisted
             resetListing(_listingHash);
+            if (listing.whitelisted) {
+                _ListingRemoved(_listingHash);
+            } else {
+                _ApplicationRemoved(_listingHash);
+            }
             return 0;
         }
 
