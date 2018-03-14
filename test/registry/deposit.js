@@ -57,7 +57,7 @@ contract('Registry', (accounts) => {
       const originalDeposit = await utils.getUnstakedDeposit(listing);
 
       // challenge, then increase deposit
-      await utils.as(challenger, registry.challenge, listing, '');
+      await utils.as(challenger, registry.challenge, listing);
       await utils.as(applicant, registry.deposit, listing, incAmount);
 
       const afterIncDeposit = await utils.getUnstakedDeposit(listing);

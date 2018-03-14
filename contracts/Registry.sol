@@ -11,7 +11,7 @@ contract Registry {
     // ------
 
     event _Application(bytes32 listingHash, uint deposit, string data);
-    event _Challenge(bytes32 listingHash, uint deposit, uint pollID, string data);
+    event _Challenge(bytes32 listingHash, uint deposit, uint pollID);
     event _Deposit(bytes32 listingHash, uint added, uint newTotal);
     event _Withdrawal(bytes32 listingHash, uint withdrew, uint newTotal);
     event _NewListingWhitelisted(bytes32 listingHash);
@@ -70,7 +70,7 @@ contract Registry {
     @dev Contructor         Sets the addresses for token, voting, and parameterizer
     @param _tokenAddr       Address of the TCR's intrinsic ERC20 token
     @param _plcrAddr        Address of a PLCR voting contract for the provided token
-    @param _paramsAddr      Address of a Parameterizer contract 
+    @param _paramsAddr      Address of a Parameterizer contract
     */
     function Registry(
         address _tokenAddr,
@@ -94,7 +94,7 @@ contract Registry {
         parameterizer = Parameterizer(_paramsAddr);
         name = _name;
     }
-    
+
     // --------------------
     // PUBLISHER INTERFACE:
     // --------------------
@@ -189,9 +189,8 @@ contract Registry {
                         already in the whitelist. Tokens are taken from the challenger and the
                         applicant's deposits are locked.
     @param _listingHash The listingHash being challenged, whether listed or in application
-    @param _data        Extra data relevant to the challenge. Think IPFS hashes.
     */
-    function challenge(bytes32 _listingHash, string _data) external returns (uint challengeID) {
+    function challenge(bytes32 _listingHash) external returns (uint challengeID) {
         Listing storage listing = listings[_listingHash];
         uint deposit = parameterizer.get("minDeposit");
 
@@ -230,7 +229,7 @@ contract Registry {
         // Locks tokens for listingHash during challenge
         listing.unstakedDeposit -= deposit;
 
-        _Challenge(_listingHash, deposit, pollID, _data);
+        _Challenge(_listingHash, deposit, pollID);
         return pollID;
     }
 

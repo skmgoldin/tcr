@@ -21,7 +21,7 @@ contract('Registry', (accounts) => {
       const registry = await Registry.deployed();
       const listing = utils.getListingHash('failChallenge.net'); // listing to apply with
       await registry.apply(listing, paramConfig.minDeposit, '', { from: applicant });
-      await registry.challenge(listing, '', { from: challenger });
+      await registry.challenge(listing, { from: challenger });
 
       await utils.increaseTime(paramConfig.revealStageLength + paramConfig.commitStageLength + 1);
       await registry.updateStatus(listing);
