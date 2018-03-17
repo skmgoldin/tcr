@@ -10,13 +10,13 @@ contract Registry {
     // EVENTS
     // ------
 
-    event _Application(bytes32 listingHash, uint deposit, string data);
-    event _Challenge(bytes32 listingHash, uint deposit, uint pollID, string data);
-    event _Deposit(bytes32 listingHash, uint added, uint newTotal);
-    event _Withdrawal(bytes32 listingHash, uint withdrew, uint newTotal);
-    event _NewListingWhitelisted(bytes32 listingHash);
-    event _ApplicationRemoved(bytes32 listingHash);
-    event _ListingRemoved(bytes32 listingHash);
+    event _Application(address member, uint deposit, string data);
+    event _Challenge(address member, uint deposit, uint pollID, string data);
+    event _Deposit(address member, uint added, uint newTotal);
+    event _Withdrawal(address member, uint withdrew, uint newTotal);
+    event _NewMemberWhitelisted(address member);
+    event _ApplicationRemoved(address member);
+    event _MemberRemoved(address member);
     event _ChallengeFailed(uint challengeID);
     event _ChallengeSucceeded(uint challengeID);
     event _RewardClaimed(address voter, uint challengeID, uint reward);
@@ -25,12 +25,18 @@ contract Registry {
     // DATA STRUCTURES
     // ------
 
-    struct Listing {
+    struct Member {
         uint applicationExpiry; // Expiration date of apply stage
         bool whitelisted;       // Indicates registry status
-        address owner;          // Owner of Listing
-        uint unstakedDeposit;   // Number of tokens in the listing not locked in a challenge
+        uint unstakedDeposit;   // Number of tokens in the member not locked in a challenge
         uint challengeID;       // Corresponds to a PollID in PLCRVoting
+    }
+
+    struct Node {
+      string category;          // Node category
+      bytes32 parentHash;       // Node parent hash
+      Member[] members;
+      Node[] children;
     }
 
     struct Challenge {
@@ -51,8 +57,8 @@ contract Registry {
     // Maps challengeIDs to associated challenge data
     mapping(uint => Challenge) public challenges;
 
-    // Maps listingHashes to associated listingHash data
-    mapping(bytes32 => Listing) public listings;
+    // Maps memberHashes to associated memberHash data
+    mapping(address => Member) public members;
 
     // Global Variables
     EIP20 public token;
@@ -70,7 +76,7 @@ contract Registry {
     @dev Contructor         Sets the addresses for token, voting, and parameterizer
     @param _tokenAddr       Address of the TCR's intrinsic ERC20 token
     @param _plcrAddr        Address of a PLCR voting contract for the provided token
-    @param _paramsAddr      Address of a Parameterizer contract 
+    @param _paramsAddr      Address of a Parameterizer contract
     */
     function Registry(
         address _tokenAddr,
@@ -94,7 +100,7 @@ contract Registry {
         parameterizer = Parameterizer(_paramsAddr);
         name = _name;
     }
-    
+
     // --------------------
     // PUBLISHER INTERFACE:
     // --------------------
@@ -102,82 +108,74 @@ contract Registry {
     /**
     @dev                Allows a user to start an application. Takes tokens from user and sets
                         apply stage end time.
-    @param _listingHash The hash of a potential listing a user is applying to add to the registry
     @param _amount      The number of ERC20 tokens a user is willing to potentially stake
     @param _data        Extra data relevant to the application. Think IPFS hashes.
     */
-    function apply(bytes32 _listingHash, uint _amount, string _data) external {
-        require(!isWhitelisted(_listingHash));
-        require(!appWasMade(_listingHash));
+    function apply(uint _amount, string _data) external {
+        require(!isWhitelisted(msg.sender));
+        require(!appWasMade(msg.sender));
         require(_amount >= parameterizer.get("minDeposit"));
 
         // Sets owner
-        Listing storage listing = listings[_listingHash];
-        listing.owner = msg.sender;
+        Member storage member = members[msg.sender];
 
         // Transfers tokens from user to Registry contract
-        require(token.transferFrom(listing.owner, this, _amount));
-
-        // Sets apply stage end time
-        listing.applicationExpiry = block.timestamp + parameterizer.get("applyStageLen");
-        listing.unstakedDeposit = _amount;
-
-        _Application(_listingHash, _amount, _data);
-    }
-
-    /**
-    @dev                Allows the owner of a listingHash to increase their unstaked deposit.
-    @param _listingHash A listingHash msg.sender is the owner of
-    @param _amount      The number of ERC20 tokens to increase a user's unstaked deposit
-    */
-    function deposit(bytes32 _listingHash, uint _amount) external {
-        Listing storage listing = listings[_listingHash];
-
-        require(listing.owner == msg.sender);
         require(token.transferFrom(msg.sender, this, _amount));
 
-        listing.unstakedDeposit += _amount;
+        // Sets apply stage end time
+        member.applicationExpiry = block.timestamp + parameterizer.get("applyStageLen");
+        member.unstakedDeposit = _amount;
 
-        _Deposit(_listingHash, _amount, listing.unstakedDeposit);
+        _Application(msg.sender, _amount, _data);
     }
 
     /**
-    @dev                Allows the owner of a listingHash to decrease their unstaked deposit.
-    @param _listingHash A listingHash msg.sender is the owner of.
+    @dev                Allows the owner of a memberHash to increase their unstaked deposit.
+    @param _amount      The number of ERC20 tokens to increase a user's unstaked deposit
+    */
+    function deposit(uint _amount) external {
+        Member storage member = members[msg.sender];
+
+        require(token.transferFrom(msg.sender, this, _amount));
+
+        member.unstakedDeposit += _amount;
+
+        _Deposit(msg.sender, _amount, member.unstakedDeposit);
+    }
+
+    /**
+    @dev                Allows the owner of a memberHash to decrease their unstaked deposit.
     @param _amount      The number of ERC20 tokens to withdraw from the unstaked deposit.
     */
-    function withdraw(bytes32 _listingHash, uint _amount) external {
-        Listing storage listing = listings[_listingHash];
+    function withdraw(uint _amount) external {
+        Member storage member = members[msg.sender];
 
-        require(listing.owner == msg.sender);
-        require(_amount <= listing.unstakedDeposit);
-        require(listing.unstakedDeposit - _amount >= parameterizer.get("minDeposit"));
+        require(_amount <= member.unstakedDeposit);
+        require(member.unstakedDeposit - _amount >= parameterizer.get("minDeposit"));
 
         require(token.transfer(msg.sender, _amount));
 
-        listing.unstakedDeposit -= _amount;
+        member.unstakedDeposit -= _amount;
 
-        _Withdrawal(_listingHash, _amount, listing.unstakedDeposit);
+        _Withdrawal(msg.sender, _amount, member.unstakedDeposit);
     }
 
     /**
-    @dev                Allows the owner of a listingHash to remove the listingHash from the whitelist
-                        Returns all tokens to the owner of the listingHash
-    @param _listingHash A listingHash msg.sender is the owner of.
+    @dev                Allows the owner of a memberHash to remove the memberHash from the whitelist
+                        Returns all tokens to the owner of the memberHash
     */
-    function exit(bytes32 _listingHash) external {
-        Listing storage listing = listings[_listingHash];
+    function exit() external {
+        Member storage member = members[msg.sender];
 
-        require(msg.sender == listing.owner);
-        require(isWhitelisted(_listingHash));
+        require(isWhitelisted(msg.sender));
 
         // Cannot exit during ongoing challenge
-        require(listing.challengeID == 0 || challenges[listing.challengeID].resolved);
+        require(member.challengeID == 0 || challenges[member.challengeID].resolved);
 
-        // Remove listingHash & return tokens
-        resetListing(_listingHash);
+        // Remove member & return tokens
+        resetMember(msg.sender);
 
-        _ListingRemoved(_listingHash);
+        _MemberRemoved(msg.sender);
     }
 
     // -----------------------
@@ -185,29 +183,29 @@ contract Registry {
     // -----------------------
 
     /**
-    @dev                Starts a poll for a listingHash which is either in the apply stage or
+    @dev                Starts a poll for a memberHash which is either in the apply stage or
                         already in the whitelist. Tokens are taken from the challenger and the
                         applicant's deposits are locked.
-    @param _listingHash The listingHash being challenged, whether listed or in application
+    @param _user        User being challenged
     @param _data        Extra data relevant to the challenge. Think IPFS hashes.
     */
-    function challenge(bytes32 _listingHash, string _data) external returns (uint challengeID) {
-        Listing storage listing = listings[_listingHash];
+    function challenge(address _user, string _data) external returns (uint challengeID) {
+        Member storage member = members[_user];
         uint deposit = parameterizer.get("minDeposit");
 
-        // Listing must be in apply stage or already on the whitelist
-        require(appWasMade(_listingHash) || listing.whitelisted);
+        // Member must be in apply stage or already on the whitelist
+        require(appWasMade(_user) || member.whitelisted);
         // Prevent multiple challenges
-        require(listing.challengeID == 0 || challenges[listing.challengeID].resolved);
+        require(member.challengeID == 0 || challenges[member.challengeID].resolved);
 
-        if (listing.unstakedDeposit < deposit) {
-            // Not enough tokens, listingHash auto-delisted
-            resetListing(_listingHash);
+        if (member.unstakedDeposit < deposit) {
+            // Not enough tokens, member auto-delisted
+            resetMember(_user);
             return 0;
         }
 
         // Takes tokens from challenger
-        require(token.transferFrom(msg.sender, this, deposit));
+        require(token.transferFrom(_user, this, deposit));
 
         // Starts poll
         uint pollID = voting.startPoll(
@@ -224,27 +222,26 @@ contract Registry {
             totalTokens: 0
         });
 
-        // Updates listingHash to store most recent challenge
-        listing.challengeID = pollID;
+        // Updates memberHash to store most recent challenge
+        member.challengeID = pollID;
 
-        // Locks tokens for listingHash during challenge
-        listing.unstakedDeposit -= deposit;
+        // Locks tokens for memberHash during challenge
+        member.unstakedDeposit -= deposit;
 
-        _Challenge(_listingHash, deposit, pollID, _data);
+        _Challenge(msg.sender, deposit, pollID, _data);
         return pollID;
     }
 
     /**
-    @dev                Updates a listingHash's status from 'application' to 'listing' or resolves
+    @dev                Updates a memberHash's status from 'application' to 'member' or resolves
                         a challenge if one exists.
-    @param _listingHash The listingHash whose status is being updated
     */
-    function updateStatus(bytes32 _listingHash) public {
-        if (canBeWhitelisted(_listingHash)) {
-          whitelistApplication(_listingHash);
-          _NewListingWhitelisted(_listingHash);
-        } else if (challengeCanBeResolved(_listingHash)) {
-          resolveChallenge(_listingHash);
+    function updateStatus() public {
+        if (canBeWhitelisted(msg.sender)) {
+          whitelistApplication(msg.sender);
+          _NewMemberWhitelisted(msg.sender);
+        } else if (challengeCanBeResolved(msg.sender)) {
+          resolveChallenge(msg.sender);
         } else {
           revert();
         }
@@ -301,20 +298,19 @@ contract Registry {
     }
 
     /**
-    @dev                Determines whether the given listingHash be whitelisted.
-    @param _listingHash The listingHash whose status is to be examined
+    @dev                Determines whether the given user be whitelisted.
     */
-    function canBeWhitelisted(bytes32 _listingHash) view public returns (bool) {
-        uint challengeID = listings[_listingHash].challengeID;
+    function canBeWhitelisted(address _user) view public returns (bool) {
+        uint challengeID = members[_user].challengeID;
 
         // Ensures that the application was made,
         // the application period has ended,
-        // the listingHash can be whitelisted,
+        // the memberHash can be whitelisted,
         // and either: the challengeID == 0, or the challenge has been resolved.
         if (
-            appWasMade(_listingHash) &&
-            listings[_listingHash].applicationExpiry < now &&
-            !isWhitelisted(_listingHash) &&
+            appWasMade(_user) &&
+            members[_user].applicationExpiry < now &&
+            !isWhitelisted(_user) &&
             (challengeID == 0 || challenges[challengeID].resolved == true)
         ) { return true; }
 
@@ -322,40 +318,40 @@ contract Registry {
     }
 
     /**
-    @dev                Returns true if the provided listingHash is whitelisted
-    @param _listingHash The listingHash whose status is to be examined
+    @dev                Returns true if the provided user is whitelisted
+    @param _user The users address
     */
-    function isWhitelisted(bytes32 _listingHash) view public returns (bool whitelisted) {
-        return listings[_listingHash].whitelisted;
+    function isWhitelisted(address _user) view public returns (bool whitelisted) {
+        return members[_user].whitelisted;
     }
 
     /**
-    @dev                Returns true if apply was called for this listingHash
-    @param _listingHash The listingHash whose status is to be examined
+    @dev                Returns true if apply was called for this memberHash
+    @param _user The users address
     */
-    function appWasMade(bytes32 _listingHash) view public returns (bool exists) {
-        return listings[_listingHash].applicationExpiry > 0;
+    function appWasMade(address _user) view public returns (bool exists) {
+        return members[_user].applicationExpiry > 0;
     }
 
     /**
-    @dev                Returns true if the application/listingHash has an unresolved challenge
-    @param _listingHash The listingHash whose status is to be examined
+    @dev                Returns true if the application/member has an unresolved challenge
+    @param _user The users address
     */
-    function challengeExists(bytes32 _listingHash) view public returns (bool) {
-        uint challengeID = listings[_listingHash].challengeID;
+    function challengeExists(address _user) view public returns (bool) {
+        uint challengeID = members[_user].challengeID;
 
-        return (listings[_listingHash].challengeID > 0 && !challenges[challengeID].resolved);
+        return (members[_user].challengeID > 0 && !challenges[challengeID].resolved);
     }
 
     /**
     @dev                Determines whether voting has concluded in a challenge for a given
-                        listingHash. Throws if no challenge exists.
-    @param _listingHash A listingHash with an unresolved challenge
+                        member. Throws if no challenge exists.
+    @param _user The users address
     */
-    function challengeCanBeResolved(bytes32 _listingHash) view public returns (bool) {
-        uint challengeID = listings[_listingHash].challengeID;
+    function challengeCanBeResolved(address _user) view public returns (bool) {
+        uint challengeID = members[_user].challengeID;
 
-        require(challengeExists(_listingHash));
+        require(challengeExists(_user));
 
         return voting.pollEnded(challengeID);
     }
@@ -390,37 +386,37 @@ contract Registry {
 
     /**
     @dev                Determines the winner in a challenge. Rewards the winner tokens and
-                        either whitelists or de-whitelists the listingHash.
-    @param _listingHash A listingHash with a challenge that is to be resolved
+                        either whitelists or de-whitelists the memberHash.
+    @param _user The users address
     */
-    function resolveChallenge(bytes32 _listingHash) private {
-        uint challengeID = listings[_listingHash].challengeID;
+    function resolveChallenge(address _user) private {
+        uint challengeID = members[_user].challengeID;
 
         // Calculates the winner's reward,
         // which is: (winner's full stake) + (dispensationPct * loser's stake)
         uint reward = challengeWinnerReward(challengeID);
 
-        // Records whether the listingHash is a listingHash or an application
-        bool wasWhitelisted = isWhitelisted(_listingHash);
+        // Records whether the memberHash is a memberHash or an application
+        bool wasWhitelisted = isWhitelisted(_user);
 
         // Case: challenge failed
         if (voting.isPassed(challengeID)) {
-            whitelistApplication(_listingHash);
+            whitelistApplication(_user);
             // Unlock stake so that it can be retrieved by the applicant
-            listings[_listingHash].unstakedDeposit += reward;
+            members[_user].unstakedDeposit += reward;
 
             _ChallengeFailed(challengeID);
-            if (!wasWhitelisted) { _NewListingWhitelisted(_listingHash); }
+            if (!wasWhitelisted) { _NewMemberWhitelisted(_user); }
         }
         // Case: challenge succeeded
         else {
-            resetListing(_listingHash);
+            resetMember(_user);
             // Transfer the reward to the challenger
             require(token.transfer(challenges[challengeID].challenger, reward));
 
             _ChallengeSucceeded(challengeID);
-            if (wasWhitelisted) { _ListingRemoved(_listingHash); }
-            else { _ApplicationRemoved(_listingHash); }
+            if (wasWhitelisted) { _MemberRemoved(_user); }
+            else { _ApplicationRemoved(_user); }
         }
 
         // Sets flag on challenge being processed
@@ -434,24 +430,24 @@ contract Registry {
     /**
     @dev                Called by updateStatus() if the applicationExpiry date passed without a
                         challenge being made. Called by resolveChallenge() if an
-                        application/listing beat a challenge.
-    @param _listingHash The listingHash of an application/listingHash to be whitelisted
+                        application/member beat a challenge.
+    @param _user The users address
     */
-    function whitelistApplication(bytes32 _listingHash) private {
-        listings[_listingHash].whitelisted = true;
+    function whitelistApplication(address _user) private {
+        members[_user].whitelisted = true;
     }
 
     /**
-    @dev                Deletes a listingHash from the whitelist and transfers tokens back to owner
-    @param _listingHash The listing hash to delete
+    @dev                Deletes a memberHash from the whitelist and transfers tokens back to owner
+    @param _user        User being reset
     */
-    function resetListing(bytes32 _listingHash) private {
-        Listing storage listing = listings[_listingHash];
+    function resetMember(address _user) private {
+        Member storage member = members[_user];
 
         // Transfers any remaining balance back to the owner
-        if (listing.unstakedDeposit > 0)
-            require(token.transfer(listing.owner, listing.unstakedDeposit));
+        if (member.unstakedDeposit > 0)
+            require(token.transfer(_user, member.unstakedDeposit));
 
-        delete listings[_listingHash];
+        delete members[_user];
     }
 }
