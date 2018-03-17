@@ -173,7 +173,7 @@ contract Registry {
         require(member.challengeID == 0 || challenges[member.challengeID].resolved);
 
         // Remove member & return tokens
-        resetMember();
+        resetMember(msg.sender);
 
         _MemberRemoved(msg.sender);
     }
@@ -186,25 +186,26 @@ contract Registry {
     @dev                Starts a poll for a memberHash which is either in the apply stage or
                         already in the whitelist. Tokens are taken from the challenger and the
                         applicant's deposits are locked.
+    @param _user        User being challenged
     @param _data        Extra data relevant to the challenge. Think IPFS hashes.
     */
-    function challenge(string _data) external returns (uint challengeID) {
-        Member storage member = members[msg.sender];
+    function challenge(address _user, string _data) external returns (uint challengeID) {
+        Member storage member = members[_user];
         uint deposit = parameterizer.get("minDeposit");
 
         // Member must be in apply stage or already on the whitelist
-        require(appWasMade(msg.sender) || member.whitelisted);
+        require(appWasMade(_user) || member.whitelisted);
         // Prevent multiple challenges
         require(member.challengeID == 0 || challenges[member.challengeID].resolved);
 
         if (member.unstakedDeposit < deposit) {
             // Not enough tokens, member auto-delisted
-            resetMember();
+            resetMember(_user);
             return 0;
         }
 
         // Takes tokens from challenger
-        require(token.transferFrom(msg.sender, this, deposit));
+        require(token.transferFrom(_user, this, deposit));
 
         // Starts poll
         uint pollID = voting.startPoll(
@@ -409,7 +410,7 @@ contract Registry {
         }
         // Case: challenge succeeded
         else {
-            resetMember();
+            resetMember(_user);
             // Transfer the reward to the challenger
             require(token.transfer(challenges[challengeID].challenger, reward));
 
@@ -438,14 +439,15 @@ contract Registry {
 
     /**
     @dev                Deletes a memberHash from the whitelist and transfers tokens back to owner
+    @param _user        User being reset
     */
-    function resetMember() private {
-        Member storage member = members[msg.sender];
+    function resetMember(address _user) private {
+        Member storage member = members[_user];
 
         // Transfers any remaining balance back to the owner
         if (member.unstakedDeposit > 0)
-            require(token.transfer(msg.sender, member.unstakedDeposit));
+            require(token.transfer(_user, member.unstakedDeposit));
 
-        delete members[msg.sender];
+        delete members[_user];
     }
 }
