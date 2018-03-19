@@ -289,19 +289,12 @@ contract PLCRVoting {
     }
 
     /**
-    @dev Checks if a poll exists, throws if the provided poll is in an impossible state
+    @dev Checks if a poll exists
     @param _pollID The pollID whose existance is to be evaluated.
     @return Boolean Indicates whether a poll exists for the provided pollID
     */
     function pollExists(uint _pollID) constant public returns (bool exists) {
-        uint commitEndDate = pollMap[_pollID].commitEndDate;
-        uint revealEndDate = pollMap[_pollID].revealEndDate;
-
-        assert(!(commitEndDate == 0 && revealEndDate != 0));
-        assert(!(commitEndDate != 0 && revealEndDate == 0));
-
-        if(commitEndDate == 0 || revealEndDate == 0) { return false; }
-        return true;
+        return (_pollID != 0 && _pollID <= pollNonce);
     }
 
     // ---------------------------
