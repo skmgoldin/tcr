@@ -146,7 +146,7 @@ contract Parameterizer {
   */
   function challengeReparameterization(bytes32 _propID) public returns (uint challengeID) {
     ParamProposal memory prop = proposals[_propID];
-    uint deposit = get("pMinDeposit");
+    uint deposit = prop.deposit;
 
     require(propExists(_propID) && prop.challengeID == 0); 
 

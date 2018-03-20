@@ -96,6 +96,46 @@ contract('Parameterizer', (accounts) => {
         'The challenge loser\'s token balance is not as expected',
       );
     });
+
+    it(
+      'should have deposits of equal size if a challenge is opened & the pMinDeposit has changed since the proposal was initiated',
+      async () => {
+        const parameterizer = await Parameterizer.deployed();
+
+        // make proposal to change pMinDeposit
+        // this is to induce an error where:
+        // a challenge could have a different stake than the proposal being challenged
+        const proposalReceiptOne = await utils.as(proposer, parameterizer.proposeReparameterization, 'pMinDeposit', paramConfig.pMinDeposit + 1);
+        const propIDOne = proposalReceiptOne.logs[0].args.propID;
+
+        // increase time
+        // we want the second proposal to get the deposit
+        // from the original pMinDeposit and NOT the pMinDeposit from the first proposal
+        await utils.increaseTime(paramConfig.pCommitStageLength + 1);
+
+        // open a proposal to change commitDuration
+        // this is the proposal that we will test against
+        const proposalReceiptTwo = await utils.as(proposer, parameterizer.proposeReparameterization, 'commitStageLen', paramConfig.commitStageLength + 1);
+        const propIDTwo = proposalReceiptTwo.logs[0].args.propID;
+
+        // increase time & update pMinDeposit
+        // process the first proposal
+        await utils.increaseTime(paramConfig.pRevealStageLength + 1);
+        await parameterizer.processProposal(propIDOne);
+
+        // challenge the second proposal
+        const challengeReceipt =
+          await utils.as(challenger, parameterizer.challengeReparameterization, propIDTwo);
+        const challengePollID = challengeReceipt.logs[0].args.pollID;
+
+        // assert that the prop.deposit and the challenge.stake are equal
+        const challenge = await parameterizer.challenges.call(challengePollID.toString());
+        const challengeStake = challenge[3];
+        const proposal = await parameterizer.proposals.call(propIDTwo.toString());
+        const proposalDeposit = proposal[2];
+        assert.strictEqual(challengeStake.toString(), proposalDeposit.toString(), 'parties to the challenge have different deposits');
+      },
+    );
   });
 });
 
