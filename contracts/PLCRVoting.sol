@@ -2,6 +2,7 @@ pragma solidity ^0.4.8;
 import "tokens/eip20/EIP20.sol";
 import "dll/DLL.sol";
 import "attrstore/AttributeStore.sol";
+import "zeppelin/math/SafeMath.sol";
 
 /**
 @title Partial-Lock-Commit-Reveal Voting scheme with ERC20 tokens
@@ -25,6 +26,7 @@ contract PLCRVoting {
 
     using AttributeStore for AttributeStore.Data;
     using DLL for DLL.Data;
+    using SafeMath for uint;
 
     struct Poll {
         uint commitEndDate;     /// expiration date of commit period for poll
@@ -212,10 +214,12 @@ contract PLCRVoting {
     function startPoll(uint _voteQuorum, uint _commitDuration, uint _revealDuration) public returns (uint pollID) {
         pollNonce = pollNonce + 1;
 
+	uint commitEndDate = block.timestamp.add(_commitDuration);
+
         pollMap[pollNonce] = Poll({
             voteQuorum: _voteQuorum,
-            commitEndDate: block.timestamp + _commitDuration,
-            revealEndDate: block.timestamp + _commitDuration + _revealDuration,
+            commitEndDate: commitEndDate,
+            revealEndDate: commitEndDate.add(_revealDuration),
             votesFor: 0,
             votesAgainst: 0
         });
