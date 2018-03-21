@@ -17,6 +17,37 @@ contract('Parameterizer', (accounts) => {
     const [proposer, secondProposer] = accounts;
     const pMinDeposit = bigTen(paramConfig.pMinDeposit);
 
+    it('should revert on proposals for dispensationPct and pDispensationPct with values greater ' +
+      'than 100', async () => {
+      const parameterizer = await Parameterizer.deployed();
+
+      const BAD_VALUE = '101';
+
+      // Try to propose bad values for both dispensationPct and pDispensationPct. Expect both to
+      // revert.
+      try {
+        await utils.as(
+          proposer, parameterizer.proposeReparameterization, 'dispensationPct',
+          BAD_VALUE,
+        );
+      } catch (errOne) {
+        assert(utils.isEVMException(errOne), errOne.toString());
+
+        try {
+          await utils.as(
+            proposer, parameterizer.proposeReparameterization, 'pDispensationPct',
+            BAD_VALUE,
+          );
+        } catch (errTwo) {
+          assert(utils.isEVMException(errTwo), errTwo.toString());
+
+          return;
+        }
+      }
+
+      assert(false, 'One of the bad proposals was accepted');
+    });
+
     it('should add a new reparameterization proposal', async () => {
       const parameterizer = await Parameterizer.deployed();
       const token = Token.at(await parameterizer.token.call());

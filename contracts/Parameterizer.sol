@@ -2,6 +2,7 @@ pragma solidity^0.4.11;
 
 import "./PLCRVoting.sol";
 import "tokens/eip20/EIP20.sol";
+import "zeppelin/math/SafeMath.sol";
 
 contract Parameterizer {
 
@@ -16,6 +17,8 @@ contract Parameterizer {
   // ------
   // DATA STRUCTURES
   // ------
+
+  using SafeMath for uint;
 
   struct ParamProposal {
     uint appExpiry;
@@ -120,6 +123,11 @@ contract Parameterizer {
     uint deposit = get("pMinDeposit");
     bytes32 propID = keccak256(_name, _value);
 
+    if (keccak256(_name) == keccak256('dispensationPct') ||
+       keccak256(_name) == keccak256('pDispensationPct')) {
+        require(_value <= 100);
+    }
+
     require(!propExists(propID)); // Forbid duplicate proposals
     require(get(_name) != _value); // Forbid NOOP reparameterizations
     require(token.transferFrom(msg.sender, this, deposit)); // escrow tokens (deposit amt)
@@ -161,7 +169,7 @@ contract Parameterizer {
 
     challenges[pollID] = Challenge({
       challenger: msg.sender,
-      rewardPool: ((100 - get("pDispensationPct")) * deposit) / 100, 
+      rewardPool: SafeMath.sub(100, get("pDispensationPct")).mul(deposit).div(100), 
       stake: deposit,
       resolved: false,
       winningTokens: 0
@@ -189,6 +197,9 @@ contract Parameterizer {
     } else {
       revert();
     }
+
+    assert(get("dispensationPct") <= 100);
+    assert(get("pDispensationPct") <= 100);
 
     delete proposals[_propID];
   }
