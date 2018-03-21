@@ -47,9 +47,9 @@ contract Parameterizer {
 
   // maps challengeIDs to associated challenge data
   mapping(uint => Challenge) public challenges;
- 
+
   // maps pollIDs to intended data change if poll passes
-  mapping(bytes32 => ParamProposal) public proposals; 
+  mapping(bytes32 => ParamProposal) public proposals;
 
   // Global Variables
   EIP20 public token;
@@ -64,10 +64,10 @@ contract Parameterizer {
   @dev constructor
   @param _tokenAddr        address of the token which parameterizes this system
   @param _plcrAddr         address of a PLCR voting contract for the provided token
-  @param _minDeposit       minimum deposit for listing to be whitelisted  
+  @param _minDeposit       minimum deposit for listing to be whitelisted
   @param _pMinDeposit      minimum deposit to propose a reparameterization
   @param _applyStageLen    period over which applicants wait to be whitelisted
-  @param _pApplyStageLen   period over which reparmeterization proposals wait to be processed 
+  @param _pApplyStageLen   period over which reparmeterization proposals wait to be processed
   @param _dispensationPct  percentage of losing party's deposit distributed to winning party
   @param _pDispensationPct percentage of losing party's deposit distributed to winning party in parameterizer
   @param _commitStageLen  length of commit period for voting
@@ -77,7 +77,7 @@ contract Parameterizer {
   @param _voteQuorum       type of majority out of 100 necessary for vote success
   @param _pVoteQuorum      type of majority out of 100 necessary for vote success in parameterizer
   */
-  function Parameterizer( 
+  function Parameterizer(
     address _tokenAddr,
     address _plcrAddr,
     uint _minDeposit,
@@ -132,15 +132,17 @@ contract Parameterizer {
     require(get(_name) != _value); // Forbid NOOP reparameterizations
     require(token.transferFrom(msg.sender, this, deposit)); // escrow tokens (deposit amt)
 
-    // attach name and value to pollID    
+    // attach name and value to pollID
     proposals[propID] = ParamProposal({
-      appExpiry: now + get("pApplyStageLen"),
+      appExpiry: now.add(get("pApplyStageLen")),
       challengeID: 0,
       deposit: deposit,
       name: _name,
       owner: msg.sender,
-      processBy: now + get("pApplyStageLen") + get("pCommitStageLen") +
-        get("pRevealStageLen") + PROCESSBY,
+      processBy: now.add(get("pApplyStageLen"))
+        .add(get("pCommitStageLen"))
+        .add(get("pRevealStageLen"))
+        .add(PROCESSBY),
       value: _value
     });
 
@@ -156,7 +158,7 @@ contract Parameterizer {
     ParamProposal memory prop = proposals[_propID];
     uint deposit = prop.deposit;
 
-    require(propExists(_propID) && prop.challengeID == 0); 
+    require(propExists(_propID) && prop.challengeID == 0);
 
     //take tokens from challenger
     require(token.transferFrom(msg.sender, this, deposit));
@@ -169,7 +171,7 @@ contract Parameterizer {
 
     challenges[pollID] = Challenge({
       challenger: msg.sender,
-      rewardPool: SafeMath.sub(100, get("pDispensationPct")).mul(deposit).div(100), 
+      rewardPool: SafeMath.sub(100, get("pDispensationPct")).mul(deposit).div(100),
       stake: deposit,
       resolved: false,
       winningTokens: 0
@@ -201,6 +203,12 @@ contract Parameterizer {
     assert(get("dispensationPct") <= 100);
     assert(get("pDispensationPct") <= 100);
 
+    // verify that future proposal appExpiry and processBy times will not overflow
+    now.add(get("pApplyStageLen"))
+      .add(get("pCommitStageLen"))
+      .add(get("pRevealStageLen"))
+      .add(PROCESSBY);
+
     delete proposals[_propID];
   }
 
@@ -223,7 +231,7 @@ contract Parameterizer {
     challenges[_challengeID].rewardPool -= reward;
 
     require(token.transfer(msg.sender, reward));
-    
+
     // ensures a voter cannot claim tokens again
     challenges[_challengeID].tokenClaims[msg.sender] = true;
   }
@@ -286,7 +294,7 @@ contract Parameterizer {
       // Edge case, nobody voted, give all tokens to the winner.
       return 2 * challenges[_challengeID].stake;
     }
-    
+
     return (2 * challenges[_challengeID].stake) - challenges[_challengeID].rewardPool;
   }
 
@@ -318,7 +326,7 @@ contract Parameterizer {
         set(prop.name, prop.value);
       }
       require(token.transfer(prop.owner, reward));
-    } 
+    }
     else { // The challenge succeeded
       require(token.transfer(challenges[prop.challengeID].challenger, reward));
     }

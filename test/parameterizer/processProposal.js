@@ -4,7 +4,7 @@ const Parameterizer = artifacts.require('./Parameterizer.sol');
 const Token = artifacts.require('EIP20.sol');
 
 const fs = require('fs');
-const BN = require('bn.js');
+const BN = require('bignumber.js');
 const utils = require('../utils');
 
 const config = JSON.parse(fs.readFileSync('./conf/config.json'));
@@ -13,6 +13,33 @@ const paramConfig = config.paramDefaults;
 contract('Parameterizer', (accounts) => {
   describe('Function: processProposal', () => {
     const [proposer, challenger, voter] = accounts;
+
+    it('should revert if block timestamp + pApplyStageLen is greater than 2^256 - 1', async () => {
+      const parameterizer = await Parameterizer.deployed();
+
+      // calculate an applyStageLen which when added to the current block time will be greater
+      // than 2^256 - 1
+      const blockTimestamp = await utils.getBlockTimestamp();
+      const maxEVMuint = new BN('2').pow('256').minus('1');
+      const applyStageLen = maxEVMuint.minus(blockTimestamp).plus('1');
+
+      // propose the malicious applyStageLen
+      const receipt = await utils.as(proposer, parameterizer.proposeReparameterization, 'pApplyStageLen', applyStageLen.toString(10));
+      const { propID } = receipt.logs[0].args;
+
+      // wait until the apply stage has elapsed
+      await utils.increaseTime(paramConfig.pApplyStageLength + 1);
+
+      // process the bad proposal, expecting an invalid opcode
+      try {
+        await parameterizer.processProposal(propID);
+      } catch (err) {
+        assert(err.toString().includes('invalid opcode'), err.toString());
+        return;
+      }
+
+      assert(false, 'An overflow occurred');
+    });
 
     it('should set new parameters if a proposal went unchallenged', async () => {
       const parameterizer = await Parameterizer.deployed();

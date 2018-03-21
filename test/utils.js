@@ -8,6 +8,7 @@ const abi = require('ethereumjs-abi');
 const fs = require('fs');
 
 const ethRPC = new EthRPC(new HttpProvider('http://localhost:7545'));
+const ethQuery = new Eth(new HttpProvider('http://localhost:7545'));
 
 const PLCRVoting = artifacts.require('PLCRVoting.sol');
 const Parameterizer = artifacts.require('Parameterizer.sol');
@@ -91,6 +92,11 @@ const utils = {
   isEVMException: err => (
     err.toString().includes('revert')
   ),
+
+  // returns block timestamp
+  getBlockTimestamp: () => ethQuery.blockNumber()
+    .then(num => ethQuery.getBlockByNumber(num, true))
+    .then(block => block.timestamp.toString(10)),
 
   getUnstakedDeposit: async (domain) => {
     const registry = await Registry.deployed();
