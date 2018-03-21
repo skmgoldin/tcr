@@ -3,6 +3,7 @@ pragma solidity ^0.4.11;
 import "tokens/eip20/EIP20.sol";
 import "./Parameterizer.sol";
 import "./PLCRVoting.sol";
+import "zeppelin/math/SafeMath.sol";
 
 contract Registry {
 
@@ -20,6 +21,8 @@ contract Registry {
     event _ChallengeFailed(uint challengeID);
     event _ChallengeSucceeded(uint challengeID);
     event _RewardClaimed(address voter, uint challengeID, uint reward);
+
+    using SafeMath for uint;
 
     struct Listing {
         uint applicationExpiry; // Expiration date of apply stage
@@ -94,7 +97,7 @@ contract Registry {
         require(token.transferFrom(listing.owner, this, _amount));
 
         // Sets apply stage end time
-        listing.applicationExpiry = block.timestamp + parameterizer.get("applyStageLen");
+        listing.applicationExpiry = block.timestamp.add(parameterizer.get("applyStageLen"));
         listing.unstakedDeposit = _amount;
 
         _Application(_listingHash, _amount, _data);
