@@ -87,7 +87,7 @@ contract PLCRVoting {
     @param _numTokens The number of ERC20 tokens desired in exchange for voting rights
     */
     function withdrawVotingRights(uint _numTokens) external {
-        uint availableTokens = voteTokenBalance[msg.sender] - getLockedTokens(msg.sender);
+        uint availableTokens = voteTokenBalance[msg.sender].sub(getLockedTokens(msg.sender));
         require(availableTokens >= _numTokens);
         require(token.transfer(msg.sender, _numTokens));
         voteTokenBalance[msg.sender] -= _numTokens;
