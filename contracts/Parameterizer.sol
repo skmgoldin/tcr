@@ -291,7 +291,7 @@ contract Parameterizer {
   */
   function challengeWinnerReward(uint _challengeID) public view returns (uint) {
     if(voting.getTotalNumberOfTokensForWinningOption(_challengeID) == 0) {
-      // Edge case, nobody voted, give all tokens to the winner.
+      // Edge case, nobody voted, give all tokens to the challenger.
       return 2 * challenges[_challengeID].stake;
     }
 
@@ -327,7 +327,7 @@ contract Parameterizer {
       }
       require(token.transfer(prop.owner, reward));
     }
-    else { // The challenge succeeded
+    else { // The challenge succeeded or nobody voted
       require(token.transfer(challenges[prop.challengeID].challenger, reward));
     }
 

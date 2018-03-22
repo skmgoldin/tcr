@@ -388,7 +388,7 @@ contract Registry {
             _ChallengeFailed(challengeID);
             if (!wasWhitelisted) { _NewListingWhitelisted(_listingHash); }
         }
-        // Case: challenge succeeded
+        // Case: challenge succeeded or nobody voted
         else {
             resetListing(_listingHash);
             // Transfer the reward to the challenger
