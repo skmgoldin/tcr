@@ -17,6 +17,8 @@ contract Registry {
     event _NewListingWhitelisted(bytes32 listingHash);
     event _ApplicationRemoved(bytes32 listingHash);
     event _ListingRemoved(bytes32 listingHash);
+    event _ChallengeFailed(uint challengeID);
+    event _ChallengeSucceeded(uint challengeID);
     event _RewardClaimed(address voter, uint challengeID, uint reward);
 
     // ------
@@ -400,12 +402,14 @@ contract Registry {
             whitelistApplication(_listingHash);
             // Unlock stake so that it can be retrieved by the applicant
             listings[_listingHash].unstakedDeposit += reward;
+            _ChallengeFailed(challengeID);
         }
         // Case: challenge succeeded
         else {
             resetListing(_listingHash);
             // Transfer the reward to the challenger
             require(token.transfer(challenges[challengeID].challenger, reward));
+            _ChallengeSucceeded(challengeID);
         }
 
         // Sets flag on challenge being processed
