@@ -1,6 +1,6 @@
 pragma solidity ^0.4.11;
 
-import "tokens/eip20/EIP20.sol";
+import "tokens/eip20/EIP20Interface.sol";
 import "./Parameterizer.sol";
 import "./PLCRVoting.sol";
 import "zeppelin/math/SafeMath.sol";
@@ -48,7 +48,7 @@ contract Registry {
     mapping(bytes32 => Listing) public listings;
 
     // Global Variables
-    EIP20 public token;
+    EIP20Interface public token;
     PLCRVoting public voting;
     Parameterizer public parameterizer;
     string public version = '1';
@@ -68,7 +68,7 @@ contract Registry {
         address _plcrAddr,
         address _paramsAddr
     ) public {
-        token = EIP20(_tokenAddr);
+        token = EIP20Interface(_tokenAddr);
         voting = PLCRVoting(_plcrAddr);
         parameterizer = Parameterizer(_paramsAddr);
     }

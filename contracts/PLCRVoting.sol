@@ -1,5 +1,5 @@
 pragma solidity ^0.4.8;
-import "tokens/eip20/EIP20.sol";
+import "tokens/eip20/EIP20Interface.sol";
 import "dll/DLL.sol";
 import "attrstore/AttributeStore.sol";
 import "zeppelin/math/SafeMath.sol";
@@ -51,7 +51,7 @@ contract PLCRVoting {
     mapping(address => DLL.Data) dllMap;
     AttributeStore.Data store;
 
-    EIP20 public token;
+    EIP20Interface public token;
 
     // ============
     // CONSTRUCTOR:
@@ -62,7 +62,7 @@ contract PLCRVoting {
     @param _tokenAddr The address where the ERC20 token contract is deployed
     */
     function PLCRVoting(address _tokenAddr) public {
-        token = EIP20(_tokenAddr);
+        token = EIP20Interface(_tokenAddr);
         pollNonce = INITIAL_POLL_NONCE;
     }
 
