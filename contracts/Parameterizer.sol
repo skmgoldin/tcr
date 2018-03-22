@@ -130,7 +130,6 @@ contract Parameterizer {
 
     require(!propExists(propID)); // Forbid duplicate proposals
     require(get(_name) != _value); // Forbid NOOP reparameterizations
-    require(token.transferFrom(msg.sender, this, deposit)); // escrow tokens (deposit amt)
 
     // attach name and value to pollID
     proposals[propID] = ParamProposal({
@@ -146,6 +145,8 @@ contract Parameterizer {
       value: _value
     });
 
+    require(token.transferFrom(msg.sender, this, deposit)); // escrow tokens (deposit amt)
+
     _ReparameterizationProposal(msg.sender, _name, _value, propID);
     return propID;
   }
@@ -160,8 +161,6 @@ contract Parameterizer {
 
     require(propExists(_propID) && prop.challengeID == 0);
 
-    //take tokens from challenger
-    require(token.transferFrom(msg.sender, this, deposit));
     //start poll
     uint pollID = voting.startPoll(
       get("pVoteQuorum"),
@@ -179,6 +178,9 @@ contract Parameterizer {
 
     proposals[_propID].challengeID = pollID;       // update listing to store most recent challenge
 
+    //take tokens from challenger
+    require(token.transferFrom(msg.sender, this, deposit));
+
     _NewChallenge(msg.sender, _propID, pollID);
     return pollID;
   }
@@ -195,7 +197,12 @@ contract Parameterizer {
     } else if (challengeCanBeResolved(_propID)) {
       resolveChallenge(_propID);
     } else if (now > prop.processBy) {
-      require(token.transfer(prop.owner, prop.deposit));
+      // Deleting the proposal here will ensure that if reentrancy occurs the prop.owner and 
+      // prop.deposit will be 0, thereby preventing theft
+      address propOwner = prop.owner;
+      uint propDeposit = prop.deposit;
+      delete proposals[_propID];
+      require(token.transfer(propOwner, propDeposit));
     } else {
       revert();
     }
@@ -230,10 +237,10 @@ contract Parameterizer {
     challenges[_challengeID].winningTokens -= voterTokens;
     challenges[_challengeID].rewardPool -= reward;
 
-    require(token.transfer(msg.sender, reward));
-
     // ensures a voter cannot claim tokens again
     challenges[_challengeID].tokenClaims[msg.sender] = true;
+
+    require(token.transfer(msg.sender, reward));
   }
 
   // --------
@@ -321,6 +328,10 @@ contract Parameterizer {
     // winner gets back their full staked deposit, and dispensationPct*loser's stake
     uint reward = challengeWinnerReward(prop.challengeID);
 
+    challenge.winningTokens =
+      voting.getTotalNumberOfTokensForWinningOption(prop.challengeID);
+    challenge.resolved = true;
+
     if (voting.isPassed(prop.challengeID)) { // The challenge failed
       if(prop.processBy > now) {
         set(prop.name, prop.value);
@@ -330,10 +341,6 @@ contract Parameterizer {
     else { // The challenge succeeded or nobody voted
       require(token.transfer(challenges[prop.challengeID].challenger, reward));
     }
-
-    challenge.winningTokens =
-      voting.getTotalNumberOfTokensForWinningOption(prop.challengeID);
-    challenge.resolved = true;
   }
 
   /**

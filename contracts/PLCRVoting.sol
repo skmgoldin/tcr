@@ -77,8 +77,8 @@ contract PLCRVoting {
     */
     function requestVotingRights(uint _numTokens) external {
         require(token.balanceOf(msg.sender) >= _numTokens);
-        require(token.transferFrom(msg.sender, this, _numTokens));
         voteTokenBalance[msg.sender] += _numTokens;
+        require(token.transferFrom(msg.sender, this, _numTokens));
         VotingRightsGranted(msg.sender, _numTokens);
     }
 
@@ -89,8 +89,8 @@ contract PLCRVoting {
     function withdrawVotingRights(uint _numTokens) external {
         uint availableTokens = voteTokenBalance[msg.sender].sub(getLockedTokens(msg.sender));
         require(availableTokens >= _numTokens);
-        require(token.transfer(msg.sender, _numTokens));
         voteTokenBalance[msg.sender] -= _numTokens;
+        require(token.transfer(msg.sender, _numTokens));
         VotingRightsWithdrawn(msg.sender, _numTokens);
     }
 

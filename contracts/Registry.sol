@@ -93,12 +93,12 @@ contract Registry {
         Listing storage listing = listings[_listingHash];
         listing.owner = msg.sender;
 
-        // Transfers tokens from user to Registry contract
-        require(token.transferFrom(listing.owner, this, _amount));
-
         // Sets apply stage end time
         listing.applicationExpiry = block.timestamp.add(parameterizer.get("applyStageLen"));
         listing.unstakedDeposit = _amount;
+
+        // Transfers tokens from user to Registry contract
+        require(token.transferFrom(listing.owner, this, _amount));
 
         _Application(_listingHash, _amount, _data);
     }
@@ -112,9 +112,9 @@ contract Registry {
         Listing storage listing = listings[_listingHash];
 
         require(listing.owner == msg.sender);
-        require(token.transferFrom(msg.sender, this, _amount));
 
         listing.unstakedDeposit += _amount;
+        require(token.transferFrom(msg.sender, this, _amount));
 
         _Deposit(_listingHash, _amount, listing.unstakedDeposit);
     }
@@ -131,9 +131,8 @@ contract Registry {
         require(_amount <= listing.unstakedDeposit);
         require(listing.unstakedDeposit - _amount >= parameterizer.get("minDeposit"));
 
-        require(token.transfer(msg.sender, _amount));
-
         listing.unstakedDeposit -= _amount;
+        require(token.transfer(msg.sender, _amount));
 
         _Withdrawal(_listingHash, _amount, listing.unstakedDeposit);
     }
@@ -182,9 +181,6 @@ contract Registry {
             return 0;
         }
 
-        // Takes tokens from challenger
-        require(token.transferFrom(msg.sender, this, deposit));
-
         // Starts poll
         uint pollID = voting.startPoll(
             parameterizer.get("voteQuorum"),
@@ -205,6 +201,9 @@ contract Registry {
 
         // Locks tokens for listingHash during challenge
         listing.unstakedDeposit -= deposit;
+
+        // Takes tokens from challenger
+        require(token.transferFrom(msg.sender, this, deposit));
 
         _Challenge(_listingHash, deposit, pollID, _data);
         return pollID;
@@ -249,10 +248,10 @@ contract Registry {
         challenges[_challengeID].totalTokens -= voterTokens;
         challenges[_challengeID].rewardPool -= reward;
 
-        require(token.transfer(msg.sender, reward));
-
         // Ensures a voter cannot claim tokens again
         challenges[_challengeID].tokenClaims[msg.sender] = true;
+
+        require(token.transfer(msg.sender, reward));
 
         _RewardClaimed(msg.sender, _challengeID, reward);
     }
@@ -379,6 +378,13 @@ contract Registry {
         // Records whether the listingHash is a listingHash or an application
         bool wasWhitelisted = isWhitelisted(_listingHash);
 
+        // Sets flag on challenge being processed
+        challenges[challengeID].resolved = true;
+
+        // Stores the total tokens used for voting by the winning side for reward purposes
+        challenges[challengeID].totalTokens =
+            voting.getTotalNumberOfTokensForWinningOption(challengeID);
+
         // Case: challenge failed
         if (voting.isPassed(challengeID)) {
             whitelistApplication(_listingHash);
@@ -398,13 +404,6 @@ contract Registry {
             if (wasWhitelisted) { _ListingRemoved(_listingHash); }
             else { _ApplicationRemoved(_listingHash); }
         }
-
-        // Sets flag on challenge being processed
-        challenges[challengeID].resolved = true;
-
-        // Stores the total tokens used for voting by the winning side for reward purposes
-        challenges[challengeID].totalTokens =
-            voting.getTotalNumberOfTokensForWinningOption(challengeID);
     }
 
     /**
@@ -424,10 +423,14 @@ contract Registry {
     function resetListing(bytes32 _listingHash) private {
         Listing storage listing = listings[_listingHash];
 
-        // Transfers any remaining balance back to the owner
-        if (listing.unstakedDeposit > 0)
-            require(token.transfer(listing.owner, listing.unstakedDeposit));
-
+        // Deleting listing to prevent reentry
+        address owner = listing.owner;
+        uint unstakedDeposit = listing.unstakedDeposit;
         delete listings[_listingHash];
+        
+        // Transfers any remaining balance back to the owner
+        if (unstakedDeposit > 0){
+            require(token.transfer(owner, unstakedDeposit));
+        }
     }
 }
