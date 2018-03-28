@@ -191,19 +191,28 @@ contract Parameterizer {
   */
   function processProposal(bytes32 _propID) public {
     ParamProposal storage prop = proposals[_propID];
+    address propOwner = prop.owner;
+    uint propDeposit = prop.deposit;
 
-    if (canBeSet(_propID)) {
+    
+    // Before any token transfers, deleting the proposal will ensure that if reentrancy occurs the
+    // prop.owner and prop.deposit will be 0, thereby preventing theft
+   if (canBeSet(_propID)) {
+      // There is no challenge against the proposal. The processBy date for the proposal has not
+     // passed, but the proposal's appExpirty date has passed.
       set(prop.name, prop.value);
+      delete proposals[_propID];
+      require(token.transfer(propOwner, propDeposit));
     } else if (challengeCanBeResolved(_propID)) {
+      // There is a challenge against the proposal.
       resolveChallenge(_propID);
     } else if (now > prop.processBy) {
-      // Deleting the proposal here will ensure that if reentrancy occurs the prop.owner and 
-      // prop.deposit will be 0, thereby preventing theft
-      address propOwner = prop.owner;
-      uint propDeposit = prop.deposit;
+      // There is no challenge against the proposal, but the processBy date has passed.
       delete proposals[_propID];
       require(token.transfer(propOwner, propDeposit));
     } else {
+      // There is no challenge against the proposal, and neither the appExpiry date nor the
+      // processBy date has passed.
       revert();
     }
 

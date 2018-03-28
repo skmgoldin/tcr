@@ -43,7 +43,9 @@ contract('Parameterizer', (accounts) => {
 
     it('should set new parameters if a proposal went unchallenged', async () => {
       const parameterizer = await Parameterizer.deployed();
+      const token = await Token.deployed();
 
+      const proposerInitialBalance = await token.balanceOf.call(proposer);
       const receipt = await utils.as(proposer, parameterizer.proposeReparameterization, 'voteQuorum', '51');
 
       await utils.increaseTime(paramConfig.pApplyStageLength + 1);
@@ -51,10 +53,17 @@ contract('Parameterizer', (accounts) => {
       const { propID } = receipt.logs[0].args;
       await parameterizer.processProposal(propID);
 
+      const proposerFinalBalance = await token.balanceOf.call(proposer);
+
       const voteQuorum = await parameterizer.get.call('voteQuorum');
       assert.strictEqual(
         voteQuorum.toString(10), '51',
         'A proposal which went unchallenged failed to update its parameter',
+      );
+
+      assert.strictEqual(
+        proposerFinalBalance.toString(10), proposerInitialBalance.toString(10),
+        'The proposer\'s tokens were not returned after setting their parameter',
       );
     });
 
