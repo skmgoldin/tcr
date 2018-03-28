@@ -27,7 +27,7 @@ contract('PLCRVoting', (accounts) => {
       await utils.commitVote(firstPollID, 1, 7, 420, voter);
       await utils.commitVote(secondPollID, 1, 8, 420, voter);
       await utils.commitVote(firstPollID, 1, 9, 420, voter);
-      const insertPoint = await voting.getInsertPointForNumTokens.call(voter, 6);
+      const insertPoint = await voting.getInsertPointForNumTokens.call(voter, 6, firstPollID);
       const expectedInsertPoint = 0;
 
       assert.strictEqual(

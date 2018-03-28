@@ -118,7 +118,7 @@ const utils = {
     const hash = utils.getVoteSaltHash(voteOption, salt);
     await utils.as(voter, voting.requestVotingRights, tokensArg);
 
-    const prevPollID = await voting.getInsertPointForNumTokens.call(voter, tokensArg);
+    const prevPollID = await voting.getInsertPointForNumTokens.call(voter, tokensArg, pollID);
     await utils.as(voter, voting.commitVote, pollID, hash, tokensArg, prevPollID);
   },
 
