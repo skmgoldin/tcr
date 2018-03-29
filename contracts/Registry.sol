@@ -11,16 +11,18 @@ contract Registry {
     // EVENTS
     // ------
 
-    event _Application(bytes32 listingHash, uint deposit, string data);
-    event _Challenge(bytes32 listingHash, uint deposit, uint pollID, string data);
+    event _Application(bytes32 listingHash, uint deposit, uint appEndDate, string data);
+    event _Challenge(bytes32 listingHash, uint challengeID, string data);
     event _Deposit(bytes32 listingHash, uint added, uint newTotal);
     event _Withdrawal(bytes32 listingHash, uint withdrew, uint newTotal);
-    event _NewListingWhitelisted(bytes32 listingHash);
+    event _ApplicationWhitelisted(bytes32 listingHash);
     event _ApplicationRemoved(bytes32 listingHash);
     event _ListingRemoved(bytes32 listingHash);
+    event _ListingWithdrawn(bytes32 listingHash);
+    event _TouchAndRemoved(bytes32 listingHash);
     event _ChallengeFailed(uint challengeID);
     event _ChallengeSucceeded(uint challengeID);
-    event _RewardClaimed(address voter, uint challengeID, uint reward);
+    event _RewardClaimed(uint challengeID, uint reward);
 
     using SafeMath for uint;
 
@@ -100,7 +102,7 @@ contract Registry {
         // Transfers tokens from user to Registry contract
         require(token.transferFrom(listing.owner, this, _amount));
 
-        _Application(_listingHash, _amount, _data);
+        _Application(_listingHash, _amount, listing.applicationExpiry, _data);
     }
 
     /**
@@ -153,6 +155,7 @@ contract Registry {
 
         // Remove listingHash & return tokens
         resetListing(_listingHash);
+        _ListingWithdrawn(_listingHash);
     }
 
     // -----------------------
@@ -178,6 +181,7 @@ contract Registry {
         if (listing.unstakedDeposit < deposit) {
             // Not enough tokens, listingHash auto-delisted
             resetListing(_listingHash);
+            _TouchAndRemoved(_listingHash);
             return 0;
         }
 
@@ -205,7 +209,7 @@ contract Registry {
         // Takes tokens from challenger
         require(token.transferFrom(msg.sender, this, deposit));
 
-        _Challenge(_listingHash, deposit, pollID, _data);
+        _Challenge(_listingHash, pollID, _data);
         return pollID;
     }
 
@@ -252,7 +256,7 @@ contract Registry {
 
         require(token.transfer(msg.sender, reward));
 
-        _RewardClaimed(msg.sender, _challengeID, reward);
+        _RewardClaimed(_challengeID, reward);
     }
 
     // --------
@@ -406,7 +410,7 @@ contract Registry {
     @param _listingHash The listingHash of an application/listingHash to be whitelisted
     */
     function whitelistApplication(bytes32 _listingHash) private {
-        if (!listings[_listingHash].whitelisted) { _NewListingWhitelisted(_listingHash); }
+        if (!listings[_listingHash].whitelisted) { _ApplicationWhitelisted(_listingHash); }
         listings[_listingHash].whitelisted = true;
     }
 
