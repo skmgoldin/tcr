@@ -322,6 +322,15 @@ contract Parameterizer {
     return params[keccak256(_name)];
   }
 
+  /**
+  @dev                Getter for Challenge tokenClaims mappings
+  @param _challengeID The challengeID to query
+  @param _voter       The voter whose claim status to query for the provided challengeID
+  */
+  function tokenClaims(uint _challengeID, address _voter) public view returns (bool) {
+    return challenges[_challengeID].tokenClaims[_voter];
+  }
+
   // ----------------
   // PRIVATE FUNCTIONS
   // ----------------
