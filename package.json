@@ -4,6 +4,7 @@
   "description": "A generic, string-keyed TCR in Solidity",
   "scripts": {
     "compile": "truffle install && truffle compile",
+    "coverage": "solidity-coverage",
     "deploy-rinkeby": "truffle migrate --network rinkeby",
     "deploy-mainnet": "truffle migrate --network mainnet",
     "test": "npm run lint ./ && truffle test",
@@ -29,6 +30,7 @@
   "devDependencies": {
     "eslint": "4.15.0",
     "eslint-config-airbnb-base": "12.1.0",
-    "eslint-plugin-import": "2.8.0"
+    "eslint-plugin-import": "2.8.0",
+    "solidity-coverage": "^0.4.15"
   }
 }

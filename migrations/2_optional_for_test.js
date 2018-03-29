@@ -14,7 +14,7 @@ module.exports = (deployer, network, accounts) => {
     const token = await Token.deployed();
     const user = addresses[0];
     let allocation;
-    if (network === 'test') {
+    if (network === 'test' || network === 'coverage') {
       allocation = totalSupply.div(new BN(accounts.length, 10));
     } else {
       allocation = totalSupply.div(new BN(config.testnets[network].tokenHolders.length, 10));
@@ -32,7 +32,7 @@ module.exports = (deployer, network, accounts) => {
   if (network !== 'mainnet') {
     deployer.deploy(Token, totalSupply, 'TestCoin', decimals, 'TEST')
       .then(() => {
-        if (network === 'test') {
+        if (network === 'test' || network === 'coverage') {
           return giveTokensTo(accounts);
         }
         return giveTokensTo(config.testnets[network].tokenHolders);

@@ -11,7 +11,7 @@ module.exports = (deployer, network, accounts) => {
   async function approvePLCRFor(addresses) {
     const token = await Token.deployed();
     const user = addresses[0];
-    const balanceOfUser = await token.balanceOf(user);
+    const balanceOfUser = await token.balanceOf.call(user);
     await token.approve(PLCRVoting.address, balanceOfUser, { from: user });
     if (addresses.length === 1) { return true; }
     return approvePLCRFor(addresses.slice(1));
@@ -34,7 +34,7 @@ module.exports = (deployer, network, accounts) => {
     );
   })
     .then(async () => {
-      if (network === 'test') {
+      if (network === 'test' || network === 'coverage') {
         await approvePLCRFor(accounts);
       }
     }).catch((err) => { throw err; });

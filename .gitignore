@@ -4,3 +4,5 @@ truffle.js
 secrets.json
 *.swp
 installed_contracts/
+coverage/
+coverage.json
