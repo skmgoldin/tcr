@@ -10,8 +10,13 @@ contract Parameterizer {
   // EVENTS
   // ------
 
-  event _ReparameterizationProposal(address proposer, string name, uint value, bytes32 propID);
-  event _NewChallenge(address challenger, bytes32 propID, uint pollID);
+  event _ReparameterizationProposal(string name, uint value, bytes32 propID);
+  event _NewChallenge(bytes32 propID, uint pollID);
+  event _ProposalAccepted(bytes32 propID, string name, uint value);
+  event _ProposalExpired(bytes32 propID);
+  event _ChallengeSucceeded(uint challengeID);
+  event _ChallengeFailed(uint challengeID);
+  event _RewardClaimed(uint challengeID, uint reward);
 
 
   // ------
@@ -147,7 +152,7 @@ contract Parameterizer {
 
     require(token.transferFrom(msg.sender, this, deposit)); // escrow tokens (deposit amt)
 
-    _ReparameterizationProposal(msg.sender, _name, _value, propID);
+    _ReparameterizationProposal(_name, _value, propID);
     return propID;
   }
 
@@ -181,7 +186,7 @@ contract Parameterizer {
     //take tokens from challenger
     require(token.transferFrom(msg.sender, this, deposit));
 
-    _NewChallenge(msg.sender, _propID, pollID);
+    _NewChallenge(_propID, pollID);
     return pollID;
   }
 
@@ -201,6 +206,7 @@ contract Parameterizer {
       // There is no challenge against the proposal. The processBy date for the proposal has not
      // passed, but the proposal's appExpirty date has passed.
       set(prop.name, prop.value);
+      _ProposalAccepted(_propID, prop.name, prop.value);
       delete proposals[_propID];
       require(token.transfer(propOwner, propDeposit));
     } else if (challengeCanBeResolved(_propID)) {
@@ -208,6 +214,7 @@ contract Parameterizer {
       resolveChallenge(_propID);
     } else if (now > prop.processBy) {
       // There is no challenge against the proposal, but the processBy date has passed.
+      _ProposalExpired(_propID);
       delete proposals[_propID];
       require(token.transfer(propOwner, propDeposit));
     } else {
@@ -249,6 +256,7 @@ contract Parameterizer {
     // ensures a voter cannot claim tokens again
     challenges[_challengeID].tokenClaims[msg.sender] = true;
 
+    _RewardClaimed(_challengeID, reward);
     require(token.transfer(msg.sender, reward));
   }
 
@@ -354,9 +362,11 @@ contract Parameterizer {
       if(prop.processBy > now) {
         set(prop.name, prop.value);
       }
+      _ChallengeFailed(prop.challengeID);
       require(token.transfer(prop.owner, reward));
     }
     else { // The challenge succeeded or nobody voted
+      _ChallengeSucceeded(prop.challengeID);
       require(token.transfer(challenges[prop.challengeID].challenger, reward));
     }
   }
