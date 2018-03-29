@@ -217,7 +217,6 @@ contract Registry {
     function updateStatus(bytes32 _listingHash) public {
         if (canBeWhitelisted(_listingHash)) {
           whitelistApplication(_listingHash);
-          _NewListingWhitelisted(_listingHash);
         } else if (challengeCanBeResolved(_listingHash)) {
           resolveChallenge(_listingHash);
         } else {
@@ -375,9 +374,6 @@ contract Registry {
         // which is: (winner's full stake) + (dispensationPct * loser's stake)
         uint reward = determineReward(challengeID);
 
-        // Records whether the listingHash is a listingHash or an application
-        bool wasWhitelisted = isWhitelisted(_listingHash);
-
         // Sets flag on challenge being processed
         challenges[challengeID].resolved = true;
 
@@ -392,7 +388,6 @@ contract Registry {
             listings[_listingHash].unstakedDeposit += reward;
 
             _ChallengeFailed(challengeID);
-            if (!wasWhitelisted) { _NewListingWhitelisted(_listingHash); }
         }
         // Case: challenge succeeded or nobody voted
         else {
@@ -401,8 +396,6 @@ contract Registry {
             require(token.transfer(challenges[challengeID].challenger, reward));
 
             _ChallengeSucceeded(challengeID);
-            if (wasWhitelisted) { _ListingRemoved(_listingHash); }
-            else { _ApplicationRemoved(_listingHash); }
         }
     }
 
@@ -413,6 +406,7 @@ contract Registry {
     @param _listingHash The listingHash of an application/listingHash to be whitelisted
     */
     function whitelistApplication(bytes32 _listingHash) private {
+        if (!listings[_listingHash].whitelisted) { _NewListingWhitelisted(_listingHash); }
         listings[_listingHash].whitelisted = true;
     }
 
@@ -422,6 +416,13 @@ contract Registry {
     */
     function resetListing(bytes32 _listingHash) private {
         Listing storage listing = listings[_listingHash];
+
+        // Emit events before deleting listing to check whether is whitelisted
+        if (listing.whitelisted) {
+            _ListingRemoved(_listingHash);
+        } else {
+            _ApplicationRemoved(_listingHash);
+        }
 
         // Deleting listing to prevent reentry
         address owner = listing.owner;
