@@ -165,6 +165,36 @@ contract('Registry', (accounts) => {
 
       assert(!await registry.isWhitelisted.call(listing), 'Listing was not removed');
     });
+
+    it('should not be able to challenge a listing hash that doesn\'t exist', async () => {
+      const listing = utils.getListingHash('doesNotExist.net');
+
+      try {
+        await utils.challengeAndGetPollID(listing, challenger);
+      } catch (err) {
+        assert(utils.isEVMException(err), err.toString());
+        return;
+      }
+      assert(false, 'challenge succeeded when listing does not exist');
+    });
+
+    it('should revert if challenge occurs on a listing with an open challenge', async () => {
+      const parameterizer = await Parameterizer.deployed();
+      const listing = utils.getListingHash('doubleChallenge.net');
+      const minDeposit = new BN(await parameterizer.get.call('minDeposit'), 10);
+
+      await utils.addToWhitelist(listing, minDeposit.toString(), applicant);
+
+      await utils.challengeAndGetPollID(listing, challenger);
+
+      try {
+        await utils.challengeAndGetPollID(listing, challenger);
+      } catch (err) {
+        assert(utils.isEVMException(err), err.toString());
+        return;
+      }
+      assert(false, 'challenge succeeded when challenge is already open');
+    });
   });
 });
 

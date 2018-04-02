@@ -98,6 +98,21 @@ contract('Registry', (accounts) => {
         'the listing was exited by someone other than its owner',
       );
     });
+
+    it('should revert if listing is in application stage', async () => {
+      const registry = await Registry.deployed();
+      const listing = utils.getListingHash('real.net');
+
+      await utils.as(applicant, registry.apply, listing, paramConfig.minDeposit, '');
+
+      try {
+        await registry.exit(listing, { from: applicant });
+      } catch (err) {
+        assert(utils.isEVMException(err), err.toString());
+        return;
+      }
+      assert(false, 'exit succeeded for non-whitelisted listing');
+    });
   });
 });
 
