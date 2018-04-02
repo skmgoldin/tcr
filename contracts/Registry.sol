@@ -11,18 +11,18 @@ contract Registry {
     // EVENTS
     // ------
 
-    event _Application(bytes32 listingHash, uint deposit, uint appEndDate, string data);
-    event _Challenge(bytes32 listingHash, uint challengeID, string data);
-    event _Deposit(bytes32 listingHash, uint added, uint newTotal);
-    event _Withdrawal(bytes32 listingHash, uint withdrew, uint newTotal);
-    event _ApplicationWhitelisted(bytes32 listingHash);
-    event _ApplicationRemoved(bytes32 listingHash);
-    event _ListingRemoved(bytes32 listingHash);
-    event _ListingWithdrawn(bytes32 listingHash);
-    event _TouchAndRemoved(bytes32 listingHash);
-    event _ChallengeFailed(uint challengeID);
-    event _ChallengeSucceeded(uint challengeID);
-    event _RewardClaimed(uint challengeID, uint reward);
+    event _Application(bytes32 indexed listingHash, uint deposit, uint appEndDate, string data);
+    event _Challenge(bytes32 indexed listingHash, uint challengeID, string data);
+    event _Deposit(bytes32 indexed listingHash, uint added, uint newTotal);
+    event _Withdrawal(bytes32 indexed listingHash, uint withdrew, uint newTotal);
+    event _ApplicationWhitelisted(bytes32 indexed listingHash);
+    event _ApplicationRemoved(bytes32 indexed listingHash);
+    event _ListingRemoved(bytes32 indexed listingHash);
+    event _ListingWithdrawn(bytes32 indexed listingHash);
+    event _TouchAndRemoved(bytes32 indexed listingHash);
+    event _ChallengeFailed(uint indexed challengeID);
+    event _ChallengeSucceeded(uint indexed challengeID);
+    event _RewardClaimed(uint indexed challengeID, uint reward);
 
     using SafeMath for uint;
 
