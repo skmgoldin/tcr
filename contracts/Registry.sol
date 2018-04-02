@@ -2,7 +2,7 @@ pragma solidity ^0.4.11;
 
 import "tokens/eip20/EIP20Interface.sol";
 import "./Parameterizer.sol";
-import "./PLCRVoting.sol";
+import "plcrvoting/PLCRVoting.sol";
 import "zeppelin/math/SafeMath.sol";
 
 contract Registry {
