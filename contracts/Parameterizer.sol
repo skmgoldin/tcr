@@ -14,8 +14,8 @@ contract Parameterizer {
   event _NewChallenge(bytes32 indexed propID, uint pollID);
   event _ProposalAccepted(bytes32 indexed propID, string name, uint value);
   event _ProposalExpired(bytes32 indexed propID);
-  event _ChallengeSucceeded(uint indexed challengeID);
-  event _ChallengeFailed(uint indexed challengeID);
+  event _ChallengeSucceeded(uint indexed challengeID, uint rewardPool, uint totalTokens);
+  event _ChallengeFailed(uint indexed challengeID, uint rewardPool, uint totalTokens);
   event _RewardClaimed(uint indexed challengeID, uint reward);
 
 
@@ -362,11 +362,11 @@ contract Parameterizer {
       if(prop.processBy > now) {
         set(prop.name, prop.value);
       }
-      _ChallengeFailed(prop.challengeID);
+      _ChallengeFailed(prop.challengeID, challenge.rewardPool, challenge.winningTokens);
       require(token.transfer(prop.owner, reward));
     }
     else { // The challenge succeeded or nobody voted
-      _ChallengeSucceeded(prop.challengeID);
+      _ChallengeSucceeded(prop.challengeID, challenge.rewardPool, challenge.winningTokens);
       require(token.transfer(challenges[prop.challengeID].challenger, reward));
     }
   }
