@@ -34,10 +34,11 @@ contract('Registry', (accounts) => {
 
       try {
         await utils.as(applicant, registry.updateStatus, listing);
-        assert(false, 'Listing should not have been whitelisted');
       } catch (err) {
         assert(utils.isEVMException(err), err.toString());
+        return;
       }
+      assert(false, 'Listing should not have been whitelisted');
     });
 
     it('should not whitelist a listing that is currently being challenged', async () => {
@@ -49,10 +50,11 @@ contract('Registry', (accounts) => {
 
       try {
         await registry.updateStatus(listing);
-        assert(false, 'Listing should not have been whitelisted');
       } catch (err) {
         assert(utils.isEVMException(err), err.toString());
+        return;
       }
+      assert(false, 'Listing should not have been whitelisted');
     });
 
     it('should not whitelist a listing that failed a challenge', async () => {
@@ -76,10 +78,11 @@ contract('Registry', (accounts) => {
 
       try {
         await utils.as(applicant, registry.updateStatus, listing);
-        assert(false, 'Listing should not have been whitelisted');
       } catch (err) {
         assert(utils.isEVMException(err), err.toString());
+        return;
       }
+      assert(false, 'Listing should not have been whitelisted');
     });
 
     it('should not be possible to add a listing to the whitelist just by calling updateStatus after it has been previously removed', async () => {
@@ -96,10 +99,11 @@ contract('Registry', (accounts) => {
 
       try {
         await utils.as(applicant, registry.updateStatus, listing);
-        assert(false, 'Listing should not have been whitelisted');
       } catch (err) {
         assert(utils.isEVMException(err), err.toString());
+        return;
       }
+      assert(false, 'Listing should not have been whitelisted');
     });
   });
 });

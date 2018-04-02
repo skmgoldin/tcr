@@ -26,10 +26,11 @@ contract('Parameterizer', (accounts) => {
 
       try {
         await utils.as(proposer, parameterizer.proposeReparameterization, 'voteQuorum', voteQuorum.toString());
-        assert(false, 'Performed NOOP reparameterization');
       } catch (err) {
         assert(utils.isEVMException(err), err.toString());
+        return;
       }
+      assert(false, 'Performed NOOP reparameterization');
     });
 
 

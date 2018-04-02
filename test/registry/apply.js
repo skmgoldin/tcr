@@ -37,6 +37,11 @@ contract('Registry', (accounts) => {
     it('should not allow a listing to apply which has a pending application', async () => {
       const registry = await Registry.deployed();
       const listing = utils.getListingHash('nochallenge.net');
+
+      // Verify that the application exists.
+      const result = await registry.listings.call(listing);
+      assert.strictEqual(result[2], applicant, 'owner of application != address that applied');
+
       try {
         await utils.as(applicant, registry.apply, listing, paramConfig.minDeposit, '');
       } catch (err) {
@@ -61,6 +66,10 @@ contract('Registry', (accounts) => {
     it('should not allow a listing to apply which is already listed', async () => {
       const registry = await Registry.deployed();
       const listing = utils.getListingHash('nochallenge.net');
+
+      // Verify that the listing is whitelisted.
+      const result = await registry.isWhitelisted.call(listing);
+      assert.strictEqual(result, true, 'listing was not already whitelisted.');
 
       try {
         await utils.as(applicant, registry.apply, listing, paramConfig.minDeposit, '');
