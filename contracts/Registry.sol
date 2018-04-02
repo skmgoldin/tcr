@@ -12,7 +12,7 @@ contract Registry {
     // ------
 
     event _Application(bytes32 indexed listingHash, uint deposit, uint appEndDate, string data);
-    event _Challenge(bytes32 indexed listingHash, uint challengeID, string data);
+    event _Challenge(bytes32 indexed listingHash, uint challengeID, string data, uint commitEndDate, uint revealEndDate);
     event _Deposit(bytes32 indexed listingHash, uint added, uint newTotal);
     event _Withdrawal(bytes32 indexed listingHash, uint withdrew, uint newTotal);
     event _ApplicationWhitelisted(bytes32 indexed listingHash);
@@ -209,7 +209,10 @@ contract Registry {
         // Takes tokens from challenger
         require(token.transferFrom(msg.sender, this, deposit));
 
-        _Challenge(_listingHash, pollID, _data);
+        uint commitEndDate = block.timestamp.add(parameterizer.get("commitStageLen"));
+        uint revealEndDate = commitEndDate.add(parameterizer.get("revealStageLen"));
+
+        _Challenge(_listingHash, pollID, _data, commitEndDate, revealEndDate);
         return pollID;
     }
 
