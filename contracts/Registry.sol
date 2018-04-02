@@ -20,8 +20,8 @@ contract Registry {
     event _ListingRemoved(bytes32 indexed listingHash);
     event _ListingWithdrawn(bytes32 indexed listingHash);
     event _TouchAndRemoved(bytes32 indexed listingHash);
-    event _ChallengeFailed(uint indexed challengeID);
-    event _ChallengeSucceeded(uint indexed challengeID);
+    event _ChallengeFailed(uint indexed challengeID, uint rewardPool, uint totalTokens);
+    event _ChallengeSucceeded(uint indexed challengeID, uint rewardPool, uint totalTokens);
     event _RewardClaimed(uint indexed challengeID, uint reward);
 
     using SafeMath for uint;
@@ -391,7 +391,7 @@ contract Registry {
             // Unlock stake so that it can be retrieved by the applicant
             listings[_listingHash].unstakedDeposit += reward;
 
-            _ChallengeFailed(challengeID);
+            _ChallengeFailed(challengeID, challenges[challengeID].rewardPool, challenges[challengeID].totalTokens);
         }
         // Case: challenge succeeded or nobody voted
         else {
@@ -399,7 +399,7 @@ contract Registry {
             // Transfer the reward to the challenger
             require(token.transfer(challenges[challengeID].challenger, reward));
 
-            _ChallengeSucceeded(challengeID);
+            _ChallengeSucceeded(challengeID, challenges[challengeID].rewardPool, challenges[challengeID].totalTokens);
         }
     }
 
