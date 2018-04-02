@@ -17,6 +17,22 @@ contract('Parameterizer', (accounts) => {
     const [proposer, secondProposer] = accounts;
     const pMinDeposit = bigTen(paramConfig.pMinDeposit);
 
+    // Put this first to ensure test does not conflict with proposals already made.
+    it('should not allow a NOOP reparameterization', async () => {
+      const parameterizer = await Parameterizer.deployed();
+
+      // Get value to be reparameterized.
+      const voteQuorum = await parameterizer.get.call('voteQuorum');
+
+      try {
+        await utils.as(proposer, parameterizer.proposeReparameterization, 'voteQuorum', voteQuorum.toString());
+        assert(false, 'Performed NOOP reparameterization');
+      } catch (err) {
+        assert(utils.isEVMException(err), err.toString());
+      }
+    });
+
+
     it('should revert on proposals for dispensationPct and pDispensationPct with values greater ' +
       'than 100', async () => {
       const parameterizer = await Parameterizer.deployed();
@@ -68,17 +84,6 @@ contract('Parameterizer', (accounts) => {
         applicantFinalBalance.toString(10), expected.toString(10),
         'tokens were not properly transferred from proposer',
       );
-    });
-
-    it('should not allow a NOOP reparameterization', async () => {
-      const parameterizer = await Parameterizer.deployed();
-
-      try {
-        await utils.as(proposer, parameterizer.proposeReparameterization, 'voteQuorum', '51');
-        assert(false, 'Performed NOOP reparameterization');
-      } catch (err) {
-        assert(utils.isEVMException(err), err.toString());
-      }
     });
 
     it('should not allow a reparameterization for a proposal that already exists', async () => {
