@@ -11,12 +11,12 @@ contract Parameterizer {
   // ------
 
   event _ReparameterizationProposal(string name, uint value, bytes32 propID);
-  event _NewChallenge(bytes32 propID, uint pollID);
-  event _ProposalAccepted(bytes32 propID, string name, uint value);
-  event _ProposalExpired(bytes32 propID);
-  event _ChallengeSucceeded(uint challengeID);
-  event _ChallengeFailed(uint challengeID);
-  event _RewardClaimed(uint challengeID, uint reward);
+  event _NewChallenge(bytes32 indexed propID, uint pollID);
+  event _ProposalAccepted(bytes32 indexed propID, string name, uint value);
+  event _ProposalExpired(bytes32 indexed propID);
+  event _ChallengeSucceeded(uint indexed challengeID);
+  event _ChallengeFailed(uint indexed challengeID);
+  event _RewardClaimed(uint indexed challengeID, uint reward);
 
 
   // ------
