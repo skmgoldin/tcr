@@ -113,6 +113,23 @@ contract('Registry', (accounts) => {
       }
       assert(false, 'app expiry was allowed to overflow!');
     });
+
+    it('should revert if the deposit amount is less than the minDeposit', async () => {
+      const parameterizer = await Parameterizer.deployed();
+      const registry = await Registry.deployed();
+      const listing = utils.getListingHash('smallDeposit.net');
+
+      const minDeposit = await parameterizer.get.call('minDeposit');
+      const deposit = minDeposit.sub(10);
+
+      try {
+        await utils.as(applicant, registry.apply, listing, deposit.toString(), '');
+      } catch (err) {
+        assert(utils.isEVMException(err), err.toString());
+        return;
+      }
+      assert(false, 'allowed an application with deposit less than minDeposit');
+    });
   });
 });
 
