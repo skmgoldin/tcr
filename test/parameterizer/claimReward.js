@@ -153,6 +153,41 @@ contract('Parameterizer', (accounts) => {
       );
     });
 
+    it('should revert if voter tries to claim reward more than once.', async () => {
+      const parameterizer = await Parameterizer.deployed();
+      const voting = await utils.getVoting();
+
+
+      const proposalReceipt = await utils.as(proposer, parameterizer.proposeReparameterization, 'voteQuorum', '80');
+
+      const { propID } = proposalReceipt.logs[0].args;
+
+      const challengeReceipt =
+        await utils.as(challenger, parameterizer.challengeReparameterization, propID);
+
+      const challengeID = challengeReceipt.logs[0].args.pollID;
+
+      await utils.commitVote(challengeID, '1', '10', '420', voterAlice);
+
+      await utils.increaseTime(paramConfig.pCommitStageLength + 1);
+
+      await utils.as(voterAlice, voting.revealVote, challengeID, '1', '420');
+
+      await utils.increaseTime(paramConfig.pRevealStageLength + 1);
+
+      await parameterizer.processProposal(propID);
+
+      await utils.as(voterAlice, parameterizer.claimReward, challengeID, '420');
+
+      try {
+        await utils.as(voterAlice, parameterizer.claimReward, challengeID, '420');
+      } catch (err) {
+        assert(utils.isEVMException(err), err.toString());
+        return;
+      }
+      assert(false, 'voter claimed reward more than once');
+    });
+
     it('should give zero tokens to a voter who cannot reveal a vote on the winning side.');
   });
 });
