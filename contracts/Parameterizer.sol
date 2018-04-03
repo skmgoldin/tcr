@@ -10,12 +10,12 @@ contract Parameterizer {
   // EVENTS
   // ------
 
-  event _ReparameterizationProposal(string name, uint value, bytes32 propID);
-  event _NewChallenge(bytes32 indexed propID, uint pollID);
+  event _ReparameterizationProposal(string name, uint value, bytes32 propID, uint deposit, uint appEndDate);
+  event _NewChallenge(bytes32 indexed propID, uint challengeID, uint commitEndDate, uint revealEndDate);
   event _ProposalAccepted(bytes32 indexed propID, string name, uint value);
   event _ProposalExpired(bytes32 indexed propID);
-  event _ChallengeSucceeded(uint indexed challengeID, uint rewardPool, uint totalTokens);
-  event _ChallengeFailed(uint indexed challengeID, uint rewardPool, uint totalTokens);
+  event _ChallengeSucceeded(bytes32 indexed propID, uint indexed challengeID, uint rewardPool, uint totalTokens);
+  event _ChallengeFailed(bytes32 indexed propID, uint indexed challengeID, uint rewardPool, uint totalTokens);
   event _RewardClaimed(uint indexed challengeID, uint reward);
 
 
@@ -152,7 +152,7 @@ contract Parameterizer {
 
     require(token.transferFrom(msg.sender, this, deposit)); // escrow tokens (deposit amt)
 
-    _ReparameterizationProposal(_name, _value, propID);
+    _ReparameterizationProposal(_name, _value, propID, deposit, proposals[propID].appExpiry);
     return propID;
   }
 
@@ -186,7 +186,9 @@ contract Parameterizer {
     //take tokens from challenger
     require(token.transferFrom(msg.sender, this, deposit));
 
-    _NewChallenge(_propID, pollID);
+    var (commitEndDate, revealEndDate,) = voting.pollMap(pollID);
+
+    _NewChallenge(_propID, pollID, commitEndDate, revealEndDate);
     return pollID;
   }
 
@@ -362,11 +364,11 @@ contract Parameterizer {
       if(prop.processBy > now) {
         set(prop.name, prop.value);
       }
-      _ChallengeFailed(prop.challengeID, challenge.rewardPool, challenge.winningTokens);
+      _ChallengeFailed(_propID, prop.challengeID, challenge.rewardPool, challenge.winningTokens);
       require(token.transfer(prop.owner, reward));
     }
     else { // The challenge succeeded or nobody voted
-      _ChallengeSucceeded(prop.challengeID, challenge.rewardPool, challenge.winningTokens);
+      _ChallengeSucceeded(_propID, prop.challengeID, challenge.rewardPool, challenge.winningTokens);
       require(token.transfer(challenges[prop.challengeID].challenger, reward));
     }
   }

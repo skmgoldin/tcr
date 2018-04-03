@@ -23,7 +23,7 @@ contract('Parameterizer', (accounts) => {
       // Challenge the proposal, and grab the challenge ID
       const challengeReceipt =
         await utils.as(challenger, parameterizer.challengeReparameterization, propID);
-      const challengeID = challengeReceipt.logs[0].args.pollID;
+      const { challengeID } = challengeReceipt.logs[0].args;
 
       // Commit 10 tokens in support of the proposal, and finish the commit stage
       await utils.commitVote(challengeID, '1', '10', '420', alice);
@@ -54,7 +54,7 @@ contract('Parameterizer', (accounts) => {
       // Challenge the proposal, and grab the challenge ID
       const challengeReceipt =
         await utils.as(challenger, parameterizer.challengeReparameterization, propID);
-      const challengeID = challengeReceipt.logs[0].args.pollID;
+      const { challengeID } = challengeReceipt.logs[0].args;
 
       // Commit 10 tokens in support of the proposal, and finish the commit stage
       await utils.commitVote(challengeID, '1', '10', '420', alice);
