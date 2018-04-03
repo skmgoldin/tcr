@@ -66,7 +66,7 @@ contract('Parameterizer', (accounts) => {
       const challengeReceipt =
         await utils.as(challenger, parameterizer.challengeReparameterization, propID);
 
-      const challengeID = challengeReceipt.logs[0].args.pollID;
+      const { challengeID } = challengeReceipt.logs[0].args;
 
       await utils.commitVote(challengeID, '1', '10', '420', voter);
       await utils.increaseTime(paramConfig.pCommitStageLength + 1);
@@ -126,10 +126,10 @@ contract('Parameterizer', (accounts) => {
         // challenge the second proposal
         const challengeReceipt =
           await utils.as(challenger, parameterizer.challengeReparameterization, propIDTwo);
-        const challengePollID = challengeReceipt.logs[0].args.pollID;
+        const { challengeID } = challengeReceipt.logs[0].args;
 
         // assert that the prop.deposit and the challenge.stake are equal
-        const challenge = await parameterizer.challenges.call(challengePollID.toString());
+        const challenge = await parameterizer.challenges.call(challengeID.toString());
         const challengeStake = challenge[3];
         const proposal = await parameterizer.proposals.call(propIDTwo.toString());
         const proposalDeposit = proposal[2];

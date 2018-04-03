@@ -209,8 +209,7 @@ contract Registry {
         // Takes tokens from challenger
         require(token.transferFrom(msg.sender, this, deposit));
 
-        uint commitEndDate = block.timestamp.add(parameterizer.get("commitStageLen"));
-        uint revealEndDate = commitEndDate.add(parameterizer.get("revealStageLen"));
+        var (commitEndDate, revealEndDate,) = voting.pollMap(pollID);
 
         _Challenge(_listingHash, pollID, _data, commitEndDate, revealEndDate);
         return pollID;

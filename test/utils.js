@@ -133,7 +133,7 @@ const utils = {
   challengeReparamAndGetChallengeID: async (propID, actor) => {
     const parameterizer = await Parameterizer.deployed();
     const receipt = await utils.as(actor, parameterizer.challengeReparameterization, propID);
-    return receipt.logs[0].args.pollID;
+    return receipt.logs[0].args.challengeID;
   },
 
   divideAndGetWei: (numerator, denominator) => {
