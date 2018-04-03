@@ -87,7 +87,7 @@ contract('Parameterizer', (accounts) => {
     });
 
     it('should not set new parameters if a proposal\'s processBy date has passed, ' +
-    'but should resolve any challenges against the domain', async () => {
+    'but challenge succeeded', async () => {
       const parameterizer = await Parameterizer.deployed();
       const token = Token.at(await parameterizer.token.call());
       const voting = await utils.getVoting();
@@ -95,7 +95,7 @@ contract('Parameterizer', (accounts) => {
       const proposerStartingBalance = await token.balanceOf.call(proposer);
       const challengerStartingBalance = await token.balanceOf.call(challenger);
 
-      const receipt = await utils.as(proposer, parameterizer.proposeReparameterization, 'voteQuorum', '69');
+      const receipt = await utils.as(proposer, parameterizer.proposeReparameterization, 'voteQuorum', '79');
 
       const { propID } = receipt.logs[0].args;
 
@@ -135,6 +135,53 @@ contract('Parameterizer', (accounts) => {
         challengerFinalBalance.toString(10), challengerExpected.toString(10),
         'The challenge winner\'s token balance is not as expected',
       );
+    });
+
+    it('should not set new parameters if a proposal\'s processBy date has passed, ' +
+    'but challenge failed', async () => {
+      const parameterizer = await Parameterizer.deployed();
+      const voting = await utils.getVoting();
+
+      const receipt = await utils.as(proposer, parameterizer.proposeReparameterization, 'voteQuorum', '78');
+
+      const { propID } = receipt.logs[0].args;
+
+      const challengeReceipt =
+        await utils.as(challenger, parameterizer.challengeReparameterization, propID);
+
+      const { pollID } = challengeReceipt.logs[0].args;
+      await utils.commitVote(pollID, '1', '10', '420', voter);
+      await utils.increaseTime(paramConfig.pCommitStageLength + 1);
+
+      await utils.as(voter, voting.revealVote, pollID, '1', '420');
+
+      const paramProp = await parameterizer.proposals.call(propID);
+      const processBy = paramProp[5];
+      await utils.increaseTime(processBy.toNumber() + 1);
+
+      await parameterizer.processProposal(propID);
+
+      const voteQuorum = await parameterizer.get.call('voteQuorum');
+      assert.strictEqual(
+        voteQuorum.toString(10), '51',
+        'A proposal whose processBy date passed was able to update the parameterizer',
+      );
+    });
+
+    it('should revert if processProposal is called before appExpiry', async () => {
+      const parameterizer = await Parameterizer.deployed();
+
+      const receipt = await utils.as(proposer, parameterizer.proposeReparameterization, 'voteQuorum', '70');
+
+      const { propID } = receipt.logs[0].args;
+
+      try {
+        await parameterizer.processProposal(propID);
+      } catch (err) {
+        assert(utils.isEVMException(err), err.toString());
+        return;
+      }
+      assert(false, 'proposal was processed without a challenge and before appExpiry and processBy date');
     });
   });
 });

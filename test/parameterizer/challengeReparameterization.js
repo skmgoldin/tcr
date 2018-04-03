@@ -136,6 +136,18 @@ contract('Parameterizer', (accounts) => {
         assert.strictEqual(challengeStake.toString(), proposalDeposit.toString(), 'parties to the challenge have different deposits');
       },
     );
+
+    it('should not allow a challenges for non-existent proposals', async () => {
+      const parameterizer = await Parameterizer.deployed();
+
+      try {
+        await utils.as(challenger, parameterizer.challengeReparameterization, new BN(0).toString());
+      } catch (err) {
+        assert(utils.isEVMException(err), err.toString());
+        return;
+      }
+      assert(false, 'challenge was made on non-existent poll');
+    });
   });
 });
 
