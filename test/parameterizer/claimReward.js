@@ -165,7 +165,7 @@ contract('Parameterizer', (accounts) => {
       const challengeReceipt =
         await utils.as(challenger, parameterizer.challengeReparameterization, propID);
 
-      const challengeID = challengeReceipt.logs[0].args.pollID;
+      const { challengeID } = challengeReceipt.logs[0].args;
 
       await utils.commitVote(challengeID, '1', '10', '420', voterAlice);
 
@@ -199,7 +199,7 @@ contract('Parameterizer', (accounts) => {
       const challengeReceipt =
         await utils.as(challenger, parameterizer.challengeReparameterization, propID);
 
-      const challengeID = challengeReceipt.logs[0].args.pollID;
+      const { challengeID } = challengeReceipt.logs[0].args;
 
       // Vote so Bob is on the losing side
       await utils.commitVote(challengeID, '1', '10', '420', voterAlice);
