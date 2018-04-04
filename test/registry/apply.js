@@ -2,6 +2,7 @@
 /* global assert contract artifacts */
 const Parameterizer = artifacts.require('./Parameterizer.sol');
 const Registry = artifacts.require('Registry.sol');
+const Token = artifacts.require('EIP20.sol');
 
 const fs = require('fs');
 const BN = require('bignumber.js');
@@ -80,6 +81,31 @@ contract('Registry', (accounts) => {
         return;
       }
       assert(false, 'application was made for an already-listed entry');
+    });
+
+    describe('token transfer', async () => {
+      const registry = await Registry.deployed();
+      const token = Token.at(await registry.token.call());
+
+      it('should revert if token transfer from user fails', async () => {
+        const listing = utils.getListingHash('toFewTokens.net');
+
+        // Approve the contract to transfer 0 tokens from account so the transfer will fail
+        await token.approve(registry.address, '0', { from: applicant });
+
+        try {
+          await utils.as(applicant, registry.apply, listing, paramConfig.minDeposit, '');
+        } catch (err) {
+          assert(utils.isEVMException(err), err.toString());
+          return;
+        }
+        assert(false, 'allowed application with not enough tokens');
+      });
+
+      after(async () => {
+        const balanceOfUser = await token.balanceOf(applicant);
+        await token.approve(registry.address, balanceOfUser, { from: applicant });
+      });
     });
 
     it('should revert if the listing\'s applicationExpiry would overflow', async () => {

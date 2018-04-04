@@ -1,6 +1,7 @@
 /* eslint-env mocha */
 /* global assert contract artifacts */
 const Registry = artifacts.require('Registry.sol');
+const Token = artifacts.require('EIP20.sol');
 
 const fs = require('fs');
 const BN = require('bignumber.js');
@@ -80,6 +81,25 @@ contract('Registry', (accounts) => {
       } catch (err) {
         assert(utils.isEVMException(err), err.toString());
       }
+    });
+
+    it('should revert if token transfer from user fails', async () => {
+      const registry = await Registry.deployed();
+      const token = Token.at(await registry.token.call());
+      const listing = utils.getListingHash('notEnoughTokens.net');
+
+      await utils.addToWhitelist(listing, minDeposit, applicant);
+
+      // Approve the contract to transfer 0 tokens from account so the transfer will fail
+      await token.approve(registry.address, '0', { from: applicant });
+
+      try {
+        await utils.as(applicant, registry.deposit, listing, incAmount);
+      } catch (err) {
+        assert(utils.isEVMException(err), err.toString());
+        return;
+      }
+      assert(false, 'allowed deposit with not enough tokens');
     });
   });
 });
