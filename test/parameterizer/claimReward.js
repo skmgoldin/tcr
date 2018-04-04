@@ -188,7 +188,46 @@ contract('Parameterizer', (accounts) => {
       assert(false, 'voter claimed reward more than once');
     });
 
-    it('should give zero tokens to a voter who cannot reveal a vote on the winning side.');
+    it('should revert if a voter on the losing side tries to claim a reward.', async () => {
+      const parameterizer = await Parameterizer.deployed();
+      const voting = await utils.getVoting();
+
+      const proposalReceipt = await utils.as(proposer, parameterizer.proposeReparameterization, 'voteQuorum', '49');
+
+      const { propID } = proposalReceipt.logs[0].args;
+
+      const challengeReceipt =
+        await utils.as(challenger, parameterizer.challengeReparameterization, propID);
+
+      const challengeID = challengeReceipt.logs[0].args.pollID;
+
+      // Vote so Bob is on the losing side
+      await utils.commitVote(challengeID, '1', '10', '420', voterAlice);
+      await utils.commitVote(challengeID, '0', '1', '420', voterBob);
+
+      await utils.increaseTime(paramConfig.pCommitStageLength + 1);
+
+      // Reveal votes and process proposal before claiming reward
+      await utils.as(voterAlice, voting.revealVote, challengeID, '1', '420');
+      await utils.as(voterBob, voting.revealVote, challengeID, '0', '420');
+      await utils.increaseTime(paramConfig.pRevealStageLength + 1);
+      await parameterizer.processProposal(propID);
+
+      // Verify that Bob has not claimed a reward yet
+      const claimed = await parameterizer.tokenClaims.call(challengeID, voterBob);
+      assert.strictEqual(claimed, false, 'Bob has already claimed the reward');
+      // Verify that the challenge has been resolved
+      const resolved = (await parameterizer.challenges.call(challengeID))[2];
+      assert.strictEqual(resolved, true, 'Challenge has not been resolved');
+
+      try {
+        await utils.as(voterBob, parameterizer.claimReward, challengeID, '420');
+      } catch (err) {
+        assert(utils.isEVMException(err), err.toString());
+        return;
+      }
+      assert(false, 'allowed voter on losing side to claim a reward');
+    });
   });
 });
 
