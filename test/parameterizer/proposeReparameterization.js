@@ -105,6 +105,22 @@ contract('Parameterizer', (accounts) => {
       assert.strictEqual(applicantEndingBalance.toString(10), applicantStartingBalance.toString(10), 'starting balance and '
         + 'ending balance should have been equal');
     });
+
+    it('should revert if token transfer from user fails', async () => {
+      const parameterizer = await Parameterizer.deployed();
+      const token = Token.at(await parameterizer.token.call());
+
+      // Approve the contract to transfer 0 tokens from account so the transfer will fail
+      await token.approve(parameterizer.address, '0', { from: secondProposer });
+
+      try {
+        await utils.as(secondProposer, parameterizer.proposeReparameterization, 'voteQuorum', '89');
+      } catch (err) {
+        assert(utils.isEVMException(err), err.toString());
+        return;
+      }
+      assert(false, 'allowed proposal with fewer tokens than minDeposit');
+    });
   });
 });
 

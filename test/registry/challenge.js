@@ -195,6 +195,27 @@ contract('Registry', (accounts) => {
       }
       assert(false, 'challenge succeeded when challenge is already open');
     });
+
+    it('should revert if token transfer from user fails', async () => {
+      const registry = await Registry.deployed();
+      const token = Token.at(await registry.token.call());
+      const parameterizer = await Parameterizer.deployed();
+      const listing = utils.getListingHash('challengerNeedsTokens.net');
+
+      const minDeposit = new BN(await parameterizer.get.call('minDeposit'), 10);
+      await utils.as(applicant, registry.apply, listing, minDeposit, '');
+
+      // Approve the contract to transfer 0 tokens from account so the transfer will fail
+      await token.approve(registry.address, '0', { from: challenger });
+
+      try {
+        await utils.challengeAndGetPollID(listing, challenger);
+      } catch (err) {
+        assert(utils.isEVMException(err), err.toString());
+        return;
+      }
+      assert(false, 'allowed challenge with not enough tokens');
+    });
   });
 });
 

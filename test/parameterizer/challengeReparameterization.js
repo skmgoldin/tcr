@@ -148,6 +148,26 @@ contract('Parameterizer', (accounts) => {
       }
       assert(false, 'challenge was made on non-existent poll');
     });
+
+    it('should revert if token transfer from user fails', async () => {
+      const parameterizer = await Parameterizer.deployed();
+      const token = Token.at(await parameterizer.token.call());
+
+      const proposalReceipt = await utils.as(proposer, parameterizer.proposeReparameterization, 'voteQuorum', '55');
+
+      const { propID } = proposalReceipt.logs[0].args;
+
+      // Approve the contract to transfer 0 tokens from account so the transfer will fail
+      await token.approve(parameterizer.address, '0', { from: challenger });
+
+      try {
+        await utils.as(challenger, parameterizer.challengeReparameterization, propID);
+      } catch (err) {
+        assert(utils.isEVMException(err), err.toString());
+        return;
+      }
+      assert(false, 'allowed challenge with not enough tokens');
+    });
   });
 });
 
