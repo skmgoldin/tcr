@@ -53,7 +53,7 @@ contract Registry {
     EIP20Interface public token;
     PLCRVoting public voting;
     Parameterizer public parameterizer;
-    string public version = '1';
+    string public name;
 
     // ------------
     // CONSTRUCTOR:
@@ -68,11 +68,13 @@ contract Registry {
     function Registry(
         address _tokenAddr,
         address _plcrAddr,
-        address _paramsAddr
+        address _paramsAddr,
+        string _name
     ) public {
         token = EIP20Interface(_tokenAddr);
         voting = PLCRVoting(_plcrAddr);
         parameterizer = Parameterizer(_paramsAddr);
+        name = _name;
     }
 
     // --------------------
