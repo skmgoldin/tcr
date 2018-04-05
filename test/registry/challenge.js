@@ -179,6 +179,7 @@ contract('Registry', (accounts) => {
     });
 
     it('should revert if challenge occurs on a listing with an open challenge', async () => {
+      const registry = await Registry.deployed();
       const parameterizer = await Parameterizer.deployed();
       const listing = utils.getListingHash('doubleChallenge.net');
       const minDeposit = new BN(await parameterizer.get.call('minDeposit'), 10);
@@ -188,7 +189,7 @@ contract('Registry', (accounts) => {
       await utils.challengeAndGetPollID(listing, challenger);
 
       try {
-        await utils.challengeAndGetPollID(listing, challenger);
+        await utils.as(challenger, registry.challenge, listing, '');
       } catch (err) {
         assert(utils.isEVMException(err), err.toString());
         return;
@@ -209,7 +210,7 @@ contract('Registry', (accounts) => {
       await token.approve(registry.address, '0', { from: challenger });
 
       try {
-        await utils.challengeAndGetPollID(listing, challenger);
+        await utils.as(challenger, registry.challenge, listing, '');
       } catch (err) {
         assert(utils.isEVMException(err), err.toString());
         return;
