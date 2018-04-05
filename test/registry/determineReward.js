@@ -1,18 +1,13 @@
 /* eslint-env mocha */
 /* global assert contract artifacts */
 const Registry = artifacts.require('Registry.sol');
-// const Parameterizer = artifacts.require('Parameterizer.sol');
-// const Token = artifacts.require('EIP20.sol');
 
 const fs = require('fs');
-// const BN = require('bignumber.js');
 
 const config = JSON.parse(fs.readFileSync('./conf/config.json'));
 const paramConfig = config.paramDefaults;
 
 const utils = require('../utils.js');
-
-// const bigTen = number => new BN(number.toString(10), 10);
 
 contract('Registry', (accounts) => {
   describe('Function: determineReward', () => {
@@ -28,6 +23,11 @@ contract('Registry', (accounts) => {
       // Resolve challenge
       await utils.increaseTime(paramConfig.commitStageLength + paramConfig.revealStageLength + 1);
       await registry.updateStatus(listing);
+
+      // Verify that the challenge has been resolved
+      const challenge = await registry.challenges.call(challengeID);
+      const resolved = challenge[2];
+      assert.strictEqual(resolved, true, 'Challenge has not been resolved');
 
       // Try to determine reward
       try {

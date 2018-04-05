@@ -87,7 +87,7 @@ contract('Parameterizer', (accounts) => {
     });
 
     it('should not set new parameters if a proposal\'s processBy date has passed, ' +
-    'but challenge succeeded', async () => {
+    'but should resolve any challenges against the domain', async () => {
       const parameterizer = await Parameterizer.deployed();
       const token = Token.at(await parameterizer.token.call());
       const voting = await utils.getVoting();
@@ -114,6 +114,12 @@ contract('Parameterizer', (accounts) => {
 
       await parameterizer.processProposal(propID);
 
+      // verify that the challenge has been resolved
+      const challenge = await parameterizer.challenges.call(challengeID);
+      const resolved = challenge[2];
+      assert.strictEqual(resolved, true, 'Challenge has not been resolved');
+
+      // check parameters
       const voteQuorum = await parameterizer.get.call('voteQuorum');
       assert.strictEqual(
         voteQuorum.toString(10), '51',

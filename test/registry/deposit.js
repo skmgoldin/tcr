@@ -94,7 +94,7 @@ contract('Registry', (accounts) => {
       await token.approve(registry.address, '0', { from: applicant });
 
       try {
-        await utils.as(applicant, registry.deposit, listing, incAmount);
+        await utils.as(applicant, registry.deposit, listing, '1');
       } catch (err) {
         assert(utils.isEVMException(err), err.toString());
         return;

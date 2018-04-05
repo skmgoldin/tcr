@@ -38,7 +38,8 @@ contract('Registry', (accounts) => {
       assert.strictEqual(afterWithdrawDeposit.toString(10), origDeposit.toString(10), errMsg);
     });
 
-    it('should not withdraw tokens from a listing that is locked in a challenge', async () => {
+    it('should not withdraw tokens where the amount is less than twice the minDeposit and the listing is locked in ' +
+     'a challenge', async () => {
       const registry = await Registry.deployed();
       const listing = utils.getListingHash('shouldntwithdraw.net');
 
@@ -81,7 +82,7 @@ contract('Registry', (accounts) => {
       assert(false, 'non-owner should not be able to withdraw from listing.');
     });
 
-    it('should allow listing owner to withdraw and decrease the UnstakedDeposit', async () => {
+    it('should allow listing owner to withdraw and decrease the UnstakedDeposit while there is not a challenge', async () => {
       const registry = await Registry.deployed();
       const listing = utils.getListingHash('ITWORKS.net');
 
@@ -94,14 +95,16 @@ contract('Registry', (accounts) => {
 
       const afterWithdrawDeposit = await utils.getUnstakedDeposit(listing);
 
-      assert.strictEqual('10', afterWithdrawDeposit, 'UnstakedDeposit should be 0.');
+      assert.strictEqual(minDeposit.toString(), afterWithdrawDeposit.toString(), `UnstakedDeposit should be ${minDeposit.toString()}`);
     });
 
     it('should not allow withdrawal greater than UnstakedDeposit', async () => {
       const registry = await Registry.deployed();
       const listing = utils.getListingHash('moreThanIOwn.net');
 
-      const withdrawGreaterAmount = minDeposit.plus(bigTen(1));
+      // calculate the amount to withdraw: greater than the unstaked deposit
+      const unstakedDeposit = await utils.getUnstakedDeposit(listing);
+      const withdrawGreaterAmount = new BN(unstakedDeposit, 10).plus('1');
 
       // Whitelist
       await utils.addToWhitelist(listing, minDeposit, applicant);
