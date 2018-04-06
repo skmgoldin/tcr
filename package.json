@@ -7,6 +7,7 @@
     "compile": "truffle compile",
     "coverage": "solidity-coverage",
     "deploy-rinkeby": "truffle migrate --network rinkeby",
+    "deploy-kovan": "truffle migrate --network kovan",
     "deploy-mainnet": "truffle migrate --network mainnet",
     "test": "npm run lint ./ && truffle test",
     "fix": "eslint --fix",
