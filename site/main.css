@@ -9,6 +9,15 @@ h3 {
 	padding-bottom:1.5rem;
 	padding-top:3rem;
 }
+
+h4 {
+	font-size:2em;
+	font-weight:700;
+	color:#0AA562;
+	padding-bottom:1.5rem;
+	padding-top:1.5rem;
+	text-align:center;
+}
 .tabs li {
 	font-weight:700;
 }
@@ -256,6 +265,12 @@ h3 {
 	border:1px solid #B9AAEF;
 }
 
+.requested{
+	background-color:#CEF7E5;
+	border-radius:1em;
+	border:1px solid #8BEEC3;
+}
+
 .not-member p {
 	text-align:center;
 	margin-bottom:1rem;
@@ -307,4 +322,60 @@ h3 {
 	display:block;
 }
 
+#loader {
+  position: absolute;
+  top: 150px;
+  left: calc(50% - 20px);
+}
+@keyframes loader {
+  0% { left: -100px }
+  100% { left: 110%; }
+}
+#box {
+  width: 50px;
+  height: 50px;
+  background: #09D57C;
+  animation: animate 1s linear infinite;
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 3px;
+}
+@keyframes animate {
+  17% { border-bottom-right-radius: 3px; }
+  25% { transform: translateY(9px) rotate(22.5deg); }
+  50% {
+    transform: translateY(18px) scale(1,.9) rotate(45deg) ;
+    border-bottom-right-radius: 40px;
+  }
+  75% { transform: translateY(9px) rotate(67.5deg); }
+  100% { transform: translateY(0) rotate(90deg); }
+} 
+#shadow { 
+  width: 50px;
+  height: 5px;
+  background: #C1EDDA;
+  opacity: 1;
+  position: absolute;
+  top: 59px;
+  left: 0;
+  border-radius: 50%;
+  animation: shadow 1s linear infinite;
+}
+@keyframes shadow {
+  50% {
+    transform: scale(1.2,1);
+  }
+}
 
+.details {
+	position:relative;
+	margin:0 auto;
+	text-align:center;
+	font-weight:600;
+}
+
+.details p {
+	display:inline-block;
+	margin-right:1em;
+}
