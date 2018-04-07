@@ -385,17 +385,15 @@ h4 {
 	border-radius:0.6em;
 }
 
-@keyframes success {
-  0% { background-color: #09D57C; }
-  20% { background-color: #09D57C; }
-  100% { background-color:#623CEA; }
- 
-} 
+
 
 .is-success {
-	background-color:#623CEA;
-	transition:all 0.2s ease;
-	animation:success 2s ease;
+	background-color:#09D57C;
+}
+
+.is-disabled {
+	color:#060310;
+	background-color:#D9E0E7;
 }
 
 .allowance img{
@@ -411,3 +409,4 @@ h4 {
 	margin:0 auto;
 	text-align:center;
 }
+
