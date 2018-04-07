@@ -6,3 +6,4 @@ secrets.json
 installed_contracts/
 coverage/
 coverage.json
+.DS_Store
