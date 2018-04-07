@@ -20,7 +20,7 @@ contract Factory {
     ) public {
         tokenFactory = _tokenFactory;
         plcrFactory = _plcrFactory;
-        parameterizerFactory = parameterizerFactory;
+        parameterizerFactory = _parameterizerFactory;
         registryFactory = _registryFactory;
     }
 
