@@ -379,3 +379,35 @@ h4 {
 	display:inline-block;
 	margin-right:1em;
 }
+
+.allowance {
+	background-color:#F3F7FB;
+	border-radius:0.6em;
+}
+
+@keyframes success {
+  0% { background-color: #09D57C; }
+  20% { background-color: #09D57C; }
+  100% { background-color:#623CEA; }
+ 
+} 
+
+.is-success {
+	background-color:#623CEA;
+	transition:all 0.2s ease;
+	animation:success 2s ease;
+}
+
+.allowance img{
+	margin:2em auto 0;
+	display:block;
+}
+.allowance h4 {
+	color:#FC0035;
+}
+
+.allowance p{
+	max-width:70%;
+	margin:0 auto;
+	text-align:center;
+}
