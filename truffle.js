@@ -23,6 +23,20 @@ module.exports = {
       gas: 4500000,
       gasPrice: 25000000000,
     },
+    kovan: {
+      provider: new HDWalletProvider(mnemonic, 'https://kovan.infura.io'),
+      network_id: '*',
+      gas: 7992189,
+      gasPrice: 25000000000,
+    },
+    dev: {
+      host: 'localhost',
+      network_id: '*',
+      port: 8545,
+      gas: 0xfffffffffff,
+      gasPrice: 0x01,
+      from: '0x00a329c0648769a73afac7f9381e08fb43dbea72',
+    },
     // config for solidity-coverage
     coverage: {
       host: 'localhost',

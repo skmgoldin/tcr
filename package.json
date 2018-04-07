@@ -5,12 +5,12 @@
   "scripts": {
     "install": "truffle install",
     "compile": "truffle compile",
-    "coverage": "solidity-coverage",
     "deploy-rinkeby": "truffle migrate --network rinkeby",
+    "deploy-kovan": "truffle migrate --network kovan",
     "deploy-mainnet": "truffle migrate --network mainnet",
-    "test": "npm run lint ./ && truffle test",
     "fix": "eslint --fix",
-    "lint": "eslint"
+    "lint": "eslint",
+    "serve": "http-server site/"
   },
   "author": "Irene Lin <irene.lin@consensys.net>, Mira Zeitlin <miranda.zeitlin@consensys.net>, Yorke Rhodes <yorke.rhodesiv@consensys.net>",
   "license": "ISC",
@@ -32,6 +32,7 @@
     "eslint": "4.15.0",
     "eslint-config-airbnb-base": "12.1.0",
     "eslint-plugin-import": "2.8.0",
+    "http-server": "^0.11.1",
     "solidity-coverage": "^0.4.15"
   }
 }

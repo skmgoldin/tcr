@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>DETCC Group</title>
+
+    <link rel="stylesheet" type="text/css" href="main.css">
+
+    <script src="./node_modules/web3/dist/web3.min.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <h1>DETCC Group</h1>
+        <table id="data-table">
+        </table>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
+
+    <script>
+        if (typeof web3 !== 'undefined') {
+            web3 = new Web3(web3.currentProvider);
+        } else {
+            web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
+        }
+
+        const headers = ["Address", "Name", "State"];
+        const accounts = web3.eth.accounts;
+        const names = ["Adam", "Eva", "Bernd", "Lisa", "Anna"];
+        const states = ["member", "member", "pending", "pending", "pending"];
+
+        $(function () {
+            let content = '<thead>'
+            for (var i = 0; i < headers.length; i++) {
+                content += '<th>' + headers[i] + '</th>';
+            }
+            content += '</thead>';
+            content += '</tbody>';
+            for (var i = 0; i < accounts.length; i++) {
+                content += '<tr>';
+                content += '<td>' + accounts[i] + '</td>';
+                content += '<td>' + names[i] + '</td>';
+                content += '<td>' + states[i] + '</td>';
+                content += '</tr>';
+            }
+            content += '</tbody>';
+            $('#data-table').replaceWith(content);
+        });
+    </script>
+</body>
+
+</html>

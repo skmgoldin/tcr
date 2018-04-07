@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="24px" height="21px" viewBox="0 0 24 21" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 48.2 (47327) - http://www.bohemiancoding.com/sketch -->
+    <title>fist</title>
+    <desc>Created with Sketch.</desc>
+    <defs></defs>
+    <g id="social-media-setup-copy" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd" transform="translate(-730.000000, -588.000000)">
+        <g id="fist" transform="translate(730.000000, 588.000000)" fill="#FFFFFF" fill-rule="nonzero">
+            <path d="M21,21 L13.5,21 C11.85,21 10.5,19.65 10.5,18 L10.5,15 L24,15 L24,18 C24,19.65 22.65,21 21,21 Z" id="Shape"></path>
+            <path d="M19.5,0 L4.5,0 C1.95,0 0,1.95 0,4.5 L0,9 C0,11.55 1.95,13.5 4.5,13.5 L4.5,7.5 L6,7.5 L6,13.5 L10.5,13.5 L10.5,7.5 L12,7.5 L12,13.5 L16.5,13.5 L16.5,7.5 L18,7.5 L18,13.5 L21,13.5 C22.65,13.5 24,12.15 24,10.5 L24,4.5 C24,1.95 22.05,0 19.5,0 Z" id="Shape"></path>
+        </g>
+    </g>
+</svg>
