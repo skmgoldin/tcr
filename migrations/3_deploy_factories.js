@@ -6,7 +6,9 @@ const PLCRFactory = artifacts.require('./Factories/PLCRFactory.sol');
 const ParameterizerFactory = artifacts.require('./Factories/ParameterizerFactory.sol');
 const RegistryFactory = artifacts.require('./Factories/RegistryFactory.sol');
 
-module.exports = (deployer) => {
+const Factory = artifacts.require('./Factories/Factory.sol')
+
+module.exports = async (deployer) => {
   deployer.link(DLL, PLCRFactory);
   deployer.link(AttributeStore, PLCRFactory);
 
@@ -14,5 +16,13 @@ module.exports = (deployer) => {
   deployer.deploy(PLCRFactory);
   deployer.deploy(ParameterizerFactory);
   deployer.deploy(RegistryFactory);
+
+  deployer.deploy(
+    Factory,
+    TokenFactory.address,
+    PLCRFactory.address,
+    ParameterizerFactory.address,
+    RegistryFactory.address,
+  );
 };
 
