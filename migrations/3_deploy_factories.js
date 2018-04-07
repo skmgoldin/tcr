@@ -25,4 +25,3 @@ module.exports = async (deployer) => {
     RegistryFactory.address,
   );
 };
-

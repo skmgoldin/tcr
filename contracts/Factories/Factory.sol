@@ -24,11 +24,28 @@ contract Factory {
         registryFactory = _registryFactory;
     }
 
-    function create(string _tokenName, string _tokenSymbol) public returns (Parameterizer, Registry) {
-        var token = tokenFactory.create(_tokenName, _tokenSymbol, msg.sender);
-        var plcr = plcrFactory.create(token);
-        var parameterizer = parameterizerFactory.create(token, plcr);
-        var registry = registryFactory.create(token, plcr, parameterizer, _tokenName);
+    function createTokenAndPLCR(string _tokenName, string _tokenSymbol) public returns (EIP20, PLCRVoting) {
+        EIP20 token = tokenFactory.create(_tokenName, _tokenSymbol, msg.sender);
+        emit DeployedToken(token);
+
+        PLCRVoting plcr = plcrFactory.create(token);
+        emit DeployedPLCR(token);
+
+        return (token, plcr);
+    }
+
+    function createParameterizerAndRegistry(address _token, address _plcr, string _tokenName) public returns (Parameterizer, Registry) {
+        Parameterizer parameterizer = parameterizerFactory.create(_token, _plcr);
+        emit DeployedParameterizer(parameterizer);
+
+        Registry registry = registryFactory.create(_token, _plcr, parameterizer, _tokenName);
+        emit DeployedRegistry(registry);
+
         return (parameterizer, registry);
     }
+
+    event DeployedToken(address);
+    event DeployedPLCR(address);
+    event DeployedParameterizer(address);
+    event DeployedRegistry(address);
 }
