@@ -11,8 +11,8 @@ contract Registry {
     // EVENTS
     // ------
 
-    event _Application(bytes32 indexed listingHash, uint deposit, uint appEndDate, string data);
-    event _Challenge(bytes32 indexed listingHash, uint challengeID, string data, uint commitEndDate, uint revealEndDate);
+    event _Application(bytes32 indexed listingHash, uint deposit, uint appEndDate, string data, address msgSender);
+    event _Challenge(bytes32 indexed listingHash, uint challengeID, string data, uint commitEndDate, uint revealEndDate, address msgSender);
     event _Deposit(bytes32 indexed listingHash, uint added, uint newTotal);
     event _Withdrawal(bytes32 indexed listingHash, uint withdrew, uint newTotal);
     event _ApplicationWhitelisted(bytes32 indexed listingHash);
@@ -104,7 +104,7 @@ contract Registry {
         // Transfers tokens from user to Registry contract
         require(token.transferFrom(listing.owner, this, _amount));
 
-        _Application(_listingHash, _amount, listing.applicationExpiry, _data);
+        _Application(_listingHash, _amount, listing.applicationExpiry, _data, msg.sender);
     }
 
     /**
@@ -213,7 +213,7 @@ contract Registry {
 
         var (commitEndDate, revealEndDate,) = voting.pollMap(pollID);
 
-        _Challenge(_listingHash, pollID, _data, commitEndDate, revealEndDate);
+        _Challenge(_listingHash, pollID, _data, commitEndDate, revealEndDate, msg.sender);
         return pollID;
     }
 
