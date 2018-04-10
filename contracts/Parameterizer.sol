@@ -10,8 +10,8 @@ contract Parameterizer {
   // EVENTS
   // ------
 
-  event _ReparameterizationProposal(string name, uint value, bytes32 propID, uint deposit, uint appEndDate);
-  event _NewChallenge(bytes32 indexed propID, uint challengeID, uint commitEndDate, uint revealEndDate);
+  event _ReparameterizationProposal(string name, uint value, bytes32 propID, uint deposit, uint appEndDate, address msgSender);
+  event _NewChallenge(bytes32 indexed propID, uint challengeID, uint commitEndDate, uint revealEndDate, address msgSender);
   event _ProposalAccepted(bytes32 indexed propID, string name, uint value);
   event _ProposalExpired(bytes32 indexed propID);
   event _ChallengeSucceeded(bytes32 indexed propID, uint indexed challengeID, uint rewardPool, uint totalTokens);
@@ -152,7 +152,7 @@ contract Parameterizer {
 
     require(token.transferFrom(msg.sender, this, deposit)); // escrow tokens (deposit amt)
 
-    _ReparameterizationProposal(_name, _value, propID, deposit, proposals[propID].appExpiry);
+    _ReparameterizationProposal(_name, _value, propID, deposit, proposals[propID].appExpiry, msg.sender);
     return propID;
   }
 
@@ -188,7 +188,7 @@ contract Parameterizer {
 
     var (commitEndDate, revealEndDate,) = voting.pollMap(pollID);
 
-    _NewChallenge(_propID, pollID, commitEndDate, revealEndDate);
+    _NewChallenge(_propID, pollID, commitEndDate, revealEndDate, msg.sender);
     return pollID;
   }
 
