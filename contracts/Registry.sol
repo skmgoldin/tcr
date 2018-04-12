@@ -11,8 +11,8 @@ contract Registry {
     // EVENTS
     // ------
 
-    event _Application(bytes32 indexed listingHash, uint deposit, uint appEndDate, string data, address applicant);
-    event _Challenge(bytes32 indexed listingHash, uint challengeID, string data, uint commitEndDate, uint revealEndDate, address challenger);
+    event _Application(bytes32 indexed listingHash, uint deposit, uint appEndDate, string data, address indexed applicant);
+    event _Challenge(bytes32 indexed listingHash, uint challengeID, string data, uint commitEndDate, uint revealEndDate, address indexed challenger);
     event _Deposit(bytes32 indexed listingHash, uint added, uint newTotal);
     event _Withdrawal(bytes32 indexed listingHash, uint withdrew, uint newTotal);
     event _ApplicationWhitelisted(bytes32 indexed listingHash);

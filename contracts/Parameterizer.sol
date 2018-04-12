@@ -10,8 +10,8 @@ contract Parameterizer {
   // EVENTS
   // ------
 
-  event _ReparameterizationProposal(string name, uint value, bytes32 propID, uint deposit, uint appEndDate, address proposer);
-  event _NewChallenge(bytes32 indexed propID, uint challengeID, uint commitEndDate, uint revealEndDate, address challenger);
+  event _ReparameterizationProposal(string name, uint value, bytes32 propID, uint deposit, uint appEndDate, address indexed proposer);
+  event _NewChallenge(bytes32 indexed propID, uint challengeID, uint commitEndDate, uint revealEndDate, address indexed challenger);
   event _ProposalAccepted(bytes32 indexed propID, string name, uint value);
   event _ProposalExpired(bytes32 indexed propID);
   event _ChallengeSucceeded(bytes32 indexed propID, uint indexed challengeID, uint rewardPool, uint totalTokens);
