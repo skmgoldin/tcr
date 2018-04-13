@@ -13,8 +13,8 @@ contract Registry {
 
     event _Application(bytes32 indexed listingHash, uint deposit, uint appEndDate, string data, address indexed applicant);
     event _Challenge(bytes32 indexed listingHash, uint challengeID, string data, uint commitEndDate, uint revealEndDate, address indexed challenger);
-    event _Deposit(bytes32 indexed listingHash, uint added, uint newTotal);
-    event _Withdrawal(bytes32 indexed listingHash, uint withdrew, uint newTotal);
+    event _Deposit(bytes32 indexed listingHash, uint added, uint newTotal, address indexed owner);
+    event _Withdrawal(bytes32 indexed listingHash, uint withdrew, uint newTotal, address indexed owner);
     event _ApplicationWhitelisted(bytes32 indexed listingHash);
     event _ApplicationRemoved(bytes32 indexed listingHash);
     event _ListingRemoved(bytes32 indexed listingHash);
@@ -22,7 +22,7 @@ contract Registry {
     event _TouchAndRemoved(bytes32 indexed listingHash);
     event _ChallengeFailed(bytes32 indexed listingHash, uint indexed challengeID, uint rewardPool, uint totalTokens);
     event _ChallengeSucceeded(bytes32 indexed listingHash, uint indexed challengeID, uint rewardPool, uint totalTokens);
-    event _RewardClaimed(uint indexed challengeID, uint reward);
+    event _RewardClaimed(uint indexed challengeID, uint reward, address indexed voter);
 
     using SafeMath for uint;
 
@@ -120,7 +120,7 @@ contract Registry {
         listing.unstakedDeposit += _amount;
         require(token.transferFrom(msg.sender, this, _amount));
 
-        _Deposit(_listingHash, _amount, listing.unstakedDeposit);
+        _Deposit(_listingHash, _amount, listing.unstakedDeposit, msg.sender);
     }
 
     /**
@@ -138,7 +138,7 @@ contract Registry {
         listing.unstakedDeposit -= _amount;
         require(token.transfer(msg.sender, _amount));
 
-        _Withdrawal(_listingHash, _amount, listing.unstakedDeposit);
+        _Withdrawal(_listingHash, _amount, listing.unstakedDeposit, msg.sender);
     }
 
     /**
@@ -260,7 +260,7 @@ contract Registry {
 
         require(token.transfer(msg.sender, reward));
 
-        _RewardClaimed(_challengeID, reward);
+        _RewardClaimed(_challengeID, reward, msg.sender);
     }
 
     // --------
