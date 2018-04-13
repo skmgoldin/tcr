@@ -16,7 +16,7 @@ contract Parameterizer {
   event _ProposalExpired(bytes32 indexed propID);
   event _ChallengeSucceeded(bytes32 indexed propID, uint indexed challengeID, uint rewardPool, uint totalTokens);
   event _ChallengeFailed(bytes32 indexed propID, uint indexed challengeID, uint rewardPool, uint totalTokens);
-  event _RewardClaimed(uint indexed challengeID, uint reward);
+  event _RewardClaimed(uint indexed challengeID, uint reward, address indexed voter);
 
 
   // ------
@@ -258,7 +258,7 @@ contract Parameterizer {
     // ensures a voter cannot claim tokens again
     challenges[_challengeID].tokenClaims[msg.sender] = true;
 
-    _RewardClaimed(_challengeID, reward);
+    _RewardClaimed(_challengeID, reward, msg.sender);
     require(token.transfer(msg.sender, reward));
   }
 
