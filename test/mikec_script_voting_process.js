@@ -30,7 +30,7 @@ contract('simulate TCR apply/challenge/resolve', (accounts) => {
       console.log(`apply with listingHash=${listingHash}`)
       console.log('')
 
-      await utils.as(applicant, registry.apply, listingHash, paramConfig.minDeposit * (10 ** 18), '')
+      await utils.as(applicant, registry.apply, listingHash, paramConfig.minDeposit, '')
       const listingResult = await registry.listings.call(listingHash)
       await logBalances(accounts, token)
 
@@ -42,8 +42,8 @@ contract('simulate TCR apply/challenge/resolve', (accounts) => {
 
       console.log('commit votes')
       console.log('')
-      await utils.commitVote(challengeID, 1, (7 * 10**18), 420, voter1)
-      await utils.commitVote(challengeID, 0, (8 * 10**18), 420, voter2)
+      await utils.commitVote(challengeID, 1, 7, 420, voter1)
+      await utils.commitVote(challengeID, 0, 1, 420, voter2)
       await utils.increaseTime(paramConfig.commitStageLength + 1)
 
       console.log('reveal votes')
@@ -57,6 +57,15 @@ contract('simulate TCR apply/challenge/resolve', (accounts) => {
       await registry.updateStatus(listingHash)
 
       await logBalances(accounts, token)
+      await logVoterRewardInfo(challengeID, voter1, voter2)
+
+      console.log('claim voter rewards')
+      console.log('')
+      try { await registry.claimReward(challengeID, 420, { from: voter1 }) } catch (err) { }
+      try { await registry.claimReward(challengeID, 420, { from: voter2 }) } catch (err) { }
+
+      await logBalances(accounts, token)
+
       await logChallengeInfo(challengeID)
       await logVotingInfo(challengeID)
       await logListingInfo(listingHash)
@@ -66,10 +75,10 @@ contract('simulate TCR apply/challenge/resolve', (accounts) => {
 
 async function logBalances(accounts, token) {
   const [applicant, challenger, voter1, voter2] = accounts
-  const applicantBalance = (await token.balanceOf.call(applicant)).div(10**18).toNumber()
-  const challengerBalance = (await token.balanceOf.call(challenger)).div(10**18).toNumber()
-  const voter1Balance = (await token.balanceOf.call(voter1)).div(10**18).toNumber()
-  const voter2Balance = (await token.balanceOf.call(voter2)).div(10**18).toNumber()
+  const applicantBalance = (await token.balanceOf.call(applicant)).toNumber()
+  const challengerBalance = (await token.balanceOf.call(challenger)).toNumber()
+  const voter1Balance = (await token.balanceOf.call(voter1)).toNumber()
+  const voter2Balance = (await token.balanceOf.call(voter2)).toNumber()
   console.log('balances:')
   console.log(`  applicant: ${applicantBalance}`)
   console.log(`  challenger: ${challengerBalance}`)
@@ -111,6 +120,27 @@ async function logVotingInfo(pollID) {
   console.log(`  pollEnded: ${await voting.pollEnded(pollID)}`)
   console.log(`  commitPeriodActive: ${await voting.commitPeriodActive(pollID)}`)
   console.log(`  revealPeriodActive: ${await voting.revealPeriodActive(pollID)}`)
+  console.log('')
+}
+
+async function logVoterRewardInfo(pollID, voter1, voter2) {
+  const registry = await Registry.deployed()
+
+  let voter1Reward, voter2Reward
+  try {
+    voter1Reward = await registry.voterReward(voter1, pollID, 420)
+  } catch (err) {
+    voter1Reward = ''
+  }
+
+  try {
+    voter2Reward = await registry.voterReward(voter2, pollID, 420)
+  } catch (err) {
+    voter2Reward = ''
+  }
+
+  console.log(`Voter1 reward: ${voter1Reward}`)
+  console.log(`Voter2 reward: ${voter2Reward}`)
   console.log('')
 }
 

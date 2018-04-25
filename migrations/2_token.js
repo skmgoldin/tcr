@@ -12,12 +12,8 @@ module.exports = (deployer, network) => {
     const token = await Token.deployed();
     const tokenHolder = tokenHolders[0];
 
-    const displayAmt = tokenHolder.amount.slice(
-      0,
-      tokenHolder.amount.length - parseInt(config.token.decimals, 10),
-    );
     // eslint-disable-next-line
-    console.log(`Allocating ${displayAmt} ${config.token.symbol} tokens to ` +
+    console.log(`Allocating ${tokenHolder.amount} ${config.token.symbol} tokens to ` +
     `${tokenHolder.address}.`);
 
     await token.transfer(tokenHolder.address, tokenHolder.amount);
