@@ -14,7 +14,7 @@ const utils = require('./utils.js')
 
 contract('simulate TCR apply/challenge/resolve', (accounts) => {
   describe.only('do it...', () => {
-    const [applicant, challenger, voter, proposer] = accounts
+    const [applicant, challenger, voter1, voter2] = accounts
 
     it('...', async () => {
       console.log('')
@@ -42,12 +42,14 @@ contract('simulate TCR apply/challenge/resolve', (accounts) => {
 
       console.log('commit votes')
       console.log('')
-      await utils.commitVote(challengeID, 1, (7 * 10**18), 420, voter)
+      await utils.commitVote(challengeID, 1, (7 * 10**18), 420, voter1)
+      await utils.commitVote(challengeID, 0, (8 * 10**18), 420, voter2)
       await utils.increaseTime(paramConfig.commitStageLength + 1)
 
       console.log('reveal votes')
       console.log('')
-      await voting.revealVote(challengeID, 1, 420, { from: voter })
+      await voting.revealVote(challengeID, 1, 420, { from: voter1 })
+      await voting.revealVote(challengeID, 0, 420, { from: voter2 })
       await utils.increaseTime(paramConfig.revealStageLength)
       
       console.log('update status')
@@ -63,16 +65,16 @@ contract('simulate TCR apply/challenge/resolve', (accounts) => {
 })
 
 async function logBalances(accounts, token) {
-  const [applicant, challenger, voter, proposer] = accounts
+  const [applicant, challenger, voter1, voter2] = accounts
   const applicantBalance = (await token.balanceOf.call(applicant)).div(10**18).toNumber()
   const challengerBalance = (await token.balanceOf.call(challenger)).div(10**18).toNumber()
-  const voterBalance = (await token.balanceOf.call(voter)).div(10**18).toNumber()
-  const proposerBalance = (await token.balanceOf.call(proposer)).div(10**18).toNumber()
+  const voter1Balance = (await token.balanceOf.call(voter1)).div(10**18).toNumber()
+  const voter2Balance = (await token.balanceOf.call(voter2)).div(10**18).toNumber()
   console.log('balances:')
   console.log(`  applicant: ${applicantBalance}`)
   console.log(`  challenger: ${challengerBalance}`)
-  console.log(`  voter: ${voterBalance}`)
-  console.log(`  proposer: ${proposerBalance}`)
+  console.log(`  voter1: ${voter1Balance}`)
+  console.log(`  voter2: ${voter2Balance}`)
   console.log('')
 }
 
