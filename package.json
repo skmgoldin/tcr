@@ -5,6 +5,7 @@
   "scripts": {
     "install": "truffle install",
     "compile": "truffle compile",
+    "publish": "truffle publish",
     "coverage": "solidity-coverage",
     "deploy-rinkeby": "truffle migrate --network rinkeby",
     "deploy-mainnet": "truffle migrate --network mainnet",
