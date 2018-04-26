@@ -73,6 +73,13 @@ contract('simulate TCR apply/challenge/resolve', (accounts) => {
 
       await logBalances(accounts, token)
 
+      console.log('*** withdraw tokens from PLCR')
+      console.log('')
+      await voting.withdrawVotingRights(20, { from: voter1 })
+      await voting.withdrawVotingRights(10, { from: voter2 })
+
+      await logBalances(accounts, token)
+
       await logChallengeInfo(challengeID)
       await logVotingInfo(challengeID)
       await logListingInfo(listingHash)
