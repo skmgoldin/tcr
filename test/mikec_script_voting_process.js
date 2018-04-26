@@ -14,7 +14,7 @@ const utils = require('./utils.js')
 
 contract('simulate TCR apply/challenge/resolve', (accounts) => {
   describe.only('do it...', () => {
-    const [_, applicant, challenger, voter1, voter2] = accounts
+    const [_, applicant, challenger, voterFor, voterAgainst] = accounts
 
     it('...', async () => {
       console.log('')
@@ -24,6 +24,9 @@ contract('simulate TCR apply/challenge/resolve', (accounts) => {
 
       // logEventsFor(registry)
 
+      const numVotesFor = 20
+      const numVotesAgainst = 10
+
       const token = Token.at(await registry.token.call());
       const listingHash = utils.getListingHash('nochallenge.net')
 
@@ -31,56 +34,55 @@ contract('simulate TCR apply/challenge/resolve', (accounts) => {
 
       console.log(`*** apply with listingHash=${listingHash}`)
       console.log('')
-
       await utils.as(applicant, registry.apply, listingHash, paramConfig.minDeposit, '')
       const listingResult = await registry.listings.call(listingHash)
       await logBalances(accounts, token)
 
       const receipt = await utils.as(challenger, registry.challenge, listingHash, '')
       const { challengeID } = receipt.logs[0].args
-
       console.log(`*** challenge #${challengeID} issued`)
       console.log('')
-
       await logBalances(accounts, token)
 
       console.log('*** commit votes')
       console.log('')
-      await utils.commitVote(challengeID, 1, 20, 420, voter1)
-      await utils.commitVote(challengeID, 0, 10, 420, voter2)
+      await utils.commitVote(challengeID, 1, numVotesFor, 420, voterFor)
+      await utils.commitVote(challengeID, 0, numVotesAgainst, 420, voterAgainst)
       await utils.increaseTime(paramConfig.commitStageLength + 1)
 
       console.log('*** reveal votes')
       console.log('')
-      await voting.revealVote(challengeID, 1, 420, { from: voter1 })
-      await voting.revealVote(challengeID, 0, 420, { from: voter2 })
+      await voting.revealVote(challengeID, 1, 420, { from: voterFor })
+      await voting.revealVote(challengeID, 0, 420, { from: voterAgainst })
       await utils.increaseTime(paramConfig.revealStageLength)
-
       await logBalances(accounts, token)
       await logChallengeReward(challengeID)
       
       console.log('*** update status (resolve challenge, update application status based on voting')
       console.log('')
       await registry.updateStatus(listingHash)
-
       await logBalances(accounts, token)
-      await logVoterRewardInfo(challengeID, voter1, voter2)
-
-      console.log('*** claim voter rewards')
-      console.log('')
-      try { await registry.claimReward(challengeID, 420, { from: voter1 }) } catch (err) { }
-      try { await registry.claimReward(challengeID, 420, { from: voter2 }) } catch (err) { }
-
-      await logBalances(accounts, token)
-
-      console.log('*** withdraw tokens from PLCR')
-      console.log('')
-      await voting.withdrawVotingRights(20, { from: voter1 })
-      await voting.withdrawVotingRights(10, { from: voter2 })
-
-      await logBalances(accounts, token)
-
       await logChallengeInfo(challengeID)
+      await logVoterRewardInfo(challengeID, voterFor, voterAgainst)
+
+      console.log('*** voters claim rewards')
+      console.log('')
+      try { await registry.claimReward(challengeID, 420, { from: voterFor }) } catch (err) { }
+      try { await registry.claimReward(challengeID, 420, { from: voterAgainst }) } catch (err) { }
+      await logBalances(accounts, token)
+
+      console.log('*** voters withdraw tokens from PLCR')
+      console.log('')
+      await voting.withdrawVotingRights(numVotesFor, { from: voterFor })
+      await voting.withdrawVotingRights(numVotesAgainst, { from: voterAgainst })
+      await logBalances(accounts, token)
+      await logListingInfo(listingHash)
+
+      console.log('*** try to exit listing (works if challenge was not successful)')
+      console.log('')
+      try { await registry.exit(listingHash, { from: applicant }) } catch (err) { }
+      await logBalances(accounts, token)
+
       await logVotingInfo(challengeID)
       await logListingInfo(listingHash)
     })
@@ -88,16 +90,16 @@ contract('simulate TCR apply/challenge/resolve', (accounts) => {
 })
 
 async function logBalances(accounts, token) {
-  const [_, applicant, challenger, voter1, voter2] = accounts
+  const [_, applicant, challenger, voterFor, voterAgainst] = accounts
   const applicantBalance = (await token.balanceOf.call(applicant)).toNumber()
   const challengerBalance = (await token.balanceOf.call(challenger)).toNumber()
-  const voter1Balance = (await token.balanceOf.call(voter1)).toNumber()
-  const voter2Balance = (await token.balanceOf.call(voter2)).toNumber()
+  const voterForBalance = (await token.balanceOf.call(voterFor)).toNumber()
+  const voterAgainstBalance = (await token.balanceOf.call(voterAgainst)).toNumber()
   console.log('balances:')
   console.log(`  applicant: ${applicantBalance}`)
   console.log(`  challenger: ${challengerBalance}`)
-  console.log(`  voter1: ${voter1Balance}`)
-  console.log(`  voter2: ${voter2Balance}`)
+  console.log(`  voterFor: ${voterForBalance}`)
+  console.log(`  voterAgainst: ${voterAgainstBalance}`)
   console.log('')
 }
 
@@ -143,24 +145,24 @@ async function logVotingInfo(pollID) {
   console.log('')
 }
 
-async function logVoterRewardInfo(pollID, voter1, voter2) {
+async function logVoterRewardInfo(pollID, voterFor, voterAgainst) {
   const registry = await Registry.deployed()
 
-  let voter1Reward, voter2Reward
+  let voterForReward, voterAgainstReward
   try {
-    voter1Reward = await registry.voterReward(voter1, pollID, 420)
+    voterForReward = await registry.voterReward(voterFor, pollID, 420)
   } catch (err) {
-    voter1Reward = ''
+    voterForReward = ''
   }
 
   try {
-    voter2Reward = await registry.voterReward(voter2, pollID, 420)
+    voterAgainstReward = await registry.voterReward(voterAgainst, pollID, 420)
   } catch (err) {
-    voter2Reward = ''
+    voterAgainstReward = ''
   }
 
-  console.log(`Voter1 reward: ${voter1Reward}`)
-  console.log(`Voter2 reward: ${voter2Reward}`)
+  console.log(`voterFor reward: ${voterForReward}`)
+  console.log(`voterAgainst reward: ${voterAgainstReward}`)
   console.log('')
 }
 
