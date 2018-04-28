@@ -5,7 +5,7 @@ const Token = artifacts.require('EIP20.sol');
 const Parameterizer = artifacts.require('Parameterizer.sol');
 const DLL = artifacts.require('dll/DLL.sol');
 const AttributeStore = artifacts.require('attrstore/AttributeStore.sol');
-const PLCRVoting = artifacts.require('PLCRVoting.sol');
+const PLCRVotingChallengeFactory = artifacts.require('PLCRVotingChallengeFactory.sol');
 
 const fs = require('fs');
 
@@ -33,13 +33,13 @@ module.exports = (deployer, network, accounts) => {
     return deployer.deploy(
       Registry,
       tokenAddress,
-      PLCRVoting.address,
+      PLCRVotingChallengeFactory.address,
       Parameterizer.address,
       config.name,
     );
   })
     .then(async () => {
-      if (network === 'test' || network === 'coverage') {
+      if (network === 'development' || network === 'test' || network === 'coverage') {
         await approveRegistryFor(accounts);
       }
     }).catch((err) => { throw err; });

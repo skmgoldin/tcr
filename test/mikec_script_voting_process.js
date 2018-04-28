@@ -20,7 +20,6 @@ contract('simulate TCR apply/challenge/resolve', (accounts) => {
       console.log('')
 
       const registry = await Registry.deployed()
-      const voting = await utils.getVoting();
 
       // logEventsFor(registry)
 
@@ -38,13 +37,13 @@ contract('simulate TCR apply/challenge/resolve', (accounts) => {
       const listingResult = await registry.listings.call(listingHash)
       await logBalances(accounts, token)
 
-      const receipt = await utils.as(challenger, registry.challenge, listingHash, '')
-      const { challengeID } = receipt.logs[0].args
-      console.log(`*** challenge #${challengeID} issued`)
-      console.log('')
-      await logBalances(accounts, token)
+      // const receipt = await utils.as(challenger, registry.challenge, listingHash, '')
+      // const { challengeID } = receipt.logs[0].args
+      // console.log(`*** challenge #${challengeID} issued`)
+      // console.log('')
+      // await logBalances(accounts, token)
 
-      console.log('*** commit votes')
+      /* console.log('*** commit votes')
       console.log('')
       await utils.commitVote(challengeID, 1, numVotesFor, 420, voterFor)
       await utils.commitVote(challengeID, 0, numVotesAgainst, 420, voterAgainst)
@@ -84,7 +83,7 @@ contract('simulate TCR apply/challenge/resolve', (accounts) => {
       await logBalances(accounts, token)
 
       await logVotingInfo(challengeID)
-      await logListingInfo(listingHash)
+      await logListingInfo(listingHash) */
     })
   })
 })
