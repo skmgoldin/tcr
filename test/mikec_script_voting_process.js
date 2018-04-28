@@ -37,11 +37,11 @@ contract('simulate TCR apply/challenge/resolve', (accounts) => {
       const listingResult = await registry.listings.call(listingHash)
       await logBalances(accounts, token)
 
-      // const receipt = await utils.as(challenger, registry.challenge, listingHash, '')
-      // const { challengeID } = receipt.logs[0].args
-      // console.log(`*** challenge #${challengeID} issued`)
-      // console.log('')
-      // await logBalances(accounts, token)
+      const receipt = await utils.as(challenger, registry.challenge, listingHash, '')
+      const { challengeID } = receipt.logs[0].args
+      console.log(`*** challenge #${challengeID} issued`)
+      console.log('')
+      await logBalances(accounts, token)
 
       /* console.log('*** commit votes')
       console.log('')
