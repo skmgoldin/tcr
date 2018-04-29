@@ -43,13 +43,13 @@ contract('simulate TCR apply/challenge/resolve', (accounts) => {
       console.log('')
       await logBalances(accounts, token)
 
-      /* console.log('*** commit votes')
+      console.log('*** commit votes')
       console.log('')
       await utils.commitVote(challengeID, 1, numVotesFor, 420, voterFor)
       await utils.commitVote(challengeID, 0, numVotesAgainst, 420, voterAgainst)
       await utils.increaseTime(paramConfig.commitStageLength + 1)
 
-      console.log('*** reveal votes')
+      /* console.log('*** reveal votes')
       console.log('')
       await voting.revealVote(challengeID, 1, 420, { from: voterFor })
       await voting.revealVote(challengeID, 0, 420, { from: voterAgainst })

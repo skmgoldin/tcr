@@ -3,6 +3,7 @@
 const Token = artifacts.require('EIP20.sol');
 const DLL = artifacts.require('dll/DLL.sol');
 const AttributeStore = artifacts.require('attrstore/AttributeStore.sol');
+const Parameterizer = artifacts.require('Parameterizer.sol');
 const PLCRVotingChallengeFactory = artifacts.require('PLCRVotingChallengeFactory.sol');
 
 const fs = require('fs');
@@ -31,6 +32,7 @@ module.exports = (deployer, network, accounts) => {
     return deployer.deploy(
       PLCRVotingChallengeFactory,
       tokenAddress,
+      Parameterizer.address
     )
   })
     .then(async () => {

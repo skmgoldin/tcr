@@ -15,7 +15,7 @@ contract PLCRVotingChallenge is ChallengeInterface {
     // EVENTS:
     // ============
 
-    event _VoteCommitted(uint pollID, uint numTokens);
+    event _VoteCommitted(bytes32 UUID, address voterAddress, uint numTokens);
     event _VoteRevealed(uint pollID, uint numTokens, uint votesFor, uint votesAgainst);
     event _PollCreated(uint voteQuorum, uint commitEndDate, uint revealEndDate, uint pollID);
     event _VotingRightsGranted(uint numTokens);
@@ -45,6 +45,15 @@ contract PLCRVotingChallenge is ChallengeInterface {
 
     // mapping(uint => Poll) public pollMap; // maps pollID to Poll struct
 
+    uint commitEndDate;     /// expiration date of commit period for poll
+    uint revealEndDate;     /// expiration date of reveal period for poll
+    uint voteQuorum;	    /// number of votes required for a proposal to pass
+    uint votesFor;		    /// tally of votes supporting proposal
+    uint votesAgainst;      /// tally of votes countering proposal
+
+    mapping(address => bool) didCommit;     /// indicates whether an address committed a vote for this poll
+    mapping(address => bool) didReveal;     /// indicates whether an address revealed a vote for this poll
+
     mapping(address => uint) public voteTokenBalance; // maps user's address to voteToken balance
 
     mapping(address => DLL.Data) dllMap;
@@ -59,9 +68,17 @@ contract PLCRVotingChallenge is ChallengeInterface {
     /**
     @dev Initializes voteQuorum, commitDuration, revealDuration, and pollNonce in addition to token contract and trusted mapping
     @param _tokenAddr The address where the ERC20 token contract is deployed
+    @param _commitStageLen Length of the commit stage
+    @param _revealStageLen Length of the reveal stage
+    @param _voteQuorum Percentage of votes needed to win (0 - 100)
     */
-    function PLCRVotingChallenge(address _tokenAddr) public {
+    function PLCRVotingChallenge(address _tokenAddr, uint _commitStageLen, uint _revealStageLen, uint _voteQuorum) public {
         token = EIP20Interface(_tokenAddr);
+
+        commitEndDate = block.timestamp.add(_commitStageLen);
+        revealEndDate = commitEndDate.add(_revealStageLen);
+
+        voteQuorum = _voteQuorum;
     }
 
     function resolved() view public returns (bool) {
@@ -77,12 +94,12 @@ contract PLCRVotingChallenge is ChallengeInterface {
     @dev Assumes that msg.sender has approved voting contract to spend on their behalf
     @param _numTokens The number of votingTokens desired in exchange for ERC20 tokens
     */
-    // function requestVotingRights(uint _numTokens) external {
-    //     require(token.balanceOf(msg.sender) >= _numTokens);
-    //     voteTokenBalance[msg.sender] += _numTokens;
-    //     require(token.transferFrom(msg.sender, this, _numTokens));
-    //     _VotingRightsGranted(_numTokens);
-    // }
+    function requestVotingRights(uint _numTokens) external {
+        require(token.balanceOf(msg.sender) >= _numTokens);
+        voteTokenBalance[msg.sender] += _numTokens;
+        require(token.transferFrom(msg.sender, this, _numTokens));
+        _VotingRightsGranted(_numTokens);
+    }
 
     /**
     @notice Withdraw _numTokens ERC20 tokens from the voting contract, revoking these voting rights
@@ -113,35 +130,21 @@ contract PLCRVotingChallenge is ChallengeInterface {
 
     /**
     @notice Commits vote using hash of choice and secret salt to conceal vote until reveal
-    @param _pollID Integer identifier associated with target poll
     @param _secretHash Commit keccak256 hash of voter's choice and salt (tightly packed in this order)
     @param _numTokens The number of tokens to be committed towards the target poll
-    @param _prevPollID The ID of the poll that the user has voted the maximum number of tokens in which is still less than or equal to numTokens
     */
-    // function commitVote(uint _pollID, bytes32 _secretHash, uint _numTokens, uint _prevPollID) external {
-    //     require(commitPeriodActive(_pollID));
-    //     require(voteTokenBalance[msg.sender] >= _numTokens); // prevent user from overspending
-    //     require(_pollID != 0);                // prevent user from committing to zero node placeholder
+    function commitVote(bytes32 _secretHash, uint _numTokens) external {
+        require(commitPeriodActive());
+        require(voteTokenBalance[msg.sender] >= _numTokens); // prevent user from overspending
 
-    //     // Check if _prevPollID exists in the user's DLL or if _prevPollID is 0
-    //     require(_prevPollID == 0 || dllMap[msg.sender].contains(_prevPollID));
+        bytes32 UUID = attrUUID(msg.sender);
 
-    //     uint nextPollID = dllMap[msg.sender].getNext(_prevPollID);
+        store.setAttribute(UUID, "numTokens", _numTokens);
+        store.setAttribute(UUID, "commitHash", uint(_secretHash));
 
-    //     // if nextPollID is equal to _pollID, _pollID is being updated,
-    //     nextPollID = (nextPollID == _pollID) ? dllMap[msg.sender].getNext(_pollID) : nextPollID;
-
-    //     require(validPosition(_prevPollID, nextPollID, msg.sender, _numTokens));
-    //     dllMap[msg.sender].insert(_prevPollID, _pollID, nextPollID);
-
-    //     bytes32 UUID = attrUUID(msg.sender, _pollID);
-
-    //     store.setAttribute(UUID, "numTokens", _numTokens);
-    //     store.setAttribute(UUID, "commitHash", uint(_secretHash));
-
-    //     pollMap[_pollID].didCommit[msg.sender] = true;
-    //     _VoteCommitted(_pollID, _numTokens);
-    // }
+        didCommit[msg.sender] = true;
+        _VoteCommitted(UUID, msg.sender, _numTokens);
+    }
 
     /**
     @dev Compares previous and next poll's committed tokens for sorting purposes
@@ -273,16 +276,13 @@ contract PLCRVotingChallenge is ChallengeInterface {
     // }
 
     /**
-    @notice Checks if the commit period is still active for the specified poll
-    @dev Checks isExpired for the specified poll's commitEndDate
-    @param _pollID Integer identifier associated with target poll
-    @return Boolean indication of isCommitPeriodActive for target poll
+    @notice Checks if the commit period is still active
+    @dev Checks isExpired for the commitEndDate
+    @return Boolean indication if commit period is active
     */
-    // function commitPeriodActive(uint _pollID) constant public returns (bool active) {
-    //     require(pollExists(_pollID));
-
-    //     return !isExpired(pollMap[_pollID].commitEndDate);
-    // }
+    function commitPeriodActive() constant public returns (bool active) {
+        return !isExpired(commitEndDate);
+    }
 
     /**
     @notice Checks if the reveal period is still active for the specified poll
@@ -391,16 +391,15 @@ contract PLCRVotingChallenge is ChallengeInterface {
     @param _terminationDate Integer timestamp of date to compare current timestamp with
     @return expired Boolean indication of whether the terminationDate has passed
     */
-    // function isExpired(uint _terminationDate) constant public returns (bool expired) {
-    //     return (block.timestamp > _terminationDate);
-    // }
+    function isExpired(uint _terminationDate) constant public returns (bool expired) {
+        return (block.timestamp > _terminationDate);
+    }
 
     /**
     @dev Generates an identifier which associates a user and a poll together
-    @param _pollID Integer identifier associated with target poll
-    @return UUID Hash which is deterministic from _user and _pollID
+    @return UUID Hash which is deterministic from _user
     */
-    // function attrUUID(address _user, uint _pollID) public pure returns (bytes32 UUID) {
-    //     return keccak256(_user, _pollID);
-    // }
+    function attrUUID(address _user) public pure returns (bytes32 UUID) {
+        return keccak256(_user);
+    }
 }
