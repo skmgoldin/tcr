@@ -15,11 +15,14 @@ contract PLCRVotingChallengeFactory is ChallengeFactoryInterface {
   }
 
   function createChallenge() external returns (ChallengeInterface) {
+    uint deposit = parameterizer.get("minDeposit");
     return new PLCRVotingChallenge(
       token,
       parameterizer.get("commitStageLen"),
       parameterizer.get("revealStageLen"),
-      parameterizer.get("voteQuorum")
+      parameterizer.get("voteQuorum"),
+      ((100 - parameterizer.get("dispensationPct")) * deposit) / 100,
+      deposit
     );
   }
 

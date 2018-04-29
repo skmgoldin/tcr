@@ -39,6 +39,7 @@ contract('simulate TCR apply/challenge/resolve', (accounts) => {
 
       const receipt = await utils.as(challenger, registry.challenge, listingHash, '')
       const { challengeID } = receipt.logs[0].args
+      const plcrChallenge = await utils.getPLCRChallenge(challengeID)
       console.log(`*** challenge #${challengeID} issued`)
       console.log('')
       await logBalances(accounts, token)
@@ -49,15 +50,15 @@ contract('simulate TCR apply/challenge/resolve', (accounts) => {
       await utils.commitVote(challengeID, 0, numVotesAgainst, 420, voterAgainst)
       await utils.increaseTime(paramConfig.commitStageLength + 1)
 
-      /* console.log('*** reveal votes')
+      console.log('*** reveal votes')
       console.log('')
-      await voting.revealVote(challengeID, 1, 420, { from: voterFor })
-      await voting.revealVote(challengeID, 0, 420, { from: voterAgainst })
+      await plcrChallenge.revealVote(1, 420, { from: voterFor })
+      await plcrChallenge.revealVote(0, 420, { from: voterAgainst })
       await utils.increaseTime(paramConfig.revealStageLength)
       await logBalances(accounts, token)
       await logChallengeReward(challengeID)
       
-      console.log('*** update status (resolve challenge, update application status based on voting')
+      /* console.log('*** update status (resolve challenge, update application status based on voting')
       console.log('')
       await registry.updateStatus(listingHash)
       await logBalances(accounts, token)
@@ -128,8 +129,8 @@ async function logChallengeInfo(challengeID) {
 }
 
 async function logChallengeReward(challengeID) {
-  const registry = await Registry.deployed()
-  console.log(`Challenge #${challengeID} reward: ${await registry.determineReward(challengeID)}`)
+  const plcrChallenge = await utils.getPLCRChallenge(challengeID)
+  console.log(`Challenge #${challengeID} reward: ${await plcrChallenge.determineReward()}`)
   console.log('')
 }
 

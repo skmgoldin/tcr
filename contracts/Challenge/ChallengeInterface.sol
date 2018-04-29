@@ -1,5 +1,7 @@
 pragma solidity ^0.4.8;
 
 contract ChallengeInterface {
-  function resolved() view public returns (bool);
+  function ended() public view returns (bool);
+  function passed() view public returns (bool);
+  function determineReward() public view returns (uint);
 }

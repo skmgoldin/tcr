@@ -21,8 +21,8 @@ contract Registry {
     event _ListingRemoved(bytes32 indexed listingHash);
     event _ListingWithdrawn(bytes32 indexed listingHash);
     event _TouchAndRemoved(bytes32 indexed listingHash);
-    event _ChallengeFailed(bytes32 indexed listingHash, uint indexed challengeID, uint rewardPool, uint totalTokens);
-    event _ChallengeSucceeded(bytes32 indexed listingHash, uint indexed challengeID, uint rewardPool, uint totalTokens);
+    event _ChallengeFailed(bytes32 indexed listingHash, uint indexed challengeID);
+    event _ChallengeSucceeded(bytes32 indexed listingHash, uint indexed challengeID);
     event _RewardClaimed(uint indexed challengeID, uint reward, address indexed voter);
 
     using SafeMath for uint;
@@ -157,7 +157,7 @@ contract Registry {
         require(isWhitelisted(_listingHash));
 
         // Cannot exit during ongoing challenge
-        require(listing.challengeID == 0 || challenges[listing.challengeID].resolved());
+        require(listing.challengeID == 0 || challenges[listing.challengeID].ended());
 
         // Remove listingHash & return tokens
         resetListing(_listingHash);
@@ -182,7 +182,7 @@ contract Registry {
         // Listing must be in apply stage or already on the whitelist
         require(appWasMade(_listingHash) || listing.whitelisted);
         // Prevent multiple challenges
-        require(listing.challengeID == 0 || challenges[listing.challengeID].resolved());
+        require(listing.challengeID == 0 || challenges[listing.challengeID].ended());
 
         if (listing.unstakedDeposit < deposit) {
             // Not enough tokens, listingHash auto-delisted
@@ -235,15 +235,15 @@ contract Registry {
                         a challenge if one exists.
     @param _listingHash The listingHash whose status is being updated
     */
-    // function updateStatus(bytes32 _listingHash) public {
-    //     if (canBeWhitelisted(_listingHash)) {
-    //       whitelistApplication(_listingHash);
-    //     } else if (challengeCanBeResolved(_listingHash)) {
-    //       resolveChallenge(_listingHash);
-    //     } else {
-    //       revert();
-    //     }
-    // }
+    function updateStatus(bytes32 _listingHash) public {
+        if (canBeWhitelisted(_listingHash)) {
+          whitelistApplication(_listingHash);
+        } else if (challengeCanBeResolved(_listingHash)) {
+          resolveChallenge(_listingHash);
+        } else {
+          revert();
+        }
+    }
 
     // ----------------
     // TOKEN FUNCTIONS:
@@ -310,7 +310,7 @@ contract Registry {
             appWasMade(_listingHash) &&
             listings[_listingHash].applicationExpiry < now &&
             !isWhitelisted(_listingHash) &&
-            (challengeID == 0 || challenges[challengeID].resolved() == true)
+            (challengeID == 0 || challenges[challengeID].ended() == true)
         ) { return true; }
 
         return false;
@@ -339,36 +339,21 @@ contract Registry {
     function challengeExists(bytes32 _listingHash) view public returns (bool) {
         uint challengeID = listings[_listingHash].challengeID;
 
-        return (listings[_listingHash].challengeID > 0 && !challenges[challengeID].resolved());
+        return (listings[_listingHash].challengeID > 0 && !challenges[challengeID].ended());
     }
 
     /**
-    @dev                Determines whether voting has concluded in a challenge for a given
+    @dev                Determines a challenge has ended for a given
                         listingHash. Throws if no challenge exists.
     @param _listingHash A listingHash with an unresolved challenge
     */
-    // function challengeCanBeResolved(bytes32 _listingHash) view public returns (bool) {
-    //     uint challengeID = listings[_listingHash].challengeID;
+    function challengeCanBeResolved(bytes32 _listingHash) view public returns (bool) {
+        uint challengeID = listings[_listingHash].challengeID;
 
-    //     require(challengeExists(_listingHash));
+        require(challengeExists(_listingHash));
 
-    //     return voting.pollEnded(challengeID);
-    // }
-
-    /**
-    @dev                Determines the number of tokens awarded to the winning party in a challenge.
-    @param _challengeID The challengeID to determine a reward for
-    */
-    // function determineReward(uint _challengeID) public view returns (uint) {
-    //     require(!challenges[_challengeID].resolved && voting.pollEnded(_challengeID));
-
-    //     // Edge case, nobody voted, give all tokens to the challenger.
-    //     if (voting.getTotalNumberOfTokensForWinningOption(_challengeID) == 0) {
-    //         return 2 * challenges[_challengeID].stake;
-    //     }
-
-    //     return (2 * challenges[_challengeID].stake) - challenges[_challengeID].rewardPool;
-    // }
+        return challenges[challengeID].ended();
+    }
 
     /**
     @dev                Getter for Challenge tokenClaims mappings
@@ -388,6 +373,30 @@ contract Registry {
                         either whitelists or de-whitelists the listingHash.
     @param _listingHash A listingHash with a challenge that is to be resolved
     */
+    function resolveChallenge(bytes32 _listingHash) private {
+        uint challengeID = listings[_listingHash].challengeID;
+        uint reward = challenges[challengeID].determineReward();
+
+        // Case: challenge failed
+        if (challenges[challengeID].passed()) {
+            whitelistApplication(_listingHash);
+            // Unlock stake so that it can be retrieved by the applicant
+            listings[_listingHash].unstakedDeposit += reward;
+
+            _ChallengeFailed(_listingHash, challengeID);
+        }
+        // Case: challenge succeeded or nobody voted
+        else {
+            resetListing(_listingHash);
+            // Transfer the reward to the challenger
+
+            // TODO: should this happen on the challenge?
+            // require(token.transfer(challenges[challengeID].challenger, reward));
+
+            _ChallengeSucceeded(_listingHash, challengeID);
+        }
+    }
+
     // function resolveChallenge(bytes32 _listingHash) private {
     //     uint challengeID = listings[_listingHash].challengeID;
 

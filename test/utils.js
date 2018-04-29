@@ -114,12 +114,16 @@ const utils = {
     return receipt.logs[0].args.challengeID;
   },
 
-  commitVote: async (challengeID, voteOption, numTokens, salt, voter) => {
+  getPLCRChallenge: async (challengeID) => {
     const registry = await Registry.deployed();
+    const plcrChallengeAddress = await registry.challenges(challengeID)
+    return PLCRVotingChallenge.at(plcrChallengeAddress)
+  },
+
+  commitVote: async (challengeID, voteOption, numTokens, salt, voter) => {
     const token = await Token.deployed();
-    const plcrChallengeAddresss = await registry.challenges(challengeID)
-    const plcrChallenge = PLCRVotingChallenge.at(plcrChallengeAddresss)
-    await utils.as(voter, token.approve, plcrChallengeAddresss, numTokens)
+    const plcrChallenge = await utils.getPLCRChallenge(challengeID)
+    await utils.as(voter, token.approve, plcrChallenge.address, numTokens)
     const hash = utils.getVoteSaltHash(voteOption, salt)
     await utils.as(voter, plcrChallenge.requestVotingRights, numTokens)
     await utils.as(voter, plcrChallenge.commitVote, hash, numTokens)
