@@ -73,13 +73,18 @@ contract('simulate TCR apply/challenge/resolve', (accounts) => {
       await logChallengeInfo(challengeID)
       await logVoterRewardInfo(challengeID, voterFor, voterAgainst)
 
-      /* console.log('*** voters claim rewards')
+      console.log('*** voters claim rewards')
       console.log('')
-      try { await registry.claimReward(challengeID, 420, { from: voterFor }) } catch (err) { }
-      try { await registry.claimReward(challengeID, 420, { from: voterAgainst }) } catch (err) { }
+      try { await plcrChallenge.claimVoterReward(420, { from: voterFor }) } catch (err) { }
+      try { await plcrChallenge.claimVoterReward(420, { from: voterAgainst }) } catch (err) { }
       await logBalances(accounts, token, plcrChallenge)
 
-      console.log('*** voters withdraw tokens from PLCR')
+      console.log('*** winner (either challenger or listing owner) claims reward')
+      console.log('')
+      await plcrChallenge.transferWinnerReward()
+      await logBalances(accounts, token, plcrChallenge)
+
+      /* console.log('*** voters withdraw tokens from PLCR')
       console.log('')
       await voting.withdrawVotingRights(numVotesFor, { from: voterFor })
       await voting.withdrawVotingRights(numVotesAgainst, { from: voterAgainst })

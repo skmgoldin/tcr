@@ -24,7 +24,6 @@ contract Registry {
     event _TouchAndRemoved(bytes32 indexed listingHash);
     event _ChallengeFailed(bytes32 indexed listingHash, uint indexed challengeID);
     event _ChallengeSucceeded(bytes32 indexed listingHash, uint indexed challengeID);
-    event _RewardClaimed(uint indexed challengeID, uint reward, address indexed voter);
 
     using SafeMath for uint;
 
@@ -198,7 +197,7 @@ contract Registry {
         }
 
         challengeNonce = challengeNonce + 1;
-        challenges[challengeNonce] = challengeFactory.createChallenge(msg.sender);
+        challenges[challengeNonce] = challengeFactory.createChallenge(msg.sender, listing.owner);
         listing.challengeID = challengeNonce;
 
         _Challenge(_listingHash, challengeNonce, challenges[challengeNonce], _data, msg.sender);

@@ -5,6 +5,6 @@ contract ChallengeInterface {
   function started() public view returns (bool);
   function ended() public view returns (bool);
   function passed() public view returns (bool);
-  function tokenRewardAmount() public view returns (uint);
   function tokenLockAmount() public view returns (uint);
+  function tokenRewardAmount() public view returns (uint);
 }

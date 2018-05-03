@@ -20,6 +20,7 @@ contract PLCRVotingChallenge is ChallengeInterface {
     event _PollCreated(uint voteQuorum, uint commitEndDate, uint revealEndDate, uint pollID);
     event _VotingRightsGranted(uint numTokens);
     event _VotingRightsWithdrawn(uint numTokens);
+    event _RewardClaimed(uint reward, address indexed voter);
 
     // ============
     // DATA STRUCTURES:
@@ -46,7 +47,8 @@ contract PLCRVotingChallenge is ChallengeInterface {
     // mapping(uint => Poll) public pollMap; // maps pollID to Poll struct
 
     address challenger;     /// the address of the challenger
-    bool isStarted;           /// true if challenger has executed start()
+    address listingOwner;      /// the address of the listingOwner
+    bool isStarted;         /// true if challenger has executed start()
 
     uint commitEndDate;     /// expiration date of commit period for poll
     uint revealEndDate;     /// expiration date of reveal period for poll
@@ -56,6 +58,10 @@ contract PLCRVotingChallenge is ChallengeInterface {
     uint votesFor;		    /// tally of votes supporting proposal
     uint votesAgainst;      /// tally of votes countering proposal
 
+    bool winnerRewardTransferred;
+    uint voterTokensClaimed;
+    uint voterRewardsClaimed;
+
     uint commitStageLen;
     uint revealStageLen;
 
@@ -63,6 +69,7 @@ contract PLCRVotingChallenge is ChallengeInterface {
     mapping(address => bool) didReveal;     /// indicates whether an address revealed a vote for this poll
 
     mapping(address => uint) public voteTokenBalance; // maps user's address to voteToken balance
+    mapping(address => bool) tokenClaims;   // Indicates whether a voter has claimed a reward yet
 
     mapping(address => DLL.Data) dllMap;
     AttributeStore.Data store;
@@ -91,8 +98,10 @@ contract PLCRVotingChallenge is ChallengeInterface {
     @param _rewardPool Pool of tokens to be distributed to winning voters
     @param _stake Number of tokens at stake for either party during challenge
     */
-    function PLCRVotingChallenge(address _challenger, address _tokenAddr, uint _commitStageLen, uint _revealStageLen, uint _voteQuorum, uint _rewardPool, uint _stake) public {
+    function PLCRVotingChallenge(address _challenger, address _listingOwner, address _tokenAddr, uint _commitStageLen, uint _revealStageLen, uint _voteQuorum, uint _rewardPool, uint _stake) public {
         challenger = _challenger;
+        listingOwner = _listingOwner;
+
         token = EIP20Interface(_tokenAddr);
 
         commitStageLen = _commitStageLen;
@@ -215,22 +224,58 @@ contract PLCRVotingChallenge is ChallengeInterface {
     }
 
     /**
-    @param _pollID Integer identifier associated with target poll
+    @dev                Called by a voter to claim their reward for each completed vote
+    @param _salt        The salt of a voter's commit hash
+    */
+    function claimVoterReward(uint _salt) public {
+        // Ensures the voter has not already claimed tokens
+        require(tokenClaims[msg.sender] == false);
+
+        uint voterTokens = getNumWinningTokens(msg.sender, _salt);
+        uint reward = voterReward(msg.sender, _salt);
+
+        voterTokensClaimed += voterTokens;
+        voterRewardsClaimed += reward;
+
+        // Ensures a voter cannot claim tokens again
+        tokenClaims[msg.sender] = true;
+
+        require(token.transfer(msg.sender, reward));
+
+        _RewardClaimed(reward, msg.sender);
+    }
+
+    function transferWinnerReward() public {
+        require(ended() && !winnerRewardTransferred);
+
+        address winner = passed() ? challenger : listingOwner;
+        uint voterRewards = getTotalNumberOfTokensForWinningOption() == 0 ? 0 : rewardPool;
+
+        require(token.transfer(winner, stake - rewardPool));
+
+        winnerRewardTransferred = true;
+
+
+        // TODO event
+    }
+
+    /**
+    @param _voter The address of the voter
     @param _salt Arbitrarily chosen integer used to generate secretHash
     @return correctVotes Number of tokens voted for winning option
     */
-    // function getNumPassingTokens(address _voter, uint _pollID, uint _salt) public constant returns (uint correctVotes) {
-    //     require(pollEnded(_pollID));
-    //     require(pollMap[_pollID].didReveal[_voter]);
+    function getNumWinningTokens(address _voter, uint _salt) public constant returns (uint correctVotes) {
+        require(ended());
+        require(didReveal[_voter]);
 
-    //     uint winningChoice = isPassed(_pollID) ? 1 : 0;
-    //     bytes32 winnerHash = keccak256(winningChoice, _salt);
-    //     bytes32 commitHash = getCommitHash(_voter, _pollID);
+        uint winningChoice = passed() ? 0 : 1;
+        bytes32 winnerHash = keccak256(winningChoice, _salt);
+        bytes32 commitHash = getCommitHash(_voter);
 
-    //     require(winnerHash == commitHash);
+        require(winnerHash == commitHash);
 
-    //     return getNumTokens(_voter, _pollID);
-    // }
+        return getNumTokens(_voter);
+    }
 
     // ==================
     // POLLING INTERFACE:
@@ -271,6 +316,20 @@ contract PLCRVotingChallenge is ChallengeInterface {
     }
 
     /**
+    @dev                Calculates the provided voter's token reward.
+    @param _voter       The address of the voter whose reward balance is to be returned
+    @param _salt        The salt of the voter's commit hash in the given poll
+    @return             The uint indicating the voter's reward
+    */
+    function voterReward(address _voter, uint _salt)
+    public view returns (uint) {
+        uint voterTokens = getNumWinningTokens(_voter, _salt);
+        uint remainingRewardPool = rewardPool - voterRewardsClaimed;
+        uint remainingTotalTokens = getTotalNumberOfTokensForWinningOption() - voterTokensClaimed;
+        return (voterTokens * remainingRewardPool) / remainingTotalTokens;
+    }
+
+    /**
     @dev Determines the number of tokens awarded to the winning party
     */
     function tokenRewardAmount() public view returns (uint) {
@@ -303,7 +362,7 @@ contract PLCRVotingChallenge is ChallengeInterface {
     function getTotalNumberOfTokensForWinningOption() constant public returns (uint numTokens) {
         require(ended());
 
-        if (passed()) {
+        if (!passed()) {
             return votesFor;
         } else {
             return votesAgainst;
