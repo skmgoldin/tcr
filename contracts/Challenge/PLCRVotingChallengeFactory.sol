@@ -14,9 +14,10 @@ contract PLCRVotingChallengeFactory is ChallengeFactoryInterface {
     parameterizer = Parameterizer(_parameterizer);
   }
 
-  function createChallenge() external returns (ChallengeInterface) {
+  function createChallenge(address challenger) external returns (ChallengeInterface) {
     uint deposit = parameterizer.get("minDeposit");
     return new PLCRVotingChallenge(
+      challenger,
       token,
       parameterizer.get("commitStageLen"),
       parameterizer.get("revealStageLen"),

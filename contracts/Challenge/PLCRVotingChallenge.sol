@@ -45,6 +45,9 @@ contract PLCRVotingChallenge is ChallengeInterface {
 
     // mapping(uint => Poll) public pollMap; // maps pollID to Poll struct
 
+    address challenger;     /// the address of the challenger
+    bool isStarted;           /// true if challenger has executed start()
+
     uint commitEndDate;     /// expiration date of commit period for poll
     uint revealEndDate;     /// expiration date of reveal period for poll
     uint voteQuorum;	    /// number of votes required for a proposal to pass
@@ -52,6 +55,9 @@ contract PLCRVotingChallenge is ChallengeInterface {
     uint stake;             /// number of tokens at stake for either party during challenge
     uint votesFor;		    /// tally of votes supporting proposal
     uint votesAgainst;      /// tally of votes countering proposal
+
+    uint commitStageLen;
+    uint revealStageLen;
 
     mapping(address => bool) didCommit;     /// indicates whether an address committed a vote for this poll
     mapping(address => bool) didReveal;     /// indicates whether an address revealed a vote for this poll
@@ -62,6 +68,15 @@ contract PLCRVotingChallenge is ChallengeInterface {
     AttributeStore.Data store;
 
     EIP20Interface public token;
+
+    // ============
+    // MODIFIERS:
+    // ============
+
+    modifier onlyChallenger() {
+        require(msg.sender == challenger);
+        _;
+    }
 
     // ============
     // CONSTRUCTOR:
@@ -76,11 +91,12 @@ contract PLCRVotingChallenge is ChallengeInterface {
     @param _rewardPool Pool of tokens to be distributed to winning voters
     @param _stake Number of tokens at stake for either party during challenge
     */
-    function PLCRVotingChallenge(address _tokenAddr, uint _commitStageLen, uint _revealStageLen, uint _voteQuorum, uint _rewardPool, uint _stake) public {
+    function PLCRVotingChallenge(address _challenger, address _tokenAddr, uint _commitStageLen, uint _revealStageLen, uint _voteQuorum, uint _rewardPool, uint _stake) public {
+        challenger = _challenger;
         token = EIP20Interface(_tokenAddr);
 
-        commitEndDate = block.timestamp.add(_commitStageLen);
-        revealEndDate = commitEndDate.add(_revealStageLen);
+        commitStageLen = _commitStageLen;
+        revealStageLen = _revealStageLen;
 
         voteQuorum = _voteQuorum;
         rewardPool = _rewardPool;
@@ -101,6 +117,15 @@ contract PLCRVotingChallenge is ChallengeInterface {
         voteTokenBalance[msg.sender] += _numTokens;
         require(token.transferFrom(msg.sender, this, _numTokens));
         _VotingRightsGranted(_numTokens);
+    }
+
+    function start() public onlyChallenger {
+        require(token.transferFrom(challenger, this, stake));
+
+        commitEndDate = block.timestamp.add(commitStageLen);
+        revealEndDate = commitEndDate.add(revealStageLen);
+
+        isStarted = true;
     }
 
     /**
@@ -136,6 +161,7 @@ contract PLCRVotingChallenge is ChallengeInterface {
     @param _numTokens The number of tokens to be committed towards the target poll
     */
     function commitVote(bytes32 _secretHash, uint _numTokens) external {
+        require(started());
         require(commitPeriodActive());
         require(voteTokenBalance[msg.sender] >= _numTokens); // prevent user from overspending
 
@@ -169,7 +195,7 @@ contract PLCRVotingChallenge is ChallengeInterface {
     @param _salt Secret number used to generate commitHash
     */
     function revealVote(uint _voteOption, uint _salt) external {
-        // Make sure the reveal period is active
+        require(started());
         require(revealPeriodActive());
         require(didCommit[msg.sender]);    // make sure user has committed a vote
         require(!didReveal[msg.sender]);   // prevent user from revealing multiple times
@@ -235,19 +261,19 @@ contract PLCRVotingChallenge is ChallengeInterface {
     } */
 
     /**
-    @notice Determines if proposal has passed
-    @dev Check if votesFor out of totalVotes exceeds votesQuorum (requires ended)
+    @notice Determines if the challenge has passed
+    @dev Check if votesAgainst out of totalVotes exceeds votesQuorum (requires ended)
     */
-    function passed() view public returns (bool passed) {
+    function passed() public view returns (bool) {
         require(ended());
 
-        return (100 * votesFor) > (voteQuorum * (votesFor + votesAgainst));
+        return (100 * votesAgainst) > (voteQuorum * (votesFor + votesAgainst));
     }
 
     /**
     @dev Determines the number of tokens awarded to the winning party
     */
-    function determineReward() public view returns (uint) {
+    function tokenRewardAmount() public view returns (uint) {
         require(ended());
 
         // Edge case, nobody voted, give all tokens to the challenger.
@@ -256,6 +282,14 @@ contract PLCRVotingChallenge is ChallengeInterface {
         }
 
         return (2 * stake) - rewardPool;
+    }
+
+    function tokenLockAmount() public view returns (uint) {
+        return stake;
+    }
+
+    function started() public view returns (bool) {
+        return isStarted;
     }
 
     // ----------------

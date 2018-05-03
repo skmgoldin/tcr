@@ -14,6 +14,7 @@ contract Registry {
 
     event _Application(bytes32 indexed listingHash, uint deposit, uint appEndDate, string data, address indexed applicant);
     event _Challenge(bytes32 indexed listingHash, uint challengeID, address challengeAddress, string data, address indexed challenger);
+    event _ChallengeStarted(bytes32 indexed listingHash, uint challengeID);
     event _Deposit(bytes32 indexed listingHash, uint added, uint newTotal, address indexed owner);
     event _Withdrawal(bytes32 indexed listingHash, uint withdrew, uint newTotal, address indexed owner);
     event _ApplicationWhitelisted(bytes32 indexed listingHash);
@@ -135,9 +136,15 @@ contract Registry {
     function withdraw(bytes32 _listingHash, uint _amount) external {
         Listing storage listing = listings[_listingHash];
 
+        // TODO: test that this tokenLockAmount logic works
+        uint tokenLockAmount;
+        if (listing.challengeID > 0) {
+            tokenLockAmount = challenges[listing.challengeID].tokenLockAmount();
+        }
+
         require(listing.owner == msg.sender);
         require(_amount <= listing.unstakedDeposit);
-        require(listing.unstakedDeposit - _amount >= parameterizer.get("minDeposit"));
+        require(listing.unstakedDeposit - _amount >= parameterizer.get("minDeposit") + tokenLockAmount);
 
         listing.unstakedDeposit -= _amount;
         require(token.transfer(msg.sender, _amount));
@@ -169,13 +176,12 @@ contract Registry {
     // -----------------------
 
     /**
-    @dev                Starts a poll for a listingHash which is either in the apply stage or
-                        already in the whitelist. Tokens are taken from the challenger and the
-                        applicant's deposits are locked.
+    @dev                Creates a new challenge for a listingHash which is either in the apply stage or
+                        already in the whitelist.
     @param _listingHash The listingHash being challenged, whether listed or in application
     @param _data        Extra data relevant to the challenge. Think IPFS hashes.
     */
-    function challenge(bytes32 _listingHash, string _data) external returns (uint challengeID) {
+    function createChallenge(bytes32 _listingHash, string _data) external returns (uint challengeID) {
         Listing storage listing = listings[_listingHash];
         uint deposit = parameterizer.get("minDeposit");
 
@@ -192,42 +198,32 @@ contract Registry {
         }
 
         challengeNonce = challengeNonce + 1;
-
-        challenges[challengeNonce] = challengeFactory.createChallenge();
-
-        // Starts poll
-        /* uint pollID = voting.startPoll(
-            parameterizer.get("voteQuorum"),
-            parameterizer.get("commitStageLen"),
-            parameterizer.get("revealStageLen")
-        );
-
-        challenges[pollID] = Challenge({
-            challenger: msg.sender,
-            rewardPool: ((100 - parameterizer.get("dispensationPct")) * deposit) / 100,
-            stake: deposit,
-            resolved: false,
-            totalTokens: 0
-        }); */
-
-        // Updates listingHash to store most recent challenge
+        challenges[challengeNonce] = challengeFactory.createChallenge(msg.sender);
         listing.challengeID = challengeNonce;
-
-        // Locks tokens for listingHash during challenge
-        listing.unstakedDeposit -= deposit;
-
-        // Takes tokens from challenger
-        require(token.transferFrom(msg.sender, this, deposit));
-
-        /*
-        TODO: create pollMap somewhere else
-
-        var (commitEndDate, revealEndDate,) = voting.pollMap(pollID);
-        */
 
         _Challenge(_listingHash, challengeNonce, challenges[challengeNonce], _data, msg.sender);
 
         return challengeNonce;
+    }
+
+    function updateStatus(bytes32 _listingHash) public {
+        Listing storage listing = listings[_listingHash];
+        uint challengeID = listings[_listingHash].challengeID;
+
+        require(challenges[challengeID].ended());
+
+        if (!challenges[challengeID].passed()) {
+            whitelistApplication(_listingHash);
+            _ChallengeFailed(_listingHash, challengeID);
+        } else {
+            resetListing(_listingHash);
+            // Transfer the reward to the challenger
+
+            // TODO: should this happen on the challenge?
+            // require(token.transfer(challenges[challengeID].challenger, reward));
+
+            _ChallengeSucceeded(_listingHash, challengeID);
+        }
     }
 
     /**
@@ -235,15 +231,15 @@ contract Registry {
                         a challenge if one exists.
     @param _listingHash The listingHash whose status is being updated
     */
-    function updateStatus(bytes32 _listingHash) public {
-        if (canBeWhitelisted(_listingHash)) {
-          whitelistApplication(_listingHash);
-        } else if (challengeCanBeResolved(_listingHash)) {
-          resolveChallenge(_listingHash);
-        } else {
-          revert();
-        }
-    }
+    // function updateStatus(bytes32 _listingHash) public {
+    //     if (canBeWhitelisted(_listingHash)) {
+    //       whitelistApplication(_listingHash);
+    //     } else if (challengeCanBeResolved(_listingHash)) {
+    //       resolveChallenge(_listingHash);
+    //     } else {
+    //       revert();
+    //     }
+    // }
 
     // ----------------
     // TOKEN FUNCTIONS:
@@ -336,24 +332,24 @@ contract Registry {
     @dev                Returns true if the application/listingHash has an unresolved challenge
     @param _listingHash The listingHash whose status is to be examined
     */
-    function challengeExists(bytes32 _listingHash) view public returns (bool) {
-        uint challengeID = listings[_listingHash].challengeID;
+    // function challengeExists(bytes32 _listingHash) view public returns (bool) {
+    //     uint challengeID = listings[_listingHash].challengeID;
 
-        return (listings[_listingHash].challengeID > 0 && !challenges[challengeID].ended());
-    }
+    //     return (listings[_listingHash].challengeID > 0 && !challenges[challengeID].ended());
+    // }
 
     /**
     @dev                Determines a challenge has ended for a given
                         listingHash. Throws if no challenge exists.
     @param _listingHash A listingHash with an unresolved challenge
     */
-    function challengeCanBeResolved(bytes32 _listingHash) view public returns (bool) {
-        uint challengeID = listings[_listingHash].challengeID;
+    // function challengeCanBeResolved(bytes32 _listingHash) view public returns (bool) {
+    //     uint challengeID = listings[_listingHash].challengeID;
 
-        require(challengeExists(_listingHash));
+    //     require(challengeExists(_listingHash));
 
-        return challenges[challengeID].ended();
-    }
+    //     return challenges[challengeID].ended();
+    // }
 
     /**
     @dev                Getter for Challenge tokenClaims mappings
@@ -373,30 +369,6 @@ contract Registry {
                         either whitelists or de-whitelists the listingHash.
     @param _listingHash A listingHash with a challenge that is to be resolved
     */
-    function resolveChallenge(bytes32 _listingHash) private {
-        uint challengeID = listings[_listingHash].challengeID;
-        uint reward = challenges[challengeID].determineReward();
-
-        // Case: challenge failed
-        if (challenges[challengeID].passed()) {
-            whitelistApplication(_listingHash);
-            // Unlock stake so that it can be retrieved by the applicant
-            listings[_listingHash].unstakedDeposit += reward;
-
-            _ChallengeFailed(_listingHash, challengeID);
-        }
-        // Case: challenge succeeded or nobody voted
-        else {
-            resetListing(_listingHash);
-            // Transfer the reward to the challenger
-
-            // TODO: should this happen on the challenge?
-            // require(token.transfer(challenges[challengeID].challenger, reward));
-
-            _ChallengeSucceeded(_listingHash, challengeID);
-        }
-    }
-
     // function resolveChallenge(bytes32 _listingHash) private {
     //     uint challengeID = listings[_listingHash].challengeID;
 
