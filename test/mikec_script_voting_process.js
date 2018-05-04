@@ -91,13 +91,11 @@ contract('simulate TCR apply/challenge/resolve', (accounts) => {
       await logBalances(accounts, token, plcrChallenge)
       await logListingInfo(listingHash)
 
-      /* console.log('*** try to exit listing (works if challenge was not successful)')
+      console.log('*** try to exit listing (works if challenge was not successful)')
       console.log('')
       try { await registry.exit(listingHash, { from: applicant }) } catch (err) { }
       await logBalances(accounts, token, plcrChallenge)
-
-      await logVotingInfo(challengeID)
-      await logListingInfo(listingHash) */
+      await logListingInfo(listingHash)
     })
   })
 })
@@ -153,17 +151,6 @@ async function logChallengeInfo(challengeID) {
 async function logChallengeReward(challengeID) {
   const plcrChallenge = await utils.getPLCRChallenge(challengeID)
   console.log(`Challenge #${challengeID} reward: ${await plcrChallenge.tokenRewardAmount()}`)
-  console.log('')
-}
-
-async function logVotingInfo(pollID) {
-  const voting = await utils.getVoting();
-  console.log('Voting:')
-  console.log(`  isPassed: ${await voting.isPassed(pollID)}`)
-  console.log(`  numWinning: ${await voting.getTotalNumberOfTokensForWinningOption(pollID)}`)
-  console.log(`  pollEnded: ${await voting.pollEnded(pollID)}`)
-  console.log(`  commitPeriodActive: ${await voting.commitPeriodActive(pollID)}`)
-  console.log(`  revealPeriodActive: ${await voting.revealPeriodActive(pollID)}`)
   console.log('')
 }
 
