@@ -122,6 +122,7 @@ contract PLCRVotingChallenge is ChallengeInterface {
     @param _numTokens The number of votingTokens desired in exchange for ERC20 tokens
     */
     function requestVotingRights(uint _numTokens) external {
+        require(started() && !ended());
         require(token.balanceOf(msg.sender) >= _numTokens);
         voteTokenBalance[msg.sender] += _numTokens;
         require(token.transferFrom(msg.sender, this, _numTokens));
@@ -139,15 +140,14 @@ contract PLCRVotingChallenge is ChallengeInterface {
 
     /**
     @notice Withdraw _numTokens ERC20 tokens from the voting contract, revoking these voting rights
-    @param _numTokens The number of ERC20 tokens desired in exchange for voting rights
     */
-    // function withdrawVotingRights(uint _numTokens) external {
-    //     uint availableTokens = voteTokenBalance[msg.sender].sub(getLockedTokens(msg.sender));
-    //     require(availableTokens >= _numTokens);
-    //     voteTokenBalance[msg.sender] -= _numTokens;
-    //     require(token.transfer(msg.sender, _numTokens));
-    //     _VotingRightsWithdrawn(_numTokens);
-    // }
+    function withdrawVotingRights() external {
+        require(ended());
+        require(voteTokenBalance[msg.sender] > 0);
+        require(token.transfer(msg.sender, voteTokenBalance[msg.sender]));
+        voteTokenBalance[msg.sender] = 0;
+        _VotingRightsWithdrawn(voteTokenBalance[msg.sender]);
+    }
 
     /**
     @dev Unlocks tokens locked in unrevealed vote where poll has ended
@@ -431,9 +431,9 @@ contract PLCRVotingChallenge is ChallengeInterface {
     @param _voter Address of user to check against
     @return Maximum number of tokens committed in poll specified
     */
-    // function getLockedTokens(address _voter) constant public returns (uint numTokens) {
-    //     return getNumTokens(_voter, getLastNode(_voter));
-    // }
+    function getLockedTokens(address _voter) constant public returns (uint numTokens) {
+        return getNumTokens(_voter);
+    }
 
     /*
     @dev Takes the last node in the user's DLL and iterates backwards through the list searching

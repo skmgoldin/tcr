@@ -84,14 +84,14 @@ contract('simulate TCR apply/challenge/resolve', (accounts) => {
       await plcrChallenge.transferWinnerReward()
       await logBalances(accounts, token, plcrChallenge)
 
-      /* console.log('*** voters withdraw tokens from PLCR')
+      console.log('*** voters withdraw tokens from PLCR')
       console.log('')
-      await voting.withdrawVotingRights(numVotesFor, { from: voterFor })
-      await voting.withdrawVotingRights(numVotesAgainst, { from: voterAgainst })
+      await plcrChallenge.withdrawVotingRights({ from: voterFor })
+      await plcrChallenge.withdrawVotingRights({ from: voterAgainst })
       await logBalances(accounts, token, plcrChallenge)
       await logListingInfo(listingHash)
 
-      console.log('*** try to exit listing (works if challenge was not successful)')
+      /* console.log('*** try to exit listing (works if challenge was not successful)')
       console.log('')
       try { await registry.exit(listingHash, { from: applicant }) } catch (err) { }
       await logBalances(accounts, token, plcrChallenge)
