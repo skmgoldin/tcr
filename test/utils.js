@@ -10,7 +10,7 @@ const fs = require('fs');
 const ethRPC = new EthRPC(new HttpProvider('http://localhost:8545'));
 const ethQuery = new Eth(new HttpProvider('http://localhost:8545'));
 
-const PLCRVoting = artifacts.require('PLCRVoting.sol');
+// const PLCRVoting = artifacts.require('PLCRVoting.sol');
 const PLCRVotingChallenge = artifacts.require('PLCRVotingChallenge.sol');
 const Parameterizer = artifacts.require('Parameterizer.sol');
 const Registry = artifacts.require('Registry.sol');

@@ -19,12 +19,22 @@ contract('simulate TCR apply/challenge/resolve', (accounts) => {
     it('...', async () => {
       console.log('')
 
+      /* change this to make the challenge pass or fail */
+      const makeChallengePass = true
+
+      let numVotesFor, numVotesAgainst
+
+      if (makeChallengePass) {
+        /* votes against proposal exceed votes for: challenge passes */
+        numVotesFor = 10
+        numVotesAgainst = 20
+      } else {
+        /* votes for proposal exceed votes against: challenge fails */
+        numVotesFor = 20
+        numVotesAgainst = 10
+      }
+
       const registry = await Registry.deployed()
-
-      // logEventsFor(registry)
-
-      const numVotesFor = 20
-      const numVotesAgainst = 10
 
       const token = Token.at(await registry.token.call());
       const listingHash = utils.getListingHash('nochallenge.net')
@@ -42,8 +52,7 @@ contract('simulate TCR apply/challenge/resolve', (accounts) => {
       const plcrChallenge = await utils.getPLCRChallenge(challengeID)
       console.log(`*** challenge #${challengeID} created`)
       console.log('')
-      await logBalances(accounts, token, plcrChallenge)
-
+    
       await utils.as(challenger, token.approve, plcrChallenge.address, 10 * 10 ** 18)
       await utils.as(challenger, plcrChallenge.start)
       console.log(`*** challenge started`)
@@ -66,14 +75,14 @@ contract('simulate TCR apply/challenge/resolve', (accounts) => {
       await logBalances(accounts, token, plcrChallenge)
       await logChallengeReward(challengeID)
       
-      console.log('*** update status (resolve challenge, update application status based on voting')
+      console.log('*** update status (update application status based on challenge result)')
       console.log('')
       await registry.updateStatus(listingHash)
       await logBalances(accounts, token, plcrChallenge)
       await logChallengeInfo(challengeID)
       await logVoterRewardInfo(challengeID, voterFor, voterAgainst)
 
-      console.log('*** voters claim rewards')
+      console.log('*** winning voters claim reward')
       console.log('')
       try { await plcrChallenge.claimVoterReward(420, { from: voterFor }) } catch (err) { }
       try { await plcrChallenge.claimVoterReward(420, { from: voterAgainst }) } catch (err) { }
@@ -96,6 +105,7 @@ contract('simulate TCR apply/challenge/resolve', (accounts) => {
       try { await registry.exit(listingHash, { from: applicant }) } catch (err) { }
       await logBalances(accounts, token, plcrChallenge)
       await logListingInfo(listingHash)
+
     })
   })
 })
@@ -113,10 +123,10 @@ async function logBalances(accounts, token, plcrChallenge) {
   console.log(`  challenger: ${challengerBalance}`)
   console.log(`  voterFor: ${voterForBalance}`)
   console.log(`  voterAgainst: ${voterAgainstBalance}`)
-  console.log(`  Registry: ${registryBalance}`)
+  console.log(`  Registry Contract: ${registryBalance}`)
   if (plcrChallenge) {
     const plcrChallengeBalance = (await token.balanceOf.call(plcrChallenge.address)).toNumber()
-    console.log(`  PLCRChallenge: ${plcrChallengeBalance}`)
+    console.log(`  PLCRChallenge Contract: ${plcrChallengeBalance}`)
   }
   console.log('')
 }
@@ -173,20 +183,4 @@ async function logVoterRewardInfo(pollID, voterFor, voterAgainst) {
   console.log(`voterFor reward: ${voterForReward}`)
   console.log(`voterAgainst reward: ${voterAgainstReward}`)
   console.log('')
-}
-
-function logEventsFor(contract) {
-  const events = contract.allEvents();
-  events.watch(function(error, result) {
-    if(error) {
-      console.log('Error');
-    }
-    else {
-      console.log('Event: ', result.event + '');
-      for(key in result.args) {
-        console.log(`  ${key}: ${result.args[key]}`)
-      }
-    }
-    console.log('')
-  })
 }
