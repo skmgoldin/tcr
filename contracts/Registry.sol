@@ -36,15 +36,6 @@ contract Registry {
         address challenger;     // Address of the challenger
     }
 
-    /* struct Challenge {
-        uint rewardPool;        // (remaining) Pool of tokens to be distributed to winning voters
-        address challenger;     // Owner of Challenge
-        bool resolved;          // Indication of if challenge is resolved
-        uint stake;             // Number of tokens at stake for either party during challenge
-        uint totalTokens;       // (remaining) Number of tokens used in voting by the winning side
-        mapping(address => bool) tokenClaims; // Indicates whether a voter has claimed a reward yet
-    } */
-
     // Maps challengeID to challenge contract address
     mapping(uint => ChallengeInterface) public challenges;
 
@@ -226,70 +217,9 @@ contract Registry {
         }
     }
 
-    /**
-    @dev                Updates a listingHash's status from 'application' to 'listing' or resolves
-                        a challenge if one exists.
-    @param _listingHash The listingHash whose status is being updated
-    */
-    // function updateStatus(bytes32 _listingHash) public {
-    //     if (canBeWhitelisted(_listingHash)) {
-    //       whitelistApplication(_listingHash);
-    //     } else if (challengeCanBeResolved(_listingHash)) {
-    //       resolveChallenge(_listingHash);
-    //     } else {
-    //       revert();
-    //     }
-    // }
-
-    // ----------------
-    // TOKEN FUNCTIONS:
-    // ----------------
-
-    /**
-    @dev                Called by a voter to claim their reward for each completed vote. Someone
-                        must call updateStatus() before this can be called.
-    @param _challengeID The PLCR pollID of the challenge a reward is being claimed for
-    @param _salt        The salt of a voter's commit hash in the given poll
-    */
-    // function claimReward(uint _challengeID, uint _salt) public {
-    //     // Ensures the voter has not already claimed tokens and challenge results have been processed
-    //     require(challenges[_challengeID].tokenClaims[msg.sender] == false);
-    //     require(challenges[_challengeID].resolved == true);
-
-    //     uint voterTokens = voting.getNumPassingTokens(msg.sender, _challengeID, _salt);
-    //     uint reward = voterReward(msg.sender, _challengeID, _salt);
-
-    //     // Subtracts the voter's information to preserve the participation ratios
-    //     // of other voters compared to the remaining pool of rewards
-    //     challenges[_challengeID].totalTokens -= voterTokens;
-    //     challenges[_challengeID].rewardPool -= reward;
-
-    //     // Ensures a voter cannot claim tokens again
-    //     challenges[_challengeID].tokenClaims[msg.sender] = true;
-
-    //     require(token.transfer(msg.sender, reward));
-
-    //     _RewardClaimed(_challengeID, reward, msg.sender);
-    // }
-
     // --------
     // GETTERS:
     // --------
-
-    /**
-    @dev                Calculates the provided voter's token reward for the given poll.
-    @param _voter       The address of the voter whose reward balance is to be returned
-    @param _challengeID The pollID of the challenge a reward balance is being queried for
-    @param _salt        The salt of the voter's commit hash in the given poll
-    @return             The uint indicating the voter's reward
-    */
-    // function voterReward(address _voter, uint _challengeID, uint _salt)
-    // public view returns (uint) {
-    //     uint totalTokens = challenges[_challengeID].totalTokens;
-    //     uint rewardPool = challenges[_challengeID].rewardPool;
-    //     uint voterTokens = voting.getNumPassingTokens(_voter, _challengeID, _salt);
-    //     return (voterTokens * rewardPool) / totalTokens;
-    // }
 
     /**
     @dev                Determines whether the given listingHash be whitelisted.
@@ -328,78 +258,9 @@ contract Registry {
         return listings[_listingHash].applicationExpiry > 0;
     }
 
-    /**
-    @dev                Returns true if the application/listingHash has an unresolved challenge
-    @param _listingHash The listingHash whose status is to be examined
-    */
-    // function challengeExists(bytes32 _listingHash) view public returns (bool) {
-    //     uint challengeID = listings[_listingHash].challengeID;
-
-    //     return (listings[_listingHash].challengeID > 0 && !challenges[challengeID].ended());
-    // }
-
-    /**
-    @dev                Determines a challenge has ended for a given
-                        listingHash. Throws if no challenge exists.
-    @param _listingHash A listingHash with an unresolved challenge
-    */
-    // function challengeCanBeResolved(bytes32 _listingHash) view public returns (bool) {
-    //     uint challengeID = listings[_listingHash].challengeID;
-
-    //     require(challengeExists(_listingHash));
-
-    //     return challenges[challengeID].ended();
-    // }
-
-    /**
-    @dev                Getter for Challenge tokenClaims mappings
-    @param _challengeID The challengeID to query
-    @param _voter       The voter whose claim status to query for the provided challengeID
-    */
-    // function tokenClaims(uint _challengeID, address _voter) public view returns (bool) {
-    //   return challenges[_challengeID].tokenClaims[_voter];
-    // }
-
     // ----------------
     // PRIVATE FUNCTIONS:
     // ----------------
-
-    /**
-    @dev                Determines the winner in a challenge. Rewards the winner tokens and
-                        either whitelists or de-whitelists the listingHash.
-    @param _listingHash A listingHash with a challenge that is to be resolved
-    */
-    // function resolveChallenge(bytes32 _listingHash) private {
-    //     uint challengeID = listings[_listingHash].challengeID;
-
-    //     // Calculates the winner's reward,
-    //     // which is: (winner's full stake) + (dispensationPct * loser's stake)
-    //     uint reward = determineReward(challengeID);
-
-    //     // Sets flag on challenge being processed
-    //     challenges[challengeID].resolved = true;
-
-    //     // Stores the total tokens used for voting by the winning side for reward purposes
-    //     challenges[challengeID].totalTokens =
-    //         voting.getTotalNumberOfTokensForWinningOption(challengeID);
-
-    //     // Case: challenge failed
-    //     if (voting.isPassed(challengeID)) {
-    //         whitelistApplication(_listingHash);
-    //         // Unlock stake so that it can be retrieved by the applicant
-    //         listings[_listingHash].unstakedDeposit += reward;
-
-    //         _ChallengeFailed(_listingHash, challengeID, challenges[challengeID].rewardPool, challenges[challengeID].totalTokens);
-    //     }
-    //     // Case: challenge succeeded or nobody voted
-    //     else {
-    //         resetListing(_listingHash);
-    //         // Transfer the reward to the challenger
-    //         require(token.transfer(challenges[challengeID].challenger, reward));
-
-    //         _ChallengeSucceeded(_listingHash, challengeID, challenges[challengeID].rewardPool, challenges[challengeID].totalTokens);
-    //     }
-    // }
 
     /**
     @dev                Called by updateStatus() if the applicationExpiry date passed without a

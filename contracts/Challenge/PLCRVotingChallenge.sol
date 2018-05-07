@@ -30,21 +30,9 @@ contract PLCRVotingChallenge is ChallengeInterface {
     using DLL for DLL.Data;
     using SafeMath for uint;
 
-    // struct Poll {
-    //     uint commitEndDate;     /// expiration date of commit period for poll
-    //     uint revealEndDate;     /// expiration date of reveal period for poll
-    //     uint voteQuorum;	    /// number of votes required for a proposal to pass
-    //     uint votesFor;		    /// tally of votes supporting proposal
-    //     uint votesAgainst;      /// tally of votes countering proposal
-    //     mapping(address => bool) didCommit;  /// indicates whether an address committed a vote for this poll
-    //     mapping(address => bool) didReveal;   /// indicates whether an address revealed a vote for this poll
-    // }
-
     // ============
     // STATE VARIABLES:
     // ============
-
-    // mapping(uint => Poll) public pollMap; // maps pollID to Poll struct
 
     address challenger;     /// the address of the challenger
     address listingOwner;      /// the address of the listingOwner
@@ -149,17 +137,6 @@ contract PLCRVotingChallenge is ChallengeInterface {
         _VotingRightsWithdrawn(voteTokenBalance[msg.sender]);
     }
 
-    /**
-    @dev Unlocks tokens locked in unrevealed vote where poll has ended
-    @param _pollID Integer identifier associated with the target poll
-    */
-    // function rescueTokens(uint _pollID) external {
-    //     require(isExpired(pollMap[_pollID].revealEndDate));
-    //     require(dllMap[msg.sender].contains(_pollID));
-
-    //     dllMap[msg.sender].remove(_pollID);
-    // }
-
     // =================
     // VOTING INTERFACE:
     // =================
@@ -182,21 +159,6 @@ contract PLCRVotingChallenge is ChallengeInterface {
         didCommit[msg.sender] = true;
         _VoteCommitted(UUID, msg.sender, _numTokens);
     }
-
-    /**
-    @dev Compares previous and next poll's committed tokens for sorting purposes
-    @param _prevID Integer identifier associated with previous poll in sorted order
-    @param _nextID Integer identifier associated with next poll in sorted order
-    @param _voter Address of user to check DLL position for
-    @param _numTokens The number of tokens to be committed towards the poll (used for sorting)
-    @return valid Boolean indication of if the specified position maintains the sort
-    */
-    // function validPosition(uint _prevID, uint _nextID, address _voter, uint _numTokens) public constant returns (bool valid) {
-    //     bool prevValid = (_numTokens >= getNumTokens(_voter, _prevID));
-    //     // if next is zero node, _numTokens does not need to be greater
-    //     bool nextValid = (_numTokens <= getNumTokens(_voter, _nextID) || _nextID == 0);
-    //     return prevValid && nextValid;
-    // }
 
     /**
     @notice Reveals vote with choice and secret salt used in generating commitHash to attribute committed tokens
@@ -278,32 +240,8 @@ contract PLCRVotingChallenge is ChallengeInterface {
     }
 
     // ==================
-    // POLLING INTERFACE:
+    // CHALLENGE INTERFACE:
     // ==================
-
-    /**
-    @dev Initiates a poll with canonical configured parameters at pollID emitted by PollCreated event
-    @param _voteQuorum Type of majority (out of 100) that is necessary for poll to be successful
-    @param _commitDuration Length of desired commit period in seconds
-    @param _revealDuration Length of desired reveal period in seconds
-    */
-    /* function startPoll(uint _voteQuorum, uint _commitDuration, uint _revealDuration) public returns (uint pollID) {
-        pollNonce = pollNonce + 1;
-
-        uint commitEndDate = block.timestamp.add(_commitDuration);
-        uint revealEndDate = commitEndDate.add(_revealDuration);
-
-        pollMap[pollNonce] = Poll({
-            voteQuorum: _voteQuorum,
-            commitEndDate: commitEndDate,
-            revealEndDate: revealEndDate,
-            votesFor: 0,
-            votesAgainst: 0
-        });
-
-        _PollCreated(_voteQuorum, commitEndDate, revealEndDate, pollNonce);
-        return pollNonce;
-    } */
 
     /**
     @notice Determines if the challenge has passed
@@ -352,7 +290,7 @@ contract PLCRVotingChallenge is ChallengeInterface {
     }
 
     // ----------------
-    // POLLING HELPERS:
+    // CHALLENGE HELPERS:
     // ----------------
 
     /**
@@ -418,15 +356,6 @@ contract PLCRVotingChallenge is ChallengeInterface {
     }
 
     /**
-    @dev Gets top element of sorted poll-linked-list
-    @param _voter Address of user to check against
-    @return Integer identifier to poll with maximum number of tokens committed to it
-    */
-    // function getLastNode(address _voter) constant public returns (uint pollID) {
-    //     return dllMap[_voter].getPrev(0);
-    // }
-
-    /**
     @dev Gets the numTokens property of getLastNode
     @param _voter Address of user to check against
     @return Maximum number of tokens committed in poll specified
@@ -434,42 +363,6 @@ contract PLCRVotingChallenge is ChallengeInterface {
     function getLockedTokens(address _voter) constant public returns (uint numTokens) {
         return getNumTokens(_voter);
     }
-
-    /*
-    @dev Takes the last node in the user's DLL and iterates backwards through the list searching
-    for a node with a value less than or equal to the provided _numTokens value. When such a node
-    is found, if the provided _pollID matches the found nodeID, this operation is an in-place
-    update. In that case, return the previous node of the node being updated. Otherwise return the
-    first node that was found with a value less than or equal to the provided _numTokens.
-    @param _voter The voter whose DLL will be searched
-    @param _numTokens The value for the numTokens attribute in the node to be inserted
-    @return the node which the propoded node should be inserted after
-    */
-    // function getInsertPointForNumTokens(address _voter, uint _numTokens, uint _pollID)
-    // constant public returns (uint prevNode) {
-    //   // Get the last node in the list and the number of tokens in that node
-    //   uint nodeID = getLastNode(_voter);
-    //   uint tokensInNode = getNumTokens(_voter, nodeID);
-
-    //   // Iterate backwards through the list until reaching the root node
-    //   while(nodeID != 0) {
-    //     // Get the number of tokens in the current node
-    //     tokensInNode = getNumTokens(_voter, nodeID);
-    //     if(tokensInNode <= _numTokens) { // We found the insert point!
-    //       if(nodeID == _pollID) {
-    //         // This is an in-place update. Return the prev node of the node being updated
-    //         nodeID = dllMap[_voter].getPrev(nodeID);
-    //       }
-    //       // Return the insert point
-    //       return nodeID; 
-    //     }
-    //     // We did not find the insert point. Continue iterating backwards through the list
-    //     nodeID = dllMap[_voter].getPrev(nodeID);
-    //   }
-
-    //   // The list is empty, or a smaller value than anything else in the list is being inserted
-    //   return nodeID;
-    // }
 
     // ----------------
     // GENERAL HELPERS:
