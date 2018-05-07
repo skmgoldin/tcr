@@ -10,7 +10,7 @@ const BN = require('bignumber.js')
 const config = JSON.parse(fs.readFileSync('./conf/config.json'))
 const paramConfig = config.paramDefaults
 
-const utils = require('./utils.js')
+const utils = require('../utils.js')
 
 contract('simulate TCR apply/challenge/resolve', (accounts) => {
   describe.only('do it...', () => {
