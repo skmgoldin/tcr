@@ -11,6 +11,11 @@ if (fs.existsSync('secrets.json')) {
 
 module.exports = {
   networks: {
+    development: {
+      host: 'localhost',
+      network_id: '*',
+      port: 8545
+    }/* ,
     mainnet: {
       provider: new HDWalletProvider(mnemonic, 'https://mainnet.infura.io'),
       network_id: '1',
@@ -36,6 +41,6 @@ module.exports = {
       port: 7545, // <-- If you change this, also set the port option in .solcover.js.
       gas: 0xfffffffffff, // <-- Use this high gas value
       gasPrice: 0x01, // <-- Use this low gas price
-    },
+    }, */
   },
 };
