@@ -8,9 +8,10 @@
     "coverage": "solidity-coverage",
     "deploy-rinkeby": "truffle migrate --network rinkeby",
     "deploy-mainnet": "truffle migrate --network mainnet",
-    "test": "npm run lint ./ && truffle test",
+    "test": "truffle test",
     "fix": "eslint --fix",
-    "lint": "eslint"
+    "lint": "eslint",
+    "testrpc": "scripts/runTestrpc.sh"
   },
   "author": "Irene Lin <irene.lin@consensys.net>, Mira Zeitlin <miranda.zeitlin@consensys.net>, Yorke Rhodes <yorke.rhodesiv@consensys.net>",
   "license": "ISC",
