@@ -58,7 +58,7 @@ contract Registry {
     @dev Contructor                 Sets the addresses for token, voting, and parameterizer
     @param _tokenAddr               Address of the TCR's intrinsic ERC20 token
     @param _challengeFactoryAddr    Address of a contract that will create challenges
-    @param _paramsAddr              Address of a Parameterizer contract 
+    @param _paramsAddr              Address of a Parameterizer contract
     */
     function Registry(
         address _tokenAddr,
@@ -296,7 +296,7 @@ contract Registry {
             unstakedDeposit = listing.deposit;
         }
         delete listings[_listingHash];
-        
+
         // Transfers any remaining balance back to the owner
         if (unstakedDeposit > 0) {
             require(token.transfer(owner, unstakedDeposit));

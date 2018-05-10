@@ -13,7 +13,7 @@ const paramConfig = config.paramDefaults
 const utils = require('../utils.js')
 
 contract('simulate TCR apply/challenge/resolve', (accounts) => {
-  describe.only('do it...', () => {
+  describe('do it...', () => {
     const [_, applicant, challenger, voterFor, voterAgainst] = accounts
 
     it('...', async () => {
@@ -52,7 +52,7 @@ contract('simulate TCR apply/challenge/resolve', (accounts) => {
       const plcrChallenge = await utils.getPLCRChallenge(challengeID)
       console.log(`*** challenge #${challengeID} created`)
       console.log('')
-    
+
       await utils.as(challenger, token.approve, plcrChallenge.address, 10 * 10 ** 18)
       await utils.as(challenger, plcrChallenge.start)
       console.log(`*** challenge started`)
@@ -74,7 +74,7 @@ contract('simulate TCR apply/challenge/resolve', (accounts) => {
       await utils.increaseTime(paramConfig.revealStageLength)
       await logBalances(accounts, token, plcrChallenge)
       await logChallengeReward(challengeID)
-      
+
       console.log('*** update status (update application status based on challenge result)')
       console.log('')
       await registry.updateStatus(listingHash)

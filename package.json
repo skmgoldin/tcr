@@ -16,6 +16,7 @@
   "author": "Irene Lin <irene.lin@consensys.net>, Mira Zeitlin <miranda.zeitlin@consensys.net>, Yorke Rhodes <yorke.rhodesiv@consensys.net>",
   "license": "ISC",
   "dependencies": {
+    "@gnosis.pm/gnosis-core-contracts": "^1.0.3",
     "bignumber.js": "5.0.0",
     "bip39": "2.5.0",
     "bn.js": "4.11.8",
