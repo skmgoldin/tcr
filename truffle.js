@@ -15,6 +15,12 @@ module.exports = {
       host: 'localhost',
       network_id: '*',
       port: 8545
+    },
+    testing: {
+      host: "localhost",
+      port: 8545,
+      network_id: "*",
+      gas: 2e7,
     }/* ,
     mainnet: {
       provider: new HDWalletProvider(mnemonic, 'https://mainnet.infura.io'),

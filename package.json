@@ -8,6 +8,7 @@
     "coverage": "solidity-coverage",
     "deploy-rinkeby": "truffle migrate --network rinkeby",
     "deploy-mainnet": "truffle migrate --network mainnet",
+    "test:truffle": "run-with-testrpc -l 20000000 'truffle test --network testing'",
     "test": "truffle test",
     "fix": "eslint --fix",
     "lint": "eslint",
@@ -34,6 +35,7 @@
     "eslint": "4.15.0",
     "eslint-config-airbnb-base": "12.1.0",
     "eslint-plugin-import": "2.8.0",
+    "run-with-testrpc": "^0.3.0",
     "solidity-coverage": "^0.4.15"
   }
 }

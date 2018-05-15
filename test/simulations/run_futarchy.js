@@ -4,9 +4,11 @@ const Token = artifacts.require('EIP20.sol')
 const ChallengeFactory = artifacts.require('FutarchyChallengeFactory')
 const EventFactory = artifacts.require('EventFactory')
 const StandardMarketWithPriceLoggerFactory = artifacts.require('StandardMarketWithPriceLoggerFactory')
+const LMSRMarketMaker = artifacts.require('LMSRMarketMaker')
 const FutarchyOracleFactory = artifacts.require('FutarchyOracleFactory')
 const CentralizedOracleFactory = artifacts.require('CentralizedOracleFactory')
 const FutarchyChallenge = artifacts.require('FutarchyChallenge')
+const FutarchyOracle = artifacts.require('FutarchyOracle')
 
 const fs = require('fs')
 const BN = require('bignumber.js')
@@ -17,35 +19,52 @@ const paramConfig = config.paramDefaults
 const utils = require('../utils.js')
 
 contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
-  describe.only('do it...', () => {
-    const [_, applicant, challenger, voterFor, voterAgainst] = accounts
-    it('...', async () => {
+    it.only('...', async () => {
+      const [_, applicant, challenger, voterFor, voterAgainst] = accounts
+      console.log('accounts! ', _)
+      const tradingPeriod = 60 * 60
       const token = await Token.deployed()
+      for(let account of accounts) {
+        await token.transfer(account, 100);
+      }
       const parameterizer         = await Parameterizer.deployed()
       const eventFactory          = await EventFactory.new()
       const marketFactory         = await StandardMarketWithPriceLoggerFactory.new()
       const centralizedOracleFactory = await CentralizedOracleFactory.new()
       const futarchyOracleFactory = await FutarchyOracleFactory.new(eventFactory.address, marketFactory.address)
-      const challengeFactory      = await ChallengeFactory.new(token.address, paramConfig.minDeposit, futarchyOracleFactory.address, centralizedOracleFactory.address)
+      const lmsrMarketMaker = await LMSRMarketMaker.new()
 
+      const challengeFactory = await ChallengeFactory.new(
+        token.address,
+        paramConfig.minDeposit,
+        tradingPeriod,
+        futarchyOracleFactory.address,
+        centralizedOracleFactory.address,
+        lmsrMarketMaker.address
+      )
       const registry = await Registry.new(token.address, challengeFactory.address, parameterizer.address, 'best registry' )
 
       await logBalances(accounts, token, registry)
-      await token.approve(registry.address, 50, {from: applicant})
+      await token.approve(registry.address, 66, {from: applicant})
       const listingHash = utils.getListingHash('nochallenge.net')
       await utils.as(applicant, registry.apply, listingHash, paramConfig.minDeposit, '')
       await logBalances(accounts, token, registry)
 
       const listingResult = await registry.listings.call(listingHash)
 
-      await token.approve(registry.address, 50, {from: challenger})
+
       const receipt = await utils.as(challenger, registry.createChallenge, listingHash, '')
       const { challengeID } = receipt.logs[0].args
 
       const challenge = await getFutarchyChallenge(challengeID, registry)
-      console.log('challenge: ', challenge)
+      await token.approve(challenge.address, 77, {from: challenger})
+      await challenge.start(100, 200, {from: challenger})
+      const futarchyAddress = await challenge.futarchyOracle();
+      const futarchyOracle = await FutarchyOracle.at(futarchyAddress)
+      const marketAccepted = await futarchyOracle.markets(0)
+      const marketDenied = await futarchyOracle.markets(1)
+
     })
-  })
 })
 
 async function logBalances(accounts, token, registry) {

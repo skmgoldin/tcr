@@ -8,20 +8,26 @@ contract FutarchyChallengeFactory is ChallengeFactoryInterface {
 
   address public token;
   uint public deposit;
+  uint public tradingPeriod;
   FutarchyOracleFactory futarchyOracleFactory;
   CentralizedOracleFactory centralizedOracleFactory;
+  LMSRMarketMaker lmsrMarketMaker;
 
   function FutarchyChallengeFactory(
     address _token,
     uint _deposit,
+    uint _tradingPeriod,
     FutarchyOracleFactory _futarchyOracleFactory,
-    CentralizedOracleFactory _centralizedOracleFactory
+    CentralizedOracleFactory _centralizedOracleFactory,
+    LMSRMarketMaker _lmsrMarketMaker
   ) public {
     token = _token;
     deposit = _deposit;
+    tradingPeriod = _tradingPeriod;
 
     futarchyOracleFactory = _futarchyOracleFactory;
     centralizedOracleFactory = _centralizedOracleFactory;
+    lmsrMarketMaker = _lmsrMarketMaker;
   }
 
   function createChallenge(address _challenger, address _listingOwner) external returns (ChallengeInterface) {
@@ -30,8 +36,10 @@ contract FutarchyChallengeFactory is ChallengeFactoryInterface {
       _listingOwner,
       token,
       deposit,
+      tradingPeriod,
       futarchyOracleFactory,
-      centralizedOracleFactory
+      centralizedOracleFactory,
+      lmsrMarketMaker
     );
   }
 }
