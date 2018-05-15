@@ -114,8 +114,12 @@ contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
       const buyAmt = 3 * 10 ** 18
       console.log('  *** buy ACCEPTED')
       await marketBuy(categoricalMarket, 0, buyAmt, buyer1)
+
       console.log('  *** buy LONG_ACCEPTED')
       await marketBuy(marketForAccepted, 1, buyAmt, buyer1)
+
+      // console.log('  *** buy SHORT_ACCEPTED')
+      // await marketBuy(marketForAccepted, 0, buyAmt, buyer1)
       console.log('')
 
       await logBalances()
@@ -127,7 +131,15 @@ contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
       console.log('')
 
       const challengePassed = await challenge.passed()
-      console.log('Challenge.passed(): ', challengePassed)
+      console.log('  Challenge.passed(): ', challengePassed)
+      console.log('')
+
+      console.log('  *** update registry')
+      await registry.updateStatus(listingHash)
+      console.log('')
+
+      console.log('  Listing isWhitelisted(): ', await registry.isWhitelisted(listingHash))
+      console.log('')
 
       async function marketBuy (market, outcomeTokenIndex, buyAmount, from) {
         const evtContract = Event.at(await market.eventContract())
