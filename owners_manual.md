@@ -4,7 +4,7 @@ Prospect Park Edition
 
 ## Intro
 
-This [token-curated registry (TCR)](#) implementation is motivated by a goal of enabling anybody to quickly and easily stand up a simple TCR compatible with a number of graphical user interfaces. Named *Prospect Park*, it is the inaugural TCR release by the Cryptosystems Productization Lab at ConsenSys.
+This [token-curated registry (TCR)](https://medium.com/@ilovebagels/token-curated-registries-1-0-61a232f8dac7) implementation is motivated by a goal of enabling anybody to quickly and easily stand up a simple TCR compatible with a number of graphical user interfaces. Named *Prospect Park*, it is the inaugural TCR release by the Cryptosystems Productization Lab at ConsenSys.
 
 ## Applying a listing to your TCR
 
@@ -176,13 +176,41 @@ To relinquish a listing and get a deposit refunded, the user can invoke the exit
 function exit(bytes32 _listingHash)
 ```
 
-When the exit function is successfully invoked the listing is removed the listing owner is refunded their deposit. Note that the *Prospect Park* release does not have a lockup period on exits!
+When the exit function is successfully invoked the listing is removed the listing owner is refunded their deposit. Note that the *Prospect Park* release does not have a lockup period on exits! When a listing is exited, two events will be fired:
 
-<span style="background-color: #FF0000">Talk about depositing and withdrawing, and withdrawing rewards following challenges.</span>
+``` javascript
+event _ListingWithdrawn(bytes32 indexed listingHash);
+```
+``` javascript
+event _ListingRemoved(bytes32 indexed listingHash);
+```
+
+To avoid being [touch-and-removed](#challenging-an-application-or-listing), a listing owner may want to top up their deposit in advance of any increase to the minDeposit proposed in the parameterizer. This can be done using the deposit function.
+
+```javascript
+function deposit(bytes32 _listingHash, uint _amount)
+```
+The deposit function emits one event when successfully invoked:
+
+```javascript
+_Deposit(_listingHash, _amount, listing.unstakedDeposit, msg.sender)
+```
+
+To withdraw excess funds deposited with a listing, including funds received as the result of winning a challenge, the listing owner may use the withdraw function. The amount specified to withdraw must be less than or equal to the difference of the current canonical minDeposit parameter listing's total deposit.
+
+```javascript
+function withdraw(bytes32 _listingHash, uint _amount)
+```
+
+The withdraw function emits one event when successfully invoked:
+
+```javascript
+_Withdrawal(_listingHash, _amount, listing.unstakedDeposit, msg.sender);
+```
 
 ## Parameterizing your TCR
 
-A *Prospect Park* TCR has the same six parameters proposed in [the original token-curated registries paper](#thislinkdoesn'tworkingoogledoc), but they are not all implemented under the same names.
+A *Prospect Park* TCR has the same six parameters proposed in [the original token-curated registries paper](https://medium.com/@ilovebagels/token-curated-registries-1-0-61a232f8dac7), but they are not all implemented under the same names.
 
 <table>
   <tr>
@@ -290,10 +318,6 @@ When developing a TCR client, there are several idiosyncrasies to keep in mind i
 The first idiosyncrasy to have in mind is to remember that you are building an application on a blockchain in 2018. This being said, users have to sign up to three transactions for single interactions with the TCR. If users do not have the ability to grant access for the TCR smart contracts to withdraw their tokens, their applications/challenges will fail. Therefore, always thoroughly test your user-flow when applying (2 TXs), challenging (2 TXs), committing (3 TXs)  and revealing (1 TX) votes in order to insure seamless user interaction.
 
 Another idiosyncrasy to have in mind when developing a TCR for client access includes the proper distribution of token after an application and challenge. For example, a candidate is applied into the registry and challenged, with voting ending in favor of the candidate. Therefore, the candidate is entitled to the special dispensation (DISPENSATION_PCT*MIN_DEPOSIT) from the challenger, with the voters in-favor of the candidate receiving their special dispensation [(100 – DISPENSATION_PCT)*MIN_DEPOSIT]. Upon the candidate’s call to `updateStatus`, the will have the original staked amount plus the special dispensation token staked with the listing. The candidate, already in registry, can call the `withdraw` have the special dispensation token amount withdrawn from the listing and deposited in their wallet. Voters entitled to the remaining token, though, have to call `claimVoterReward` in order to receive their winnings. The voters must also call `withdrawVotingRights` to have their tokens used for voting returned. Many idiosyncrasies come into play here when a challenge occurs and leads to voting. Although it may seem like candidate proposals for parameter values would be more complicated than this, the only difference is that the candidates have their token returned if the proposed parameter value is successfully implemented.
-
-~1. Developing experience~~
-
-~2. Conclusion~~
 
 The blockchain is essentially your ultimate backend/database; all other aspects of application architecture changes to support this. Since decentralized applications are asynchronous and exist globally, this thing is gonna run regardless of your frontend. So the frontend needs to update its state somehow to support all other interactions with the smart contracts.
 
