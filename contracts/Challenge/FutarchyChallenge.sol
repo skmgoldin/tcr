@@ -23,7 +23,7 @@ contract  FutarchyChallenge is ChallengeInterface {
   LMSRMarketMaker lmsrMarketMaker;
   Token public token;
 
-  uint public winningMarketIndex
+  uint public winningMarketIndex;
 
   function FutarchyChallenge(
     address _challenger,
