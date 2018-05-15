@@ -124,6 +124,10 @@ contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
       console.log('  *** execute setOutcome')
       increaseTime(tradingPeriod + 1000)
       await futarchyOracle.setOutcome()
+      console.log('')
+
+      const challengePassed = await challenge.passed()
+      console.log('Challenge.passed(): ', challengePassed)
 
       async function marketBuy (market, outcomeTokenIndex, buyAmount, from) {
         const evtContract = Event.at(await market.eventContract())
@@ -137,7 +141,7 @@ contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
         const maxCost = cost + fee + 1000
 
         await collateralToken.approve(market.address, maxCost, { from })
-        await market.buy(0, buyAmt, maxCost, { from })
+        await market.buy(outcomeTokenIndex, buyAmt, maxCost, { from })
       }
 
       async function fundMarket (market, collateralToken, fundingAmount, from) {
@@ -224,10 +228,10 @@ contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
       async function logOutcomeTokenCosts () {
         const acceptedCost = await getOutcomeTokenCost(categoricalMarket.address, 0, 1e15)
         const deniedCost = await getOutcomeTokenCost(categoricalMarket.address, 1, 1e15)
-        const longAcceptedCost = await getOutcomeTokenCost(marketForAccepted.address, 0, 1e15)
-        const shortAcceptedCost = await getOutcomeTokenCost(marketForAccepted.address, 1, 1e15)
-        const longDeniedCost = await getOutcomeTokenCost(marketForDenied.address, 0, 1e15)
-        const shortDeniedCost = await getOutcomeTokenCost(marketForDenied.address, 1, 1e15)
+        const longAcceptedCost = await getOutcomeTokenCost(marketForAccepted.address, 1, 1e15)
+        const shortAcceptedCost = await getOutcomeTokenCost(marketForAccepted.address, 0, 1e15)
+        const longDeniedCost = await getOutcomeTokenCost(marketForDenied.address, 1, 1e15)
+        const shortDeniedCost = await getOutcomeTokenCost(marketForDenied.address, 0, 1e15)
         console.log('  Outcome Token Prices')
         console.log('  --------------------')
         console.log('  ACCEPTED:       ', acceptedCost / 10 ** 15)
