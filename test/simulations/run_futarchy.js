@@ -36,6 +36,7 @@ contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
       const futarchyFundingAmount = paramConfig.minDeposit * 10 ** 18
       const categoricalMarketFunding = 10 * 10 ** 18
       const scalarMarketFunding = 10 * 10 ** 18
+      const approvalAmount = 20 * 10 ** 18
 
       const token = await Token.deployed()
       for(let account of accounts) {
@@ -57,22 +58,28 @@ contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
         centralizedOracleFactory.address,
         lmsrMarketMaker.address
       )
+      console.log('----------------------- CREATING REGISTRY -----------------------')
       const registry = await Registry.new(token.address, challengeFactory.address, parameterizer.address, 'best registry' )
-
       await logTCRBalances(accounts, token, registry)
-      await token.approve(registry.address, 66, {from: applicant})
+      await token.approve(registry.address, approvalAmount, {from: applicant})
       const listingHash = utils.getListingHash('nochallenge.net')
-      await utils.as(applicant, registry.apply, listingHash, paramConfig.minDeposit, '')
+      await utils.as(applicant, registry.apply, listingHash, futarchyFundingAmount, '')
+      console.log('----------------------- SUBMITTING APPLICATION -----------------------')
       await logTCRBalances(accounts, token, registry)
+      console.log('applicant!!! ',  applicant)
 
       const listingResult = await registry.listings.call(listingHash)
 
       const receipt = await utils.as(challenger, registry.createChallenge, listingHash, '')
+
       const { challengeID } = receipt.logs[0].args
 
       const challenge = await getFutarchyChallenge(challengeID, registry)
+      console.log('----------------------- SUBMITTING CHALLENGE -----------------------')
+      await logTCRBalances(accounts, token, registry, challenge)
       await token.approve(challenge.address, futarchyFundingAmount, {from: challenger})
       await challenge.start(100, 200, {from: challenger})
+      console.log('----------------------- STARTING CHALLENGE -----------------------')
       const futarchyAddress = await challenge.futarchyOracle();
       const futarchyOracle = await FutarchyOracle.at(futarchyAddress)
 
@@ -81,7 +88,8 @@ contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
       const categoricalEvent = CategoricalEvent.at(await futarchyOracle.categoricalEvent())
       const acceptedLongShortEvent = ScalarEvent.at(await marketForAccepted.eventContract())
       const deniedLongShortEvent = ScalarEvent.at(await marketForDenied.eventContract())
-      
+      await logTCRBalances(accounts, token, registry, challenge, categoricalEvent, acceptedLongShortEvent, deniedLongShortEvent)
+
       // create standard market w/ LMSR for categorical event
       console.log('  *** create categorical market')
       const categoricalEventMarketFee = 0
@@ -264,12 +272,13 @@ contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
         const fee = await market.calcMarketFee.call(tokenCost)
         return fee.toNumber()
       }
-      
+
     })
 })
 
-async function logTCRBalances(accounts, token, registry) {
+async function logTCRBalances(accounts, token, registry, challenge = null, catEvent = null, aScal = null, dScal = null) {
   const [_, applicant, challenger, voterFor, voterAgainst] = accounts
+  console.log('applicant!!! ',  applicant)
   const applicantBalance = (await token.balanceOf.call(applicant)).toNumber()
   const challengerBalance = (await token.balanceOf.call(challenger)).toNumber()
   const voterForBalance = (await token.balanceOf.call(voterFor)).toNumber()
@@ -278,14 +287,28 @@ async function logTCRBalances(accounts, token, registry) {
   console.log('balances:')
   console.log(`  applicant: ${applicantBalance}`)
   console.log(`  challenger: ${challengerBalance}`)
-  console.log(`  voterFor: ${voterForBalance}`)
-  console.log(`  voterAgainst: ${voterAgainstBalance}`)
   console.log(`  Registry Contract: ${registryBalance}`)
-  // if (plcrChallenge) {
-  //   const plcrChallengeBalance = (await token.balanceOf.call(plcrChallenge.address)).toNumber()
-  //   console.log(`  PLCRChallenge Contract: ${plcrChallengeBalance}`)
-  // }
+  if(challenge) {
+    const challengeBalance = (await token.balanceOf.call(challenge.address)).toNumber()
+    console.log(`  Challenge Contract: ${challengeBalance}`)
+  } else {
+    console.log('  Challenge Contract: NULL')
+  }
+  if(catEvent) {
+    const catEventBalance = (await token.balanceOf.call(catEvent.address)).toNumber()
+    console.log(`  Categorical Event: ${catEventBalance}`)
+  } else {
+    console.log('   Categorical Event: NULL')
+  }
   console.log('')
+  console.log('')
+  console.log('')
+}
+
+async function logRegistryStatus(registry) {
+  console.log('----------')
+  console.log('REGISTRY STATUS')
+  console.log('----------')
 }
 
 async function getFutarchyChallenge(challengeID, registry) {
