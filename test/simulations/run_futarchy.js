@@ -90,7 +90,7 @@ contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
       await logTCRBalances(accounts, token, registry, challenge, categoricalEvent, acceptedLongShortEvent, deniedLongShortEvent)
 
       // create standard market w/ LMSR for categorical event
-      console.log('  *** create categorical market')
+      console.log('-----------------------create categorical market -----------------------')
       const categoricalEventMarketFee = 0
       const { logs: createCategoricalMarketLogs } = await standardMarketFactory.createMarket(
         categoricalEvent.address,
@@ -115,16 +115,18 @@ contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
       const deniedLongToken = OutcomeToken.at(deniedLongShortTokenAddresses[1])
       const deniedShortToken = OutcomeToken.at(deniedLongShortTokenAddresses[0])
 
-      console.log('  *** fund the categorical market')
+      console.log('-----------------------fund the categorical market-----------------------')
       await fundMarket(categoricalMarket, token, categoricalMarketFunding, creator)
       console.log('')
       await logTCRBalances(accounts, token, registry, challenge, categoricalEvent, acceptedLongShortEvent, deniedLongShortEvent)
 
       const buyAmt = 3 * 10 ** 18
-      console.log('  *** buy ACCEPTED')
+      console.log('----------------------- buy ACCEPTED -----------------------')
       await marketBuy(categoricalMarket, 0, buyAmt, buyer1)
+      await logTCRBalances(accounts, token, registry, challenge, categoricalEvent, acceptedLongShortEvent, deniedLongShortEvent)
 
-      console.log('  *** buy LONG_ACCEPTED')
+      console.log('----------------------- buy LONG_ACCEPTED -----------------------')
+      await logTCRBalances(accounts, token, registry, challenge, categoricalEvent, acceptedLongShortEvent, deniedLongShortEvent)
       await marketBuy(marketForAccepted, 1, buyAmt, buyer1)
 
       // console.log('  *** buy SHORT_ACCEPTED')
@@ -134,7 +136,7 @@ contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
       await logBalances()
       await logOutcomeTokenCosts()
 
-      console.log('  *** execute setOutcome')
+      console.log('----------------------- execute setOutcome -----------------------')
       increaseTime(tradingPeriod + 1000)
       await futarchyOracle.setOutcome()
       console.log('')
