@@ -109,30 +109,27 @@ contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
 
       console.log('  *** buy LONG_ACCEPTED')
       console.log('')
-      const buyAmt = 100
-      // await etherToken.deposit({ value: buyAmt, from: buyer1 })
-      // await token.approve(categoricalEvent.address, buyAmt, { from: buyer1 })
+      const buyAmt = 3 * 10 ** 18
       
-      // await marketBuy(categoricalMarket, 0, buyAmt, buyer1)
-      
-      // await marketBuy(marketForAccepted, 0, buyAmt, buyer1)
+      await marketBuy(categoricalMarket, 0, buyAmt, buyer1)
+      await marketBuy(marketForAccepted, 0, buyAmt, buyer1)
 
-      // await logBalances()
-      // await logOutcomeTokenCosts()
+      await logBalances()
+      await logOutcomeTokenCosts()
 
       async function marketBuy (market, outcomeTokenIndex, buyAmount, from) {
-        // const evtContract = Event.at(await market.eventContract())
-        // const collateralToken = Token.at(await evtContract.collateralToken())
+        const evtContract = Event.at(await market.eventContract())
+        const collateralToken = Token.at(await evtContract.collateralToken())
         const cost = await getOutcomeTokenCost(
           market.address,
           outcomeTokenIndex,
           buyAmount
         )
-        // const fee = await getMarketFee(market, cost)
-        // const maxCost = cost + fee + 1000
+        const fee = await getMarketFee(market, cost)
+        const maxCost = cost + fee + 1000
 
-        // await collateralToken.approve(market.address, maxCost, { from })
-        // await market.buy(0, buyAmt, maxCost, { from })
+        await collateralToken.approve(market.address, maxCost, { from })
+        await market.buy(0, buyAmt, maxCost, { from })
       }
 
       async function fundMarket (market, collateralToken, fundingAmount, from) {
@@ -235,7 +232,7 @@ contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
       }
 
       async function getOutcomeTokenCost (marketAddress, outcomeTokenIndex, tokenAmount) {
-        const cost = await lmsrMarketMaker.calcCost.call(marketAddress, outcomeTokenIndex, tokenAmount)
+        const cost = await lmsrMarketMaker.calcCost(marketAddress, outcomeTokenIndex, tokenAmount)
         return cost.toNumber()
       }
 
