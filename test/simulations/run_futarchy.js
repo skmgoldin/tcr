@@ -1,3 +1,5 @@
+import lkTestHelpers from 'lk-test-helpers'
+
 const Parameterizer = artifacts.require('./Parameterizer.sol')
 const Registry = artifacts.require('Registry.sol')
 const Token = artifacts.require('EIP20.sol')
@@ -22,6 +24,8 @@ const BN = require('bignumber.js')
 
 const config = JSON.parse(fs.readFileSync('./conf/config.json'))
 const paramConfig = config.paramDefaults
+
+const { increaseTime } = lkTestHelpers(web3)
 
 const utils = require('../utils.js')
 
@@ -96,26 +100,30 @@ contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
       const deniedToken = OutcomeToken.at(acceptedDeniedTokenAddresses[1])
 
       const acceptedLongShortTokenAddresses = await acceptedLongShortEvent.getOutcomeTokens()
-      const acceptedLongToken = OutcomeToken.at(acceptedLongShortTokenAddresses[0])
-      const acceptedShortToken = OutcomeToken.at(acceptedLongShortTokenAddresses[1])
+      const acceptedLongToken = OutcomeToken.at(acceptedLongShortTokenAddresses[1])
+      const acceptedShortToken = OutcomeToken.at(acceptedLongShortTokenAddresses[0])
 
       const deniedLongShortTokenAddresses = await deniedLongShortEvent.getOutcomeTokens()
-      const deniedLongToken = OutcomeToken.at(deniedLongShortTokenAddresses[0])
-      const deniedShortToken = OutcomeToken.at(deniedLongShortTokenAddresses[1])
+      const deniedLongToken = OutcomeToken.at(deniedLongShortTokenAddresses[1])
+      const deniedShortToken = OutcomeToken.at(deniedLongShortTokenAddresses[0])
 
       console.log('  *** fund the categorical market')
       await fundMarket(categoricalMarket, token, categoricalMarketFunding, creator)
       console.log('')
 
-      console.log('  *** buy LONG_ACCEPTED')
-      console.log('')
       const buyAmt = 3 * 10 ** 18
-      
+      console.log('  *** buy ACCEPTED')
       await marketBuy(categoricalMarket, 0, buyAmt, buyer1)
-      await marketBuy(marketForAccepted, 0, buyAmt, buyer1)
+      console.log('  *** buy LONG_ACCEPTED')
+      await marketBuy(marketForAccepted, 1, buyAmt, buyer1)
+      console.log('')
 
       await logBalances()
       await logOutcomeTokenCosts()
+
+      console.log('  *** execute setOutcome')
+      increaseTime(tradingPeriod + 1000)
+      await futarchyOracle.setOutcome()
 
       async function marketBuy (market, outcomeTokenIndex, buyAmount, from) {
         const evtContract = Event.at(await market.eventContract())
@@ -200,10 +208,10 @@ contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
       async function logTokenBalances (account) {
         await logTokenBalance('Accepted', acceptedToken, account)
         await logTokenBalance('Denied', deniedToken, account)
-        await logTokenBalance('LongAccepted', acceptedLongToken, account)
         await logTokenBalance('ShortAccepted', acceptedShortToken, account)
-        await logTokenBalance('LongDenied', deniedLongToken, account)
+        await logTokenBalance('LongAccepted', acceptedLongToken, account)
         await logTokenBalance('ShortDenied', deniedShortToken, account)
+        await logTokenBalance('LongDenied', deniedLongToken, account)
       }
 
       async function logTokenBalance (tokenName, token, account) {
@@ -224,10 +232,10 @@ contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
         console.log('  --------------------')
         console.log('  ACCEPTED:       ', acceptedCost / 10 ** 15)
         console.log('  DENIED:         ', deniedCost / 10 ** 15)
-        console.log('  LONG_ACCEPTED:  ', longAcceptedCost / 10 ** 15)
         console.log('  SHORT_ACCEPTED: ', shortAcceptedCost / 10 ** 15)
-        console.log('  LONG_DENIED:    ', longDeniedCost / 10 ** 15)
+        console.log('  LONG_ACCEPTED:  ', longAcceptedCost / 10 ** 15)
         console.log('  SHORT_DENIED:   ', shortDeniedCost / 10 ** 15)
+        console.log('  LONG_DENIED:    ', longDeniedCost / 10 ** 15)
         console.log('')
       }
 
