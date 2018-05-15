@@ -16,11 +16,14 @@ contract  FutarchyChallenge is ChallengeInterface {
   bool isStarted;         /// true if challenger has executed start()
   uint stake;             /// number of tokens at stake for either party during challenge
   uint tradingPeriod;
+  uint tradingEndDate;
   FutarchyOracle public futarchyOracle;
   FutarchyOracleFactory futarchyOracleFactory;
   CentralizedOracleFactory centralizedOracleFactory;
   LMSRMarketMaker lmsrMarketMaker;
   Token public token;
+
+  uint public winningMarketIndex
 
   function FutarchyChallenge(
     address _challenger,
@@ -62,9 +65,22 @@ contract  FutarchyChallenge is ChallengeInterface {
     require(token.transferFrom(msg.sender, this, stake));
     require(token.approve(futarchyOracle, stake));
     futarchyOracle.fund(stake);
+    isStarted = true;
   }
 
-  function ended() public view returns (bool) {return true;}
-  function passed() public view returns (bool) {return true;}
-  function tokenLockAmount() public view returns (uint) {return 1;}
+  function ended() public view returns (bool) {
+    return futarchyOracle.isOutcomeSet();
+  }
+
+  function passed() public view returns (bool) {
+    require(futarchyOracle.isOutcomeSet());
+
+    // marketIndex 1 == deniedScalar
+    // if proposal is denied, the challenge has passed.
+    return futarchyOracle.getOutcome() == 1;
+  }
+
+  function tokenLockAmount() public view returns (uint) {
+    return 1;
+  }
 }

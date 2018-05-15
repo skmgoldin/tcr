@@ -63,7 +63,11 @@ contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
       const futarchyOracle = await FutarchyOracle.at(futarchyAddress)
       const marketAccepted = await futarchyOracle.markets(0)
       const marketDenied = await futarchyOracle.markets(1)
+      const categoricalEvent = await futarchyOracle.categoricalEvent()
 
+      //runMarketTrades(categoricalEvent, acceptedScalar, deniedScalar)
+
+      
     })
 })
 
