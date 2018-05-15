@@ -66,7 +66,6 @@ contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
       await utils.as(applicant, registry.apply, listingHash, futarchyFundingAmount, '')
       console.log('----------------------- SUBMITTING APPLICATION -----------------------')
       await logTCRBalances(accounts, token, registry)
-      console.log('applicant!!! ',  applicant)
 
       const listingResult = await registry.listings.call(listingHash)
 
@@ -98,6 +97,7 @@ contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
         lmsrMarketMaker.address,
         categoricalEventMarketFee
       )
+      await logTCRBalances(accounts, token, registry, challenge, categoricalEvent, acceptedLongShortEvent, deniedLongShortEvent)
       const { market: categoricalMarketAddress } = createCategoricalMarketLogs.find(
         e => e.event === 'StandardMarketCreation'
       ).args
@@ -118,6 +118,7 @@ contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
       console.log('  *** fund the categorical market')
       await fundMarket(categoricalMarket, token, categoricalMarketFunding, creator)
       console.log('')
+      await logTCRBalances(accounts, token, registry, challenge, categoricalEvent, acceptedLongShortEvent, deniedLongShortEvent)
 
       const buyAmt = 3 * 10 ** 18
       console.log('  *** buy ACCEPTED')
@@ -278,7 +279,6 @@ contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
 
 async function logTCRBalances(accounts, token, registry, challenge = null, catEvent = null, aScal = null, dScal = null) {
   const [_, applicant, challenger, voterFor, voterAgainst] = accounts
-  console.log('applicant!!! ',  applicant)
   const applicantBalance = (await token.balanceOf.call(applicant)).toNumber()
   const challengerBalance = (await token.balanceOf.call(challenger)).toNumber()
   const voterForBalance = (await token.balanceOf.call(voterFor)).toNumber()
@@ -299,6 +299,20 @@ async function logTCRBalances(accounts, token, registry, challenge = null, catEv
     console.log(`  Categorical Event: ${catEventBalance}`)
   } else {
     console.log('   Categorical Event: NULL')
+  }
+  if(aScal) {
+    const aColToken = await OutcomeToken.at(await aScal.collateralToken())
+    const aScalBalance = (await aColToken.balanceOf.call(aScal.address)).toNumber()
+    console.log(`  Scalar Accepted Event: ${aScalBalance}`)
+  } else {
+    console.log('   Scalar Accepted Event: NULL')
+  }
+  if(dScal) {
+    const aColToken = await OutcomeToken.at(await dScal.collateralToken())
+    const dScalBalance = (await aColToken.balanceOf.call(dScal.address)).toNumber()
+    console.log(`  Denied Accepted Event: ${dScalBalance}`)
+  } else {
+    console.log('   Denied Accepted Event: NULL')
   }
   console.log('')
   console.log('')
