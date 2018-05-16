@@ -6,19 +6,36 @@ import "./PLCRVotingChallenge.sol";
 
 contract PLCRVotingChallengeFactory is ChallengeFactoryInterface {
 
-  address public token;
-  Parameterizer public parameterizer;
+  // ============
+  // STATE:
+  // ============
+  // GLOBAL VARIABLES
+  address public token;                // Address of the TCR's intrinsic ERC20 token
+  Parameterizer public parameterizer;  // Address of the TCR's associeted Parameterizer contract
 
-  function PLCRVotingChallengeFactory(address _token, address _parameterizer) public {
-    token = _token;
+  // ------------
+  // CONSTRUCTOR:
+  // ------------
+  /// @dev Contructor                  Sets the global state for the factory
+  /// @param _tokenAddr                Address of the TCR's intrinsic ERC20 token
+  /// @param _parameterizer            Address of the TCR's associeted Parameterizer contract
+  function PLCRVotingChallengeFactory(address _tokenAddr, address _parameterizer) public {
+    token = _tokenAddr;
     parameterizer = Parameterizer(_parameterizer);
   }
 
-  function createChallenge(address challenger, address listingOwner) external returns (ChallengeInterface) {
+  // --------------------
+  // FACTORY INTERFACE:
+  // --------------------
+  /// @dev createChallenge           Creates challenge associated to a Registry listing
+  /// @param _challenger             Address of the challenger
+  /// @param _listingOwner           Address of the listing owner
+  /// @return ChallengeInterface    Newly created Challenge
+  function createChallenge(address _challenger, address _listingOwner) external returns (ChallengeInterface) {
     uint deposit = parameterizer.get("minDeposit");
     return new PLCRVotingChallenge(
-      challenger,
-      listingOwner,
+      _challenger,
+      _listingOwner,
       token,
       parameterizer.get("commitStageLen"),
       parameterizer.get("revealStageLen"),

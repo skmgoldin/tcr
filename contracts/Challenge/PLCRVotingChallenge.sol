@@ -31,33 +31,33 @@ contract PLCRVotingChallenge is ChallengeInterface {
     using SafeMath for uint;
 
     // ============
-    // STATE VARIABLES:
+    // GLOBAL VARIABLES:
     // ============
 
-    address challenger;     /// the address of the challenger
-    address listingOwner;      /// the address of the listingOwner
-    bool isStarted;         /// true if challenger has executed start()
+    address public challenger;     /// the address of the challenger
+    address public listingOwner;      /// the address of the listingOwner
+    bool public isStarted;         /// true if challenger has executed start()
 
-    uint commitEndDate;     /// expiration date of commit period for poll
-    uint revealEndDate;     /// expiration date of reveal period for poll
-    uint voteQuorum;	    /// number of votes required for a proposal to pass
-    uint rewardPool;        /// pool of tokens to be distributed to winning voters
-    uint stake;             /// number of tokens at stake for either party during challenge
-    uint votesFor;		    /// tally of votes supporting proposal
-    uint votesAgainst;      /// tally of votes countering proposal
+    uint public commitEndDate;     /// expiration date of commit period for poll
+    uint public revealEndDate;     /// expiration date of reveal period for poll
+    uint public voteQuorum;	    /// number of votes required for a proposal to pass
+    uint public rewardPool;        /// pool of tokens to be distributed to winning voters
+    uint public stake;             /// number of tokens at stake for either party during challenge
+    uint public votesFor;		    /// tally of votes supporting proposal
+    uint public votesAgainst;      /// tally of votes countering proposal
 
-    bool winnerRewardTransferred;
-    uint voterTokensClaimed;
-    uint voterRewardsClaimed;
+    bool public winnerRewardTransferred;
+    uint public voterTokensClaimed;
+    uint public voterRewardsClaimed;
 
-    uint commitStageLen;
-    uint revealStageLen;
+    uint public commitStageLen;
+    uint public revealStageLen;
 
-    mapping(address => bool) didCommit;     /// indicates whether an address committed a vote for this poll
-    mapping(address => bool) didReveal;     /// indicates whether an address revealed a vote for this poll
+    mapping(address => bool) public didCommit;     /// indicates whether an address committed a vote for this poll
+    mapping(address => bool) public didReveal;     /// indicates whether an address revealed a vote for this poll
 
     mapping(address => uint) public voteTokenBalance; // maps user's address to voteToken balance
-    mapping(address => bool) tokenClaims;   // Indicates whether a voter has claimed a reward yet
+    mapping(address => bool) public tokenClaims;   // Indicates whether a voter has claimed a reward yet
 
     AttributeStore.Data store;
 
