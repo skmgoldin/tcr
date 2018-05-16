@@ -59,7 +59,6 @@ contract PLCRVotingChallenge is ChallengeInterface {
     mapping(address => uint) public voteTokenBalance; // maps user's address to voteToken balance
     mapping(address => bool) tokenClaims;   // Indicates whether a voter has claimed a reward yet
 
-    mapping(address => DLL.Data) dllMap;
     AttributeStore.Data store;
 
     EIP20Interface public token;

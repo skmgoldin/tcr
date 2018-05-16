@@ -1,3 +1,6 @@
+require('babel-register')
+require('babel-polyfill')
+
 const HDWalletProvider = require('truffle-hdwallet-provider');
 const fs = require('fs');
 
@@ -15,6 +18,12 @@ module.exports = {
       host: 'localhost',
       network_id: '*',
       port: 8545
+    },
+    testing: {
+      host: "localhost",
+      port: 8545,
+      network_id: "*",
+      gas: 2e7,
     }/* ,
     mainnet: {
       provider: new HDWalletProvider(mnemonic, 'https://mainnet.infura.io'),
