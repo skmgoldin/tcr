@@ -152,7 +152,7 @@ contract Parameterizer {
 
     require(token.transferFrom(msg.sender, this, deposit)); // escrow tokens (deposit amt)
 
-    _ReparameterizationProposal(_name, _value, propID, deposit, proposals[propID].appExpiry, msg.sender);
+    emit _ReparameterizationProposal(_name, _value, propID, deposit, proposals[propID].appExpiry, msg.sender);
     return propID;
   }
 
@@ -188,7 +188,7 @@ contract Parameterizer {
 
     var (commitEndDate, revealEndDate,) = voting.pollMap(pollID);
 
-    _NewChallenge(_propID, pollID, commitEndDate, revealEndDate, msg.sender);
+    emit _NewChallenge(_propID, pollID, commitEndDate, revealEndDate, msg.sender);
     return pollID;
   }
 
@@ -208,7 +208,7 @@ contract Parameterizer {
       // There is no challenge against the proposal. The processBy date for the proposal has not
      // passed, but the proposal's appExpirty date has passed.
       set(prop.name, prop.value);
-      _ProposalAccepted(_propID, prop.name, prop.value);
+      emit _ProposalAccepted(_propID, prop.name, prop.value);
       delete proposals[_propID];
       require(token.transfer(propOwner, propDeposit));
     } else if (challengeCanBeResolved(_propID)) {
@@ -258,7 +258,7 @@ contract Parameterizer {
     // ensures a voter cannot claim tokens again
     challenges[_challengeID].tokenClaims[msg.sender] = true;
 
-    _RewardClaimed(_challengeID, reward, msg.sender);
+    emit _RewardClaimed(_challengeID, reward, msg.sender);
     require(token.transfer(msg.sender, reward));
   }
 
@@ -380,11 +380,11 @@ contract Parameterizer {
       if(prop.processBy > now) {
         set(prop.name, prop.value);
       }
-      _ChallengeFailed(_propID, prop.challengeID, challenge.rewardPool, challenge.winningTokens);
+      emit _ChallengeFailed(_propID, prop.challengeID, challenge.rewardPool, challenge.winningTokens);
       require(token.transfer(prop.owner, reward));
     }
     else { // The challenge succeeded or nobody voted
-      _ChallengeSucceeded(_propID, prop.challengeID, challenge.rewardPool, challenge.winningTokens);
+      emit _ChallengeSucceeded(_propID, prop.challengeID, challenge.rewardPool, challenge.winningTokens);
       require(token.transfer(challenges[prop.challengeID].challenger, reward));
     }
   }
