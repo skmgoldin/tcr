@@ -55,25 +55,18 @@ contract Registry {
     Parameterizer public parameterizer;
     string public name;
 
-    // ------------
-    // CONSTRUCTOR:
-    // ------------
-
     /**
-    @dev Contructor         Sets the addresses for token, voting, and parameterizer
-    @param _tokenAddr       Address of the TCR's intrinsic ERC20 token
-    @param _plcrAddr        Address of a PLCR voting contract for the provided token
-    @param _paramsAddr      Address of a Parameterizer contract 
+    @dev Initializer. Can only be called once.
+    @param _token The address where the ERC20 token contract is deployed
     */
-    function Registry(
-        address _tokenAddr,
-        address _plcrAddr,
-        address _paramsAddr,
-        string _name
-    ) public {
-        token = EIP20Interface(_tokenAddr);
-        voting = PLCRVoting(_plcrAddr);
-        parameterizer = Parameterizer(_paramsAddr);
+    function init(address _token, address _voting, address _parameterizer, string _name) public {
+        require(_token != 0 && address(token) == 0);
+        require(_voting != 0 && address(voting) == 0);
+        require(_parameterizer != 0 && address(parameterizer) == 0);
+
+        token = EIP20Interface(_token);
+        voting = PLCRVoting(_voting);
+        parameterizer = Parameterizer(_parameterizer);
         name = _name;
     }
 
@@ -173,14 +166,14 @@ contract Registry {
     */
     function challenge(bytes32 _listingHash, string _data) external returns (uint challengeID) {
         Listing storage listing = listings[_listingHash];
-        uint deposit = parameterizer.get("minDeposit");
+        uint minDeposit = parameterizer.get("minDeposit");
 
         // Listing must be in apply stage or already on the whitelist
         require(appWasMade(_listingHash) || listing.whitelisted);
         // Prevent multiple challenges
         require(listing.challengeID == 0 || challenges[listing.challengeID].resolved);
 
-        if (listing.unstakedDeposit < deposit) {
+        if (listing.unstakedDeposit < minDeposit) {
             // Not enough tokens, listingHash auto-delisted
             resetListing(_listingHash);
             emit _TouchAndRemoved(_listingHash);
@@ -196,8 +189,8 @@ contract Registry {
 
         challenges[pollID] = Challenge({
             challenger: msg.sender,
-            rewardPool: ((100 - parameterizer.get("dispensationPct")) * deposit) / 100,
-            stake: deposit,
+            rewardPool: ((100 - parameterizer.get("dispensationPct")) * minDeposit) / 100,
+            stake: minDeposit,
             resolved: false,
             totalTokens: 0
         });
@@ -206,10 +199,10 @@ contract Registry {
         listing.challengeID = pollID;
 
         // Locks tokens for listingHash during challenge
-        listing.unstakedDeposit -= deposit;
+        listing.unstakedDeposit -= minDeposit;
 
         // Takes tokens from challenger
-        require(token.transferFrom(msg.sender, this, deposit));
+        require(token.transferFrom(msg.sender, this, minDeposit));
 
         var (commitEndDate, revealEndDate,) = voting.pollMap(pollID);
 
@@ -224,11 +217,11 @@ contract Registry {
     */
     function updateStatus(bytes32 _listingHash) public {
         if (canBeWhitelisted(_listingHash)) {
-          whitelistApplication(_listingHash);
+            whitelistApplication(_listingHash);
         } else if (challengeCanBeResolved(_listingHash)) {
-          resolveChallenge(_listingHash);
+            resolveChallenge(_listingHash);
         } else {
-          revert();
+            revert();
         }
     }
 
@@ -391,7 +384,7 @@ contract Registry {
     @param _voter       The voter whose claim status to query for the provided challengeID
     */
     function tokenClaims(uint _challengeID, address _voter) public view returns (bool) {
-      return challenges[_challengeID].tokenClaims[_voter];
+        return challenges[_challengeID].tokenClaims[_voter];
     }
 
     // ----------------
