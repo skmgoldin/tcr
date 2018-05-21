@@ -1,7 +1,5 @@
 /* eslint-env mocha */
-/* global artifacts assert contract */
-const Parameterizer = artifacts.require('./Parameterizer.sol');
-
+/* global assert contract */
 const fs = require('fs');
 const utils = require('../utils');
 
@@ -12,10 +10,20 @@ contract('Parameterizer', (accounts) => {
   describe('Function: tokenClaims', () => {
     const [proposer, challenger, alice] = accounts;
 
-    it('should return false if voter tokens have not been claimed yet.', async () => {
-      const parameterizer = await Parameterizer.deployed();
-      const voting = await utils.getVoting();
+    let token;
+    let voting;
+    let parameterizer;
 
+    before(async () => {
+      const { votingProxy, paramProxy, tokenInstance } = await utils.getProxies(token);
+      voting = votingProxy;
+      parameterizer = paramProxy;
+      token = tokenInstance;
+
+      await utils.approveProxies(accounts, token, voting, parameterizer, false);
+    });
+
+    it('should return false if voter tokens have not been claimed yet.', async () => {
       // Make a proposal to change the voteQuorum param to 51, and grab the proposal ID
       const proposalReceipt = await utils.as(proposer, parameterizer.proposeReparameterization, 'voteQuorum', '51');
       const { propID } = proposalReceipt.logs[0].args;
@@ -26,7 +34,7 @@ contract('Parameterizer', (accounts) => {
       const { challengeID } = challengeReceipt.logs[0].args;
 
       // Commit 10 tokens in support of the proposal, and finish the commit stage
-      await utils.commitVote(challengeID, '1', '10', '420', alice);
+      await utils.commitVote(challengeID, '1', '10', '420', alice, voting);
       await utils.increaseTime(paramConfig.pCommitStageLength + 1);
 
       // Reveal the supporting vote, and finish the reveal stage
@@ -44,9 +52,6 @@ contract('Parameterizer', (accounts) => {
     });
 
     it('should return true if voter tokens have been claimed.', async () => {
-      const parameterizer = await Parameterizer.deployed();
-      const voting = await utils.getVoting();
-
       // Make a proposal to change the voteQuorum param to 52, and grab the proposal ID
       const proposalReceipt = await utils.as(proposer, parameterizer.proposeReparameterization, 'voteQuorum', '52');
       const { propID } = proposalReceipt.logs[0].args;
@@ -57,7 +62,7 @@ contract('Parameterizer', (accounts) => {
       const { challengeID } = challengeReceipt.logs[0].args;
 
       // Commit 10 tokens in support of the proposal, and finish the commit stage
-      await utils.commitVote(challengeID, '1', '10', '420', alice);
+      await utils.commitVote(challengeID, '1', '10', '420', alice, voting);
       await utils.increaseTime(paramConfig.pCommitStageLength + 1);
 
       // Reveal the suypporting vote, and finish the reveal stage

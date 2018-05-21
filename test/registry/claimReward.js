@@ -1,8 +1,5 @@
 /* eslint-env mocha */
-/* global assert contract artifacts */
-const Registry = artifacts.require('Registry.sol');
-const Token = artifacts.require('EIP20.sol');
-
+/* global assert contract */
 const fs = require('fs');
 const BN = require('bignumber.js');
 
@@ -18,10 +15,20 @@ contract('Registry', (accounts) => {
     const [applicant, challenger, voterAlice] = accounts;
     const minDeposit = bigTen(paramConfig.minDeposit);
 
+    let token;
+    let voting;
+    let registry;
+
+    before(async () => {
+      const { votingProxy, registryProxy, tokenInstance } = await utils.getProxies();
+      voting = votingProxy;
+      registry = registryProxy;
+      token = tokenInstance;
+
+      await utils.approveProxies(accounts, token, voting, false, registry);
+    });
+
     it('should transfer the correct number of tokens once a challenge has been resolved', async () => {
-      const registry = await Registry.deployed();
-      const voting = await utils.getVoting();
-      const token = Token.at(await registry.token.call());
       const listing = utils.getListingHash('claimthis.net');
 
       // Apply
@@ -29,10 +36,10 @@ contract('Registry', (accounts) => {
       const aliceStartingBalance = await token.balanceOf.call(voterAlice);
 
       // Challenge
-      const pollID = await utils.challengeAndGetPollID(listing, challenger);
+      const pollID = await utils.challengeAndGetPollID(listing, challenger, registry);
 
       // Alice is so committed
-      await utils.commitVote(pollID, '0', 500, '420', voterAlice);
+      await utils.commitVote(pollID, '0', 500, '420', voterAlice, voting);
       await utils.increaseTime(paramConfig.commitStageLength + 1);
 
       // Alice is so revealing
@@ -59,9 +66,8 @@ contract('Registry', (accounts) => {
     });
 
     it('should revert if challenge does not exist', async () => {
-      const registry = await Registry.deployed();
       const listing = utils.getListingHash('reversion.net');
-      await utils.addToWhitelist(listing, minDeposit, applicant);
+      await utils.addToWhitelist(listing, minDeposit, applicant, registry);
 
       try {
         const nonPollID = '666';
@@ -73,19 +79,16 @@ contract('Registry', (accounts) => {
     });
 
     it('should revert if provided salt is incorrect', async () => {
-      const registry = await Registry.deployed();
       const listing = utils.getListingHash('sugar.net');
-      const voting = await utils.getVoting();
-      const token = Token.at(await registry.token.call());
 
       const applicantStartingBalance = await token.balanceOf.call(applicant);
       const aliceStartBal = await token.balanceOf.call(voterAlice);
-      await utils.addToWhitelist(listing, minDeposit, applicant);
+      await utils.addToWhitelist(listing, minDeposit, applicant, registry);
 
-      const pollID = await utils.challengeAndGetPollID(listing, challenger);
+      const pollID = await utils.challengeAndGetPollID(listing, challenger, registry);
 
       // Alice is so committed
-      await utils.commitVote(pollID, '0', 500, '420', voterAlice);
+      await utils.commitVote(pollID, '0', 500, '420', voterAlice, voting);
       await utils.increaseTime(paramConfig.commitStageLength + 1);
 
       // Alice is so revealing
@@ -117,21 +120,18 @@ contract('Registry', (accounts) => {
     });
 
     it('should not transfer tokens if msg.sender has already claimed tokens for a challenge', async () => {
-      const registry = await Registry.deployed();
       const listing = utils.getListingHash('sugar.net');
-      const voting = await utils.getVoting();
-      const token = Token.at(await registry.token.call());
 
       const applicantStartingBalance = await token.balanceOf.call(applicant);
       const aliceStartingBalance = await token.balanceOf.call(voterAlice);
 
-      await utils.addToWhitelist(listing, minDeposit, applicant);
+      await utils.addToWhitelist(listing, minDeposit, applicant, registry);
 
       // Challenge
-      const pollID = await utils.challengeAndGetPollID(listing, challenger);
+      const pollID = await utils.challengeAndGetPollID(listing, challenger, registry);
 
       // Alice is so committed
-      await utils.commitVote(pollID, '0', 500, '420', voterAlice);
+      await utils.commitVote(pollID, '0', 500, '420', voterAlice, voting);
       await utils.increaseTime(paramConfig.commitStageLength + 1);
 
       // Alice is so revealing
@@ -168,21 +168,18 @@ contract('Registry', (accounts) => {
     });
 
     it('should not transfer tokens for an unresolved challenge', async () => {
-      const registry = await Registry.deployed();
       const listing = utils.getListingHash('unresolved.net');
-      const voting = await utils.getVoting();
-      const token = Token.at(await registry.token.call());
 
       const applicantStartingBalance = await token.balanceOf.call(applicant);
       const aliceStartingBalance = await token.balanceOf.call(voterAlice);
 
-      await utils.addToWhitelist(listing, minDeposit, applicant);
+      await utils.addToWhitelist(listing, minDeposit, applicant, registry);
 
       // Challenge
-      const pollID = await utils.challengeAndGetPollID(listing, challenger);
+      const pollID = await utils.challengeAndGetPollID(listing, challenger, registry);
 
       // Alice is so committed
-      await utils.commitVote(pollID, '0', 500, '420', voterAlice);
+      await utils.commitVote(pollID, '0', 500, '420', voterAlice, voting);
       await utils.increaseTime(paramConfig.commitStageLength + 1);
 
       // Alice is so revealing

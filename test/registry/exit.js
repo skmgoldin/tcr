@@ -1,8 +1,5 @@
 /* eslint-env mocha */
-/* global assert contract artifacts */
-const Registry = artifacts.require('Registry.sol');
-const Token = artifacts.require('EIP20.sol');
-
+/* global assert contract */
 const fs = require('fs');
 
 const config = JSON.parse(fs.readFileSync('./conf/config.json'));
@@ -14,14 +11,23 @@ contract('Registry', (accounts) => {
   describe('Function: exit', () => {
     const [applicant, challenger, voter] = accounts;
 
+    let token;
+    let registry;
+
+    before(async () => {
+      const { registryProxy, tokenInstance } = await utils.getProxies();
+      registry = registryProxy;
+      token = tokenInstance;
+
+      await utils.approveProxies(accounts, token, false, false, registry);
+    });
+
     it('should allow a listing to exit when no challenge exists', async () => {
-      const registry = await Registry.deployed();
-      const token = Token.at(await registry.token.call());
       const listing = utils.getListingHash('consensys.net');
 
       const initialApplicantTokenHoldings = await token.balanceOf.call(applicant);
 
-      await utils.addToWhitelist(listing, paramConfig.minDeposit, applicant);
+      await utils.addToWhitelist(listing, paramConfig.minDeposit, applicant, registry);
 
       const isWhitelisted = await registry.isWhitelisted.call(listing);
       assert.strictEqual(isWhitelisted, true, 'the listing was not added to the registry');
@@ -40,13 +46,11 @@ contract('Registry', (accounts) => {
     });
 
     it('should not allow a listing to exit when a challenge does exist', async () => {
-      const registry = await Registry.deployed();
-      const token = Token.at(await registry.token.call());
       const listing = utils.getListingHash('consensys.net');
 
       const initialApplicantTokenHoldings = await token.balanceOf.call(applicant);
 
-      await utils.addToWhitelist(listing, paramConfig.minDeposit, applicant);
+      await utils.addToWhitelist(listing, paramConfig.minDeposit, applicant, registry);
 
       const isWhitelisted = await registry.isWhitelisted.call(listing);
       assert.strictEqual(isWhitelisted, true, 'the listing was not added to the registry');
@@ -79,10 +83,9 @@ contract('Registry', (accounts) => {
     });
 
     it('should not allow a listing to be exited by someone who doesn\'t own it', async () => {
-      const registry = await Registry.deployed();
       const listing = utils.getListingHash('consensys.net');
 
-      await utils.addToWhitelist(listing, paramConfig.minDeposit, applicant);
+      await utils.addToWhitelist(listing, paramConfig.minDeposit, applicant, registry);
 
       try {
         await registry.exit(listing, { from: voter });
@@ -100,7 +103,6 @@ contract('Registry', (accounts) => {
     });
 
     it('should revert if listing is in application stage', async () => {
-      const registry = await Registry.deployed();
       const listing = utils.getListingHash('real.net');
 
       await utils.as(applicant, registry.apply, listing, paramConfig.minDeposit, '');

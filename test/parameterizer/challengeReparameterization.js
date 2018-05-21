@@ -1,8 +1,5 @@
 /* eslint-env mocha */
-/* global artifacts assert contract */
-const Parameterizer = artifacts.require('./Parameterizer.sol');
-const Token = artifacts.require('EIP20.sol');
-
+/* global assert contract */
 const fs = require('fs');
 const BN = require('bn.js');
 const utils = require('../utils');
@@ -14,10 +11,20 @@ contract('Parameterizer', (accounts) => {
   describe('Function: challengeReparameterization', () => {
     const [proposer, challenger, voter] = accounts;
 
-    it('should leave parameters unchanged if a proposal loses a challenge', async () => {
-      const parameterizer = await Parameterizer.deployed();
-      const token = Token.at(await parameterizer.token.call());
+    let token;
+    let voting;
+    let parameterizer;
 
+    before(async () => {
+      const { votingProxy, paramProxy, tokenInstance } = await utils.getProxies(token);
+      voting = votingProxy;
+      parameterizer = paramProxy;
+      token = tokenInstance;
+
+      await utils.approveProxies(accounts, token, voting, parameterizer, false);
+    });
+
+    it('should leave parameters unchanged if a proposal loses a challenge', async () => {
       const proposerStartingBalance = await token.balanceOf.call(proposer);
       const challengerStartingBalance = await token.balanceOf.call(challenger);
 
@@ -52,10 +59,6 @@ contract('Parameterizer', (accounts) => {
     });
 
     it('should set new parameters if a proposal wins a challenge', async () => {
-      const parameterizer = await Parameterizer.deployed();
-      const token = Token.at(await parameterizer.token.call());
-      const voting = await utils.getVoting();
-
       const proposerStartingBalance = await token.balanceOf.call(proposer);
       const challengerStartingBalance = await token.balanceOf.call(challenger);
 
@@ -68,7 +71,7 @@ contract('Parameterizer', (accounts) => {
 
       const { challengeID } = challengeReceipt.logs[0].args;
 
-      await utils.commitVote(challengeID, '1', '10', '420', voter);
+      await utils.commitVote(challengeID, '1', '10', '420', voter, voting);
       await utils.increaseTime(paramConfig.pCommitStageLength + 1);
 
       await utils.as(voter, voting.revealVote, challengeID, '1', '420');
@@ -100,8 +103,6 @@ contract('Parameterizer', (accounts) => {
     it(
       'should have deposits of equal size if a challenge is opened & the pMinDeposit has changed since the proposal was initiated',
       async () => {
-        const parameterizer = await Parameterizer.deployed();
-
         // make proposal to change pMinDeposit
         // this is to induce an error where:
         // a challenge could have a different stake than the proposal being challenged
@@ -138,8 +139,6 @@ contract('Parameterizer', (accounts) => {
     );
 
     it('should not allow a challenges for non-existent proposals', async () => {
-      const parameterizer = await Parameterizer.deployed();
-
       try {
         await utils.as(challenger, parameterizer.challengeReparameterization, new BN(0).toString());
       } catch (err) {
@@ -150,9 +149,6 @@ contract('Parameterizer', (accounts) => {
     });
 
     it('should revert if token transfer from user fails', async () => {
-      const parameterizer = await Parameterizer.deployed();
-      const token = Token.at(await parameterizer.token.call());
-
       const proposalReceipt = await utils.as(proposer, parameterizer.proposeReparameterization, 'voteQuorum', '55');
 
       const { propID } = proposalReceipt.logs[0].args;

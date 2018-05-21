@@ -1,7 +1,5 @@
 /* eslint-env mocha */
-/* global assert contract artifacts */
-const Registry = artifacts.require('Registry.sol');
-
+/* global assert contract */
 const fs = require('fs');
 const BN = require('bignumber.js');
 
@@ -18,13 +16,23 @@ contract('Registry', (accounts) => {
     const withdrawAmount = minDeposit.div(bigTen(2));
     const [applicant, challenger] = accounts;
 
+    let token;
+    let registry;
+
+    before(async () => {
+      const { registryProxy, tokenInstance } = await utils.getProxies();
+      registry = registryProxy;
+      token = tokenInstance;
+
+      await utils.approveProxies(accounts, token, false, false, registry);
+    });
+
     it('should not withdraw tokens from a listing that has a deposit === minDeposit', async () => {
-      const registry = await Registry.deployed();
       const dontChallengeListing = 'dontchallenge.net';
       const errMsg = 'applicant was able to withdraw tokens';
 
-      await utils.addToWhitelist(dontChallengeListing, minDeposit, applicant);
-      const origDeposit = await utils.getUnstakedDeposit(dontChallengeListing);
+      await utils.addToWhitelist(dontChallengeListing, minDeposit, applicant, registry);
+      const origDeposit = await utils.getUnstakedDeposit(dontChallengeListing, registry);
 
       try {
         await utils.as(applicant, registry.withdraw, dontChallengeListing, withdrawAmount);
@@ -33,20 +41,19 @@ contract('Registry', (accounts) => {
         assert(utils.isEVMException(err), err.toString());
       }
 
-      const afterWithdrawDeposit = await utils.getUnstakedDeposit(dontChallengeListing);
+      const afterWithdrawDeposit = await utils.getUnstakedDeposit(dontChallengeListing, registry);
 
       assert.strictEqual(afterWithdrawDeposit.toString(10), origDeposit.toString(10), errMsg);
     });
 
     it('should not withdraw tokens where the amount is less than twice the minDeposit and the listing is locked in ' +
      'a challenge', async () => {
-      const registry = await Registry.deployed();
       const listing = utils.getListingHash('shouldntwithdraw.net');
 
       const deposit = minDeposit.plus(bigTen(1));
 
       // Whitelist, then challenge
-      await utils.addToWhitelist(listing, deposit, applicant);
+      await utils.addToWhitelist(listing, deposit, applicant, registry);
       await utils.as(challenger, registry.challenge, listing, '');
 
       try {
@@ -64,13 +71,12 @@ contract('Registry', (accounts) => {
     });
 
     it('should revert if the message sender is not the owner of the application/listing', async () => {
-      const registry = await Registry.deployed();
       const listing = utils.getListingHash('challengerWithdraw.net');
 
       const deposit = minDeposit.plus(bigTen(1));
 
       // Whitelist
-      await utils.addToWhitelist(listing, deposit, applicant);
+      await utils.addToWhitelist(listing, deposit, applicant, registry);
 
       try {
         // Attempt to withdraw; should fail
@@ -83,31 +89,29 @@ contract('Registry', (accounts) => {
     });
 
     it('should allow listing owner to withdraw and decrease the UnstakedDeposit while there is not a challenge', async () => {
-      const registry = await Registry.deployed();
       const listing = utils.getListingHash('ITWORKS.net');
 
       const deposit = minDeposit.plus(bigTen(1));
 
       // Whitelist
-      await utils.addToWhitelist(listing, deposit, applicant);
+      await utils.addToWhitelist(listing, deposit, applicant, registry);
 
       await utils.as(applicant, registry.withdraw, listing, '1');
 
-      const afterWithdrawDeposit = await utils.getUnstakedDeposit(listing);
+      const afterWithdrawDeposit = await utils.getUnstakedDeposit(listing, registry);
 
       assert.strictEqual(minDeposit.toString(), afterWithdrawDeposit.toString(), `UnstakedDeposit should be ${minDeposit.toString()}`);
     });
 
     it('should not allow withdrawal greater than UnstakedDeposit', async () => {
-      const registry = await Registry.deployed();
       const listing = utils.getListingHash('moreThanIOwn.net');
 
       // calculate the amount to withdraw: greater than the unstaked deposit
-      const unstakedDeposit = await utils.getUnstakedDeposit(listing);
+      const unstakedDeposit = await utils.getUnstakedDeposit(listing, registry);
       const withdrawGreaterAmount = new BN(unstakedDeposit, 10).plus('1');
 
       // Whitelist
-      await utils.addToWhitelist(listing, minDeposit, applicant);
+      await utils.addToWhitelist(listing, minDeposit, applicant, registry);
       try {
         await utils.as(applicant, registry.withdraw, listing, withdrawGreaterAmount.toString());
       } catch (err) {
