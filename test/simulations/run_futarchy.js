@@ -4,7 +4,7 @@ const Parameterizer = artifacts.require('./Parameterizer.sol')
 const Registry = artifacts.require('Registry.sol')
 const Token = artifacts.require('EIP20.sol')
 const OutcomeToken = artifacts.require('OutcomeToken')
-const ChallengeFactory = artifacts.require('FutarchyChallengeFactory')
+const FutarchyChallengeFactory = artifacts.require('FutarchyChallengeFactory')
 const Event = artifacts.require('Event')
 const EventFactory = artifacts.require('EventFactory')
 const CategoricalEvent = artifacts.require('CategoricalEvent')
@@ -15,7 +15,7 @@ const StandardMarketWithPriceLogger = artifacts.require('StandardMarketWithPrice
 const StandardMarketWithPriceLoggerFactory = artifacts.require('StandardMarketWithPriceLoggerFactory')
 const LMSRMarketMaker = artifacts.require('LMSRMarketMaker')
 const FutarchyOracleFactory = artifacts.require('FutarchyOracleFactory')
-const CentralizedOracleFactory = artifacts.require('CentralizedOracleFactory')
+const CentralizedTimedOracleFactory = artifacts.require('CentralizedTimedOracleFactory')
 const FutarchyChallenge = artifacts.require('FutarchyChallenge')
 const FutarchyOracle = artifacts.require('FutarchyOracle')
 
@@ -45,21 +45,23 @@ contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
       const parameterizer         = await Parameterizer.deployed()
       const eventFactory          = await EventFactory.new()
       const marketFactory         = await StandardMarketWithPriceLoggerFactory.new()
-      const centralizedOracleFactory = await CentralizedOracleFactory.new()
+      const centralizedTimedOracleFactory = await CentralizedTimedOracleFactory.new()
       const standardMarketFactory = await StandardMarketFactory.new()
       const futarchyOracleFactory = await FutarchyOracleFactory.new(eventFactory.address, marketFactory.address)
       const lmsrMarketMaker = await LMSRMarketMaker.new()
+      const timeToPriceResolution = 60 * 60 * 24 * 7 // a week
 
-      const challengeFactory = await ChallengeFactory.new(
+      const futarchyChallengeFactory = await FutarchyChallengeFactory.new(
         token.address,
         futarchyFundingAmount,
         tradingPeriod,
+        timeToPriceResolution,
         futarchyOracleFactory.address,
-        centralizedOracleFactory.address,
+        centralizedTimedOracleFactory.address,
         lmsrMarketMaker.address
       )
       console.log('----------------------- CREATING REGISTRY -----------------------')
-      const registry = await Registry.new(token.address, challengeFactory.address, parameterizer.address, 'best registry' )
+      const registry = await Registry.new(token.address, futarchyChallengeFactory.address, parameterizer.address, 'best registry' )
       await logTCRBalances(accounts, token, registry)
       await token.approve(registry.address, approvalAmount, {from: applicant})
       const listingHash = utils.getListingHash('nochallenge.net')
@@ -277,7 +279,7 @@ contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
       }
 
     })
-})
+ })
 
 async function logTCRBalances(accounts, token, registry, challenge = null, catEvent = null, aScal = null, dScal = null) {
   const [_, applicant, challenger, voterFor, voterAgainst] = accounts

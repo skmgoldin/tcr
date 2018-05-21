@@ -1,6 +1,6 @@
 pragma solidity ^0.4.8;
 import '@gnosis.pm/gnosis-core-contracts/contracts/Oracles/FutarchyOracleFactory.sol';
-import '@gnosis.pm/gnosis-core-contracts/contracts/Oracles/CentralizedOracleFactory.sol';
+import './Oracles/CentralizedTimedOracleFactory.sol';
 import "./ChallengeFactoryInterface.sol";
 import "./FutarchyChallenge.sol";
 
@@ -10,13 +10,14 @@ contract FutarchyChallengeFactory is ChallengeFactoryInterface {
   // STATE:
   // ============
   // GLOBAL VARIABLES
-  address public token;        // Address of the TCR's intrinsic ERC20 token
-  uint public stakeAmount;     // Amount that must be staked to initiate a Challenge
-  uint public tradingPeriod;   // Duration for open trading on futarchy prediction markets
+  address public token;              // Address of the TCR's intrinsic ERC20 token
+  uint public stakeAmount;           // Amount that must be staked to initiate a Challenge
+  uint public tradingPeriod;         // Duration for open trading on futarchy prediction markets
+  uint public timeToPriceResolution; // Duration from start of prediction markets until date of final price resolution
 
-  FutarchyOracleFactory public futarchyOracleFactory;        // Factory for creating Futarchy Oracles
-  CentralizedOracleFactory public centralizedOracleFactory;  // Factory for creating Oracles to resolve Futarchy's scalar prediction markets
-  LMSRMarketMaker public lmsrMarketMaker;                    // LMSR Market Maker for futarchy's prediction markets
+  FutarchyOracleFactory public futarchyOracleFactory;                  // Factory for creating Futarchy Oracles
+  CentralizedTimedOracleFactory public centralizedTimedOracleFactory;  // Factory for creating Oracles to resolve Futarchy's scalar prediction markets
+  LMSRMarketMaker public lmsrMarketMaker;                              // LMSR Market Maker for futarchy's prediction markets
 
   // ------------
   // CONSTRUCTOR:
@@ -24,25 +25,28 @@ contract FutarchyChallengeFactory is ChallengeFactoryInterface {
   /// @dev Contructor                  Sets the global state of the factory
   /// @param _tokenAddr                Address of the TCR's intrinsic ERC20 token
   /// @param _stakeAmount              Amount that must be staked to initiate a Challenge
-  /// @param _tradingPeriod            Duration for open trading on futarchy prediction markets
+  /// @param _tradingPeriod            Duration for open trading on futarchy prediction markets before futarchy resolution
+  /// @param _timeToPriceResolution    Duration from start of prediction markets until date of final price resolution
   /// @param _futarchyOracleFactory    Factory for creating Futarchy Oracles
-  /// @param _centralizedOracleFactory Factory for creating Oracles to resolve Futarchy's scalar prediction markets
+  /// @param _centralizedTimedOracleFactory Factory for creating Oracles to resolve Futarchy's scalar prediction markets
   /// @param _lmsrMarketMaker          LMSR Market Maker for futarchy's prediction markets
   function FutarchyChallengeFactory(
     address _tokenAddr,
     uint _stakeAmount,
     uint _tradingPeriod,
+    uint _timeToPriceResolution,
     FutarchyOracleFactory _futarchyOracleFactory,
-    CentralizedOracleFactory _centralizedOracleFactory,
+    CentralizedTimedOracleFactory _centralizedTimedOracleFactory,
     LMSRMarketMaker _lmsrMarketMaker
   ) public {
-    token         = _tokenAddr;
-    stakeAmount   = _stakeAmount;
-    tradingPeriod = _tradingPeriod;
+    token                 = _tokenAddr;
+    stakeAmount           = _stakeAmount;
+    tradingPeriod         = _tradingPeriod;
+    timeToPriceResolution = _timeToPriceResolution;
 
-    futarchyOracleFactory    = _futarchyOracleFactory;
-    centralizedOracleFactory = _centralizedOracleFactory;
-    lmsrMarketMaker          = _lmsrMarketMaker;
+    futarchyOracleFactory         = _futarchyOracleFactory;
+    centralizedTimedOracleFactory = _centralizedTimedOracleFactory;
+    lmsrMarketMaker               = _lmsrMarketMaker;
   }
 
   // --------------------
@@ -59,8 +63,9 @@ contract FutarchyChallengeFactory is ChallengeFactoryInterface {
       _listingOwner,
       stakeAmount,
       tradingPeriod,
+      timeToPriceResolution,
       futarchyOracleFactory,
-      centralizedOracleFactory,
+      centralizedTimedOracleFactory,
       lmsrMarketMaker
     );
   }
