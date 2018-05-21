@@ -1,8 +1,5 @@
 /* eslint-env mocha */
-/* global artifacts assert contract */
-const Parameterizer = artifacts.require('./Parameterizer.sol');
-const Token = artifacts.require('EIP20.sol');
-
+/* global assert contract */
 const fs = require('fs');
 const BN = require('bignumber.js');
 const utils = require('../utils');
@@ -14,9 +11,24 @@ contract('Parameterizer', (accounts) => {
   describe('Function: processProposal', () => {
     const [proposer, challenger, voter] = accounts;
 
-    it('should revert if block timestamp + pApplyStageLen is greater than 2^256 - 1', async () => {
-      const parameterizer = await Parameterizer.deployed();
+    let token;
+    let voting;
+    let parameterizer;
+    let registry;
 
+    before(async () => {
+      const {
+        votingProxy, paramProxy, registryProxy, tokenInstance,
+      } = await utils.getProxies(token);
+      voting = votingProxy;
+      parameterizer = paramProxy;
+      registry = registryProxy;
+      token = tokenInstance;
+
+      await utils.approveProxies(accounts, token, voting, parameterizer, registry);
+    });
+
+    it('should revert if block timestamp + pApplyStageLen is greater than 2^256 - 1', async () => {
       // calculate an applyStageLen which when added to the current block time will be greater
       // than 2^256 - 1
       const blockTimestamp = await utils.getBlockTimestamp();
@@ -34,7 +46,7 @@ contract('Parameterizer', (accounts) => {
       try {
         await parameterizer.processProposal(propID);
       } catch (err) {
-        assert(err.toString().includes('invalid opcode'), err.toString());
+        assert(utils.isEVMException(err), err.toString());
         return;
       }
 
@@ -42,9 +54,6 @@ contract('Parameterizer', (accounts) => {
     });
 
     it('should set new parameters if a proposal went unchallenged', async () => {
-      const parameterizer = await Parameterizer.deployed();
-      const token = await Token.deployed();
-
       const proposerInitialBalance = await token.balanceOf.call(proposer);
       const receipt = await utils.as(proposer, parameterizer.proposeReparameterization, 'voteQuorum', '51');
 
@@ -68,8 +77,6 @@ contract('Parameterizer', (accounts) => {
     });
 
     it('should not set new parameters if a proposal\'s processBy date has passed', async () => {
-      const parameterizer = await Parameterizer.deployed();
-
       const receipt = await utils.as(proposer, parameterizer.proposeReparameterization, 'voteQuorum', '69');
 
       const { propID } = receipt.logs[0].args;
@@ -88,10 +95,6 @@ contract('Parameterizer', (accounts) => {
 
     it('should not set new parameters if a proposal\'s processBy date has passed, ' +
     'but should resolve any challenges against the domain', async () => {
-      const parameterizer = await Parameterizer.deployed();
-      const token = Token.at(await parameterizer.token.call());
-      const voting = await utils.getVoting();
-
       const proposerStartingBalance = await token.balanceOf.call(proposer);
       const challengerStartingBalance = await token.balanceOf.call(challenger);
 
@@ -103,7 +106,7 @@ contract('Parameterizer', (accounts) => {
         await utils.as(challenger, parameterizer.challengeReparameterization, propID);
 
       const { challengeID } = challengeReceipt.logs[0].args;
-      await utils.commitVote(challengeID, '0', '10', '420', voter);
+      await utils.commitVote(challengeID, '0', '10', '420', voter, voting);
       await utils.increaseTime(paramConfig.pCommitStageLength + 1);
 
       await utils.as(voter, voting.revealVote, challengeID, '0', '420');
@@ -145,9 +148,6 @@ contract('Parameterizer', (accounts) => {
 
     it('should not set new parameters if a proposal\'s processBy date has passed, ' +
     'but challenge failed', async () => {
-      const parameterizer = await Parameterizer.deployed();
-      const voting = await utils.getVoting();
-
       const receipt = await utils.as(proposer, parameterizer.proposeReparameterization, 'voteQuorum', '78');
 
       const { propID } = receipt.logs[0].args;
@@ -156,7 +156,7 @@ contract('Parameterizer', (accounts) => {
         await utils.as(challenger, parameterizer.challengeReparameterization, propID);
 
       const { challengeID } = challengeReceipt.logs[0].args;
-      await utils.commitVote(challengeID, '1', '10', '420', voter);
+      await utils.commitVote(challengeID, '1', '10', '420', voter, voting);
       await utils.increaseTime(paramConfig.pCommitStageLength + 1);
 
       await utils.as(voter, voting.revealVote, challengeID, '1', '420');
@@ -175,8 +175,6 @@ contract('Parameterizer', (accounts) => {
     });
 
     it('should revert if processProposal is called before appExpiry', async () => {
-      const parameterizer = await Parameterizer.deployed();
-
       const receipt = await utils.as(proposer, parameterizer.proposeReparameterization, 'voteQuorum', '70');
 
       const { propID } = receipt.logs[0].args;

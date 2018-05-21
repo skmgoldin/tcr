@@ -1,8 +1,5 @@
 /* eslint-env mocha */
-/* global artifacts assert contract */
-const Parameterizer = artifacts.require('./Parameterizer.sol');
-const Token = artifacts.require('EIP20.sol');
-
+/* global assert contract */
 const fs = require('fs');
 const BN = require('bn.js');
 const utils = require('../utils');
@@ -17,10 +14,19 @@ contract('Parameterizer', (accounts) => {
     const [proposer, secondProposer] = accounts;
     const pMinDeposit = bigTen(paramConfig.pMinDeposit);
 
+    let token;
+    let parameterizer;
+
+    before(async () => {
+      const { paramProxy, tokenInstance } = await utils.getProxies();
+      parameterizer = paramProxy;
+      token = tokenInstance;
+
+      await utils.approveProxies(accounts, token, false, parameterizer, false);
+    });
+
     // Put this first to ensure test does not conflict with proposals already made.
     it('should not allow a NOOP reparameterization', async () => {
-      const parameterizer = await Parameterizer.deployed();
-
       // Get value to be reparameterized.
       const voteQuorum = await parameterizer.get.call('voteQuorum');
 
@@ -36,8 +42,6 @@ contract('Parameterizer', (accounts) => {
 
     it('should revert on proposals for dispensationPct and pDispensationPct with values greater ' +
       'than 100', async () => {
-      const parameterizer = await Parameterizer.deployed();
-
       const BAD_VALUE = '101';
 
       // Try to propose bad values for both dispensationPct and pDispensationPct. Expect both to
@@ -66,9 +70,6 @@ contract('Parameterizer', (accounts) => {
     });
 
     it('should add a new reparameterization proposal', async () => {
-      const parameterizer = await Parameterizer.deployed();
-      const token = Token.at(await parameterizer.token.call());
-
       const applicantStartingBalance = await token.balanceOf.call(proposer);
 
       const receipt = await utils.as(proposer, parameterizer.proposeReparameterization, 'voteQuorum', '51');
@@ -88,9 +89,6 @@ contract('Parameterizer', (accounts) => {
     });
 
     it('should not allow a reparameterization for a proposal that already exists', async () => {
-      const parameterizer = await Parameterizer.deployed();
-      const token = Token.at(await parameterizer.token.call());
-
       const applicantStartingBalance = await token.balanceOf.call(secondProposer);
 
       try {
@@ -107,9 +105,6 @@ contract('Parameterizer', (accounts) => {
     });
 
     it('should revert if token transfer from user fails', async () => {
-      const parameterizer = await Parameterizer.deployed();
-      const token = Token.at(await parameterizer.token.call());
-
       // Approve the contract to transfer 0 tokens from account so the transfer will fail
       await token.approve(parameterizer.address, '0', { from: secondProposer });
 

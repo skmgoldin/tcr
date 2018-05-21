@@ -1,7 +1,5 @@
 /* eslint-env mocha */
-/* global assert contract artifacts */
-const Registry = artifacts.require('Registry.sol');
-
+/* global assert contract */
 const fs = require('fs');
 const BN = require('bignumber.js');
 
@@ -17,16 +15,27 @@ contract('Registry', (accounts) => {
     const minDeposit = bigTen(paramConfig.minDeposit);
     const [applicant, challenger, voter] = accounts;
 
+    let token;
+    let voting;
+    let registry;
+
+    before(async () => {
+      const { votingProxy, registryProxy, tokenInstance } = await utils.getProxies();
+      voting = votingProxy;
+      registry = registryProxy;
+      token = tokenInstance;
+
+      await utils.approveProxies(accounts, token, voting, false, registry);
+    });
+
     it('should report properly whether a voter has claimed tokens', async () => {
-      const registry = await Registry.deployed();
-      const voting = await utils.getVoting();
       const listing = utils.getListingHash('claims.com');
 
-      await utils.addToWhitelist(listing, minDeposit, applicant);
+      await utils.addToWhitelist(listing, minDeposit, applicant, registry);
 
-      const pollID = await utils.challengeAndGetPollID(listing, challenger);
+      const pollID = await utils.challengeAndGetPollID(listing, challenger, registry);
 
-      await utils.commitVote(pollID, '0', '10', '420', voter);
+      await utils.commitVote(pollID, '0', '10', '420', voter, voting);
       await utils.increaseTime(paramConfig.commitStageLength + 1);
 
       await utils.as(voter, voting.revealVote, pollID, '0', '420');

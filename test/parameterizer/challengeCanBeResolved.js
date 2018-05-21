@@ -1,7 +1,5 @@
 /* eslint-env mocha */
-/* global artifacts assert contract */
-const Parameterizer = artifacts.require('./Parameterizer.sol');
-
+/* global assert contract */
 const fs = require('fs');
 const utils = require('../utils');
 
@@ -12,9 +10,19 @@ contract('Parameterizer', (accounts) => {
   describe('Function: challengeCanBeResolved', () => {
     const [proposer, challenger] = accounts;
 
+    let token;
+    let parameterizer;
+
+    before(async () => {
+      const { paramProxy, tokenInstance } = await utils.getProxies();
+      parameterizer = paramProxy;
+      token = tokenInstance;
+
+      await utils.approveProxies(accounts, token, false, parameterizer, false);
+    });
+
     it('should true if a challenge is ready to be resolved', async () => {
-      const parameterizer = await Parameterizer.deployed();
-      const propID = await utils.proposeReparamAndGetPropID('voteQuorum', '51', proposer);
+      const propID = await utils.proposeReparamAndGetPropID('voteQuorum', '51', proposer, parameterizer);
 
       await utils.as(challenger, parameterizer.challengeReparameterization, propID);
       await utils.increaseTime(paramConfig.pCommitStageLength);
@@ -25,8 +33,7 @@ contract('Parameterizer', (accounts) => {
     });
 
     it('should false if a challenge is not ready to be resolved', async () => {
-      const parameterizer = await Parameterizer.deployed();
-      const propID = await utils.proposeReparamAndGetPropID('voteQuorum', '59', proposer);
+      const propID = await utils.proposeReparamAndGetPropID('voteQuorum', '59', proposer, parameterizer);
 
       await utils.as(challenger, parameterizer.challengeReparameterization, propID);
       await utils.increaseTime(paramConfig.pCommitStageLength);

@@ -15,17 +15,78 @@ const Parameterizer = artifacts.require('Parameterizer.sol');
 const Registry = artifacts.require('Registry.sol');
 const Token = artifacts.require('EIP20.sol');
 
+const PLCRFactory = artifacts.require('PLCRFactory.sol');
+const ParameterizerFactory = artifacts.require('ParameterizerFactory.sol');
+const RegistryFactory = artifacts.require('RegistryFactory.sol');
+
 const config = JSON.parse(fs.readFileSync('./conf/config.json'));
 const paramConfig = config.paramDefaults;
 
 const BN = small => new Eth.BN(small.toString(10), 10);
 
 const utils = {
-  getVoting: async () => {
-    const registry = await Registry.deployed();
-    const votingAddr = await registry.voting.call();
-    return PLCRVoting.at(votingAddr);
+  getProxies: async () => {
+    const plcrFactory = await PLCRFactory.deployed();
+    const plcrReceipt = await plcrFactory.newPLCRWithToken(
+      config.token.supply,
+      config.token.name,
+      config.token.decimals,
+      config.token.symbol,
+    );
+    const plcr = PLCRVoting.at(plcrReceipt.logs[0].args.plcr);
+    const token = Token.at(plcrReceipt.logs[0].args.token);
+
+    const parameterizerFactory = await ParameterizerFactory.deployed();
+    const parameterizerReceipt = await parameterizerFactory.newParameterizerBYOTokenAndPLCR(
+      token.address,
+      plcr.address,
+      [
+        paramConfig.minDeposit,
+        paramConfig.pMinDeposit,
+        paramConfig.applyStageLength,
+        paramConfig.pApplyStageLength,
+        paramConfig.commitStageLength,
+        paramConfig.pCommitStageLength,
+        paramConfig.revealStageLength,
+        paramConfig.pRevealStageLength,
+        paramConfig.dispensationPct,
+        paramConfig.pDispensationPct,
+        paramConfig.voteQuorum,
+        paramConfig.pVoteQuorum,
+      ],
+    );
+    const parameterizer = Parameterizer.at(parameterizerReceipt.logs[0].args.parameterizer);
+
+    const registryFactory = await RegistryFactory.deployed();
+    const registryReceipt = await registryFactory.newRegistryBYOTokenAndFriends(
+      token.address,
+      plcr.address,
+      parameterizer.address,
+      'The TestChain Registry',
+    );
+    const registry = Registry.at(registryReceipt.logs[0].args.registry);
+    return {
+      votingProxy: plcr,
+      paramProxy: parameterizer,
+      registryProxy: registry,
+      tokenInstance: token,
+    };
   },
+
+  approveProxies: async (accounts, token, plcr, parameterizer, registry) => (
+    Promise.all(accounts.map(async (user) => {
+      await token.transfer(user, 10000000000);
+      if (plcr) {
+        await token.approve(plcr.address, 10000000000, { from: user });
+      }
+      if (parameterizer) {
+        await token.approve(parameterizer.address, 10000000000, { from: user });
+      }
+      if (registry) {
+        await token.approve(registry.address, 10000000000, { from: user });
+      }
+    }))
+  ),
 
   increaseTime: async seconds =>
     new Promise((resolve, reject) => ethRPC.sendAsync({
@@ -58,8 +119,7 @@ const utils = {
     await token.approve(plcrAddr, adtAmount, { from: address });
   },
 
-  addToWhitelist: async (domain, deposit, actor) => {
-    const registry = await Registry.deployed();
+  addToWhitelist: async (domain, deposit, actor, registry) => {
     await utils.as(actor, registry.apply, domain, deposit, '');
     await utils.increaseTime(paramConfig.applyStageLength + 1);
     await utils.as(actor, registry.updateStatus, domain);
@@ -90,7 +150,7 @@ const utils = {
   },
 
   isEVMException: err => (
-    err.toString().includes('revert')
+    err.toString().includes('revert') || err.toString().includes('invalid opcode')
   ),
 
   // returns block timestamp
@@ -98,8 +158,7 @@ const utils = {
     .then(num => ethQuery.getBlockByNumber(num, true))
     .then(block => block.timestamp.toString(10)),
 
-  getUnstakedDeposit: async (domain) => {
-    const registry = await Registry.deployed();
+  getUnstakedDeposit: async (domain, registry) => {
     // get the struct in the mapping
     const listing = await registry.listings.call(domain);
     // get the unstaked deposit amount from the listing struct
@@ -107,14 +166,12 @@ const utils = {
     return unstakedDeposit.toString();
   },
 
-  challengeAndGetPollID: async (domain, actor) => {
-    const registry = await Registry.deployed();
+  challengeAndGetPollID: async (domain, actor, registry) => {
     const receipt = await utils.as(actor, registry.challenge, domain, '');
     return receipt.logs[0].args.challengeID;
   },
 
-  commitVote: async (pollID, voteOption, tokensArg, salt, voter) => {
-    const voting = await utils.getVoting();
+  commitVote: async (pollID, voteOption, tokensArg, salt, voter, voting) => {
     const hash = utils.getVoteSaltHash(voteOption, salt);
     await utils.as(voter, voting.requestVotingRights, tokensArg);
 
@@ -124,14 +181,12 @@ const utils = {
 
   getReceiptValue: (receipt, arg) => receipt.logs[0].args[arg],
 
-  proposeReparamAndGetPropID: async (reParam, value, actor) => {
-    const parameterizer = await Parameterizer.deployed();
+  proposeReparamAndGetPropID: async (reParam, value, actor, parameterizer) => {
     const receipt = await utils.as(actor, parameterizer.proposeReparameterization, reParam, value);
     return receipt.logs[0].args.propID;
   },
 
-  challengeReparamAndGetChallengeID: async (propID, actor) => {
-    const parameterizer = await Parameterizer.deployed();
+  challengeReparamAndGetChallengeID: async (propID, actor, parameterizer) => {
     const receipt = await utils.as(actor, parameterizer.challengeReparameterization, propID);
     return receipt.logs[0].args.challengeID;
   },
