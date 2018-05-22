@@ -115,4 +115,11 @@ contract  FutarchyChallenge is ChallengeInterface {
   function tokenLockAmount() public view returns (uint) {
     return 1;
   }
+
+  //@dev TODO: Temporary function until we have legitimate oracle which doesn't require
+  //           ownership rights to resolve oracle. For CentralizedTimedOracle, only
+  //           owner (this contract) can call setOutcome.
+  function setScalarOutcome(CentralizedTimedOracle _oracle, int256 _outcome) public {
+    _oracle.setOutcome(_outcome);
+  }
 }
