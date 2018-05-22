@@ -1,5 +1,7 @@
 /* eslint-env mocha */
-/* global assert contract */
+/* global assert contract artifacts */
+const Registry = artifacts.require('Registry.sol');
+
 const fs = require('fs');
 const BN = require('bignumber.js');
 
@@ -15,18 +17,8 @@ contract('Registry', (accounts) => {
     const [applicant, challenger] = accounts;
     const minDeposit = bigTen(paramConfig.minDeposit);
 
-    let token;
-    let registry;
-
-    before(async () => {
-      const { registryProxy, tokenInstance } = await utils.getProxies();
-      registry = registryProxy;
-      token = tokenInstance;
-
-      await utils.approveProxies(accounts, token, false, false, registry);
-    });
-
     it('should whitelist an array of 1 listing', async () => {
+      const registry = await Registry.deployed();
       const listing = utils.getListingHash('whitelistmepls.io');
       await utils.as(applicant, registry.apply, listing, minDeposit, '');
 
@@ -39,6 +31,7 @@ contract('Registry', (accounts) => {
     });
 
     it('should whitelist an array of 2 listings', async () => {
+      const registry = await Registry.deployed();
       const listing1 = utils.getListingHash('whitelistus1.io');
       const listing2 = utils.getListingHash('whitelistus2.io');
       await utils.as(applicant, registry.apply, listing1, minDeposit, '');
@@ -55,6 +48,7 @@ contract('Registry', (accounts) => {
     });
 
     it('should not whitelist an array of 1 listing that is still pending an application', async () => {
+      const registry = await Registry.deployed();
       const listing = utils.getListingHash('tooearlybuddy.io');
       await utils.as(applicant, registry.apply, listing, minDeposit, '');
 
@@ -69,6 +63,7 @@ contract('Registry', (accounts) => {
     });
 
     it('should not whitelist a listing that is currently being challenged', async () => {
+      const registry = await Registry.deployed();
       const listing = utils.getListingHash('dontwhitelist.io');
 
       await utils.as(applicant, registry.apply, listing, minDeposit, '');
@@ -85,6 +80,7 @@ contract('Registry', (accounts) => {
     });
 
     it('should not whitelist an array of 1 listing that failed a challenge', async () => {
+      const registry = await Registry.deployed();
       const listing = utils.getListingHash('dontwhitelist.net');
 
       await utils.as(applicant, registry.apply, listing, minDeposit, '');
@@ -100,6 +96,7 @@ contract('Registry', (accounts) => {
     });
 
     it('should not be possible to add an array of 1 listing to the whitelist just by calling updateStatuses', async () => {
+      const registry = await Registry.deployed();
       const listing = utils.getListingHash('updatemenow.net');
 
       try {
