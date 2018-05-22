@@ -232,6 +232,18 @@ contract Registry {
         }
     }
 
+    /**
+    @dev                  Updates an array of listingHashes' status from 'application' to 'listing' or resolves
+                          a challenge if one exists.
+    @param _listingHashes The listingHashes whose status are being updated
+    */
+    function updateStatuses(bytes32[] _listingHashes) public {
+        // loop through arrays, revealing each individual vote values
+        for (uint i = 0; i < _listingHashes.length; i++) {
+            updateStatus(_listingHashes[i]);
+        }
+    }
+
     // ----------------
     // TOKEN FUNCTIONS:
     // ----------------
