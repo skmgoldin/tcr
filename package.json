@@ -8,6 +8,7 @@
     "publish": "truffle publish",
     "coverage": "solidity-coverage",
     "deploy-rinkeby": "truffle migrate --network rinkeby",
+    "deploy-ganache": "truffle migrate --network ganache",
     "deploy-mainnet": "truffle migrate --network mainnet",
     "test": "npm run lint ./ && truffle test",
     "fix": "eslint --fix",
