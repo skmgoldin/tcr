@@ -13,7 +13,7 @@ module.exports = {
     ganache: {
       provider: new HDWalletProvider(mnemonic, 'http://localhost:8545'),
       network_id: '*',
-      gas: 4500000,
+      gas: 6000000,
       gasPrice: 25000000000,
     },
     rinkeby: {

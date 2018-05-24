@@ -1,6 +1,6 @@
 /* global artifacts */
 
-const PLCRFactory = artifacts.require('./PLCRFactory.sol');
+const PLCRFactory = artifacts.require('plcr-revival/PLCRFactory.sol');
 const DLL = artifacts.require('dll/DLL.sol');
 const AttributeStore = artifacts.require('attrstore/AttributeStore.sol');
 
