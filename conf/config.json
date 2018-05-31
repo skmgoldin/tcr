@@ -9,9 +9,7 @@
     "revealStageLength": 600,
     "pRevealStageLength": 1200,
     "dispensationPct": 50,
-    "pDispensationPct": 50,
-    "voteQuorum": 50,
-    "pVoteQuorum": 50
+    "pDispensationPct": 50
 	},
   "name": "The TestChain Registry",
   "token": {

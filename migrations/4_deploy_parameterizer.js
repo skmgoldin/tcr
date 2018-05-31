@@ -41,9 +41,7 @@ module.exports = (deployer, network, accounts) => {
       parameterizerConfig.revealStageLength,
       parameterizerConfig.pRevealStageLength,
       parameterizerConfig.dispensationPct,
-      parameterizerConfig.pDispensationPct,
-      parameterizerConfig.voteQuorum,
-      parameterizerConfig.pVoteQuorum,
+      parameterizerConfig.pDispensationPct
     );
   })
     .then(async () => {

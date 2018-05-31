@@ -76,8 +76,6 @@ contract Parameterizer {
   @param _pCommitStageLen length of commit period for voting in parameterizer
   @param _revealStageLen  length of reveal period for voting
   @param _pRevealStageLen length of reveal period for voting in parameterizer
-  @param _voteQuorum       type of majority out of 100 necessary for vote success
-  @param _pVoteQuorum      type of majority out of 100 necessary for vote success in parameterizer
   */
   function Parameterizer(
     address _tokenAddr,
@@ -90,9 +88,7 @@ contract Parameterizer {
     uint _revealStageLen,
     uint _pRevealStageLen,
     uint _dispensationPct,
-    uint _pDispensationPct,
-    uint _voteQuorum,
-    uint _pVoteQuorum
+    uint _pDispensationPct
     ) public {
       token = EIP20Interface(_tokenAddr);
 
@@ -106,8 +102,6 @@ contract Parameterizer {
       set("pRevealStageLen", _pRevealStageLen);
       set("dispensationPct", _dispensationPct);
       set("pDispensationPct", _pDispensationPct);
-      set("voteQuorum", _voteQuorum);
-      set("pVoteQuorum", _pVoteQuorum);
   }
 
   // -----------------------
