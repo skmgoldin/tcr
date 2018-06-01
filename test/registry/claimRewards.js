@@ -42,7 +42,7 @@ contract('Registry', (accounts) => {
       // Update status
       await utils.as(applicant, registry.updateStatus, listing);
 
-      const aliceVoterReward = await registry.voterReward(voterAlice, pollID, '420');
+      const aliceVoterReward = await registry.voterReward.call(voterAlice, pollID, '420');
 
       // Alice claims reward
       const pollIDs = [pollID];
