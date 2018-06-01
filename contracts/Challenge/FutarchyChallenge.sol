@@ -1,6 +1,6 @@
 pragma solidity ^0.4.8;
 import '@gnosis.pm/gnosis-core-contracts/contracts/Oracles/FutarchyOracleFactory.sol';
-import '@gnosis.pm/gnosis-core-contracts/contracts/Oracles/CentralizedOracleFactory.sol';
+import './Oracles/CentralizedTimedOracleFactory.sol';
 import '@gnosis.pm/gnosis-core-contracts/contracts/MarketMakers/LMSRMarketMaker.sol';
 import '@gnosis.pm/gnosis-core-contracts/contracts/Tokens/Token.sol';
 import "zeppelin/math/SafeMath.sol";
@@ -12,15 +12,16 @@ contract  FutarchyChallenge is ChallengeInterface {
   // STATE:
   // ============
   // GLOBAL VARIABLES
-  address public challenger;     // the address of the challenger
-  address public listingOwner;   // the address of the listingOwner
-  bool public isStarted;         // true if challenger has executed start()
-  uint public stakeAmount;       // number of tokens to stake for either party during challenge
-  uint public tradingPeriod;     // duration for open trading on scalar prediction markets
+  address public challenger;         // the address of the challenger
+  address public listingOwner;       // the address of the listingOwner
+  bool public isStarted;             // true if challenger has executed start()
+  uint public stakeAmount;           // number of tokens to stake for either party during challenge
+  uint public tradingPeriod;         // duration for open trading on scalar prediction markets
+  uint public timeToPriceResolution; // Duration from start of prediction markets until date of final price resolution
 
   FutarchyOracle public futarchyOracle;                      // Futarchy Oracle to resolve challenge
   FutarchyOracleFactory public futarchyOracleFactory;        // Factory to create FutarchyOracle
-  CentralizedOracleFactory public centralizedOracleFactory;  // Oracle to resolve scalar prediction markets
+  CentralizedTimedOracleFactory public centralizedTimedOracleFactory;  // Oracle to resolve scalar prediction markets
   LMSRMarketMaker public lmsrMarketMaker;                    // MarketMaker for scalar prediction markets
   Token public token;                                        // Address of the TCR's intrinsic ERC20 token
   uint public winningMarketIndex;                            // Index of scalar prediction market with greatest average price for long token
@@ -34,9 +35,10 @@ contract  FutarchyChallenge is ChallengeInterface {
   /// @param _challenger                Address of the challenger
   /// @param _listingOwner              Address of the listing owner
   /// @param _stakeAmount               Number of tokens to stake for either party during challenge
-  /// @param _tradingPeriod              Duration for open trading on scalar prediction markets
+  /// @param _tradingPeriod             Duration for open trading on scalar prediction markets
+  /// @param _timeToPriceResolution     Duration from start of prediction markets until date of final price resolution
   /// @param _futarchyOracleFactory     Factory to create futarchyOracle
-  /// @param _centralizedOracleFactory  Factory to create centralizedOracle for scalar prediction markets
+  /// @param _centralizedTimedOracleFactory  Factory to create centralizedTimedOracle for scalar prediction markets
   /// @param _lmsrMarketMaker           LMSR Market Maker for scalar prediction markets
   function FutarchyChallenge(
     address _tokenAddr,
@@ -44,8 +46,9 @@ contract  FutarchyChallenge is ChallengeInterface {
     address _listingOwner,
     uint _stakeAmount,
     uint _tradingPeriod,
+    uint _timeToPriceResolution,
     FutarchyOracleFactory _futarchyOracleFactory,
-    CentralizedOracleFactory _centralizedOracleFactory,
+    CentralizedTimedOracleFactory _centralizedTimedOracleFactory,
     LMSRMarketMaker _lmsrMarketMaker
   ) public {
     challenger = _challenger;
@@ -54,11 +57,11 @@ contract  FutarchyChallenge is ChallengeInterface {
     token = Token(_tokenAddr);
     stakeAmount = _stakeAmount;
     tradingPeriod = _tradingPeriod;
+    timeToPriceResolution = _timeToPriceResolution;
     futarchyOracleFactory = _futarchyOracleFactory;
-    centralizedOracleFactory = _centralizedOracleFactory;
+    centralizedTimedOracleFactory = _centralizedTimedOracleFactory;
     lmsrMarketMaker = _lmsrMarketMaker;
   }
-
 
   // ------------
   // Challenge Interface:
@@ -69,12 +72,16 @@ contract  FutarchyChallenge is ChallengeInterface {
   /// @param _lowerBound  Lower bound prediction for future token price given a Challenge outcome
   /// @param _upperBound  Upper bound prediction for future token price given Challenge outcome
   function start(int _lowerBound, int _upperBound) public {
-    CentralizedOracle _centralizedOracle = centralizedOracleFactory.createCentralizedOracle('QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG');
+    uint resolutionDate = now + timeToPriceResolution;
+    CentralizedTimedOracle _centralizedTimedOracle = centralizedTimedOracleFactory.createCentralizedTimedOracle(
+      'QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG',
+      resolutionDate
+    );
     uint _startDate = now + 60;
 
     futarchyOracle = futarchyOracleFactory.createFutarchyOracle(
       token,
-      _centralizedOracle,
+      _centralizedTimedOracle,
       2,
       _lowerBound,
       _upperBound,
@@ -107,5 +114,12 @@ contract  FutarchyChallenge is ChallengeInterface {
   /// @dev TODO: This is currently hardcoded and TBD
   function tokenLockAmount() public view returns (uint) {
     return 1;
+  }
+
+  //@dev TODO: Temporary function until we have legitimate oracle which doesn't require
+  //           ownership rights to resolve oracle. For CentralizedTimedOracle, only
+  //           owner (this contract) can call setOutcome.
+  function setScalarOutcome(CentralizedTimedOracle _oracle, int256 _outcome) public {
+    _oracle.setOutcome(_outcome);
   }
 }
