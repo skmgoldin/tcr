@@ -17,6 +17,7 @@
   "author": "Irene Lin <irene.lin@consensys.net>, Mira Zeitlin <miranda.zeitlin@consensys.net>, Yorke Rhodes <yorke.rhodesiv@consensys.net>",
   "license": "ISC",
   "dependencies": {
+    "@gnosis.pm/dx-contracts": "^0.9.0",
     "@gnosis.pm/gnosis-core-contracts": "^1.0.3",
     "babel-cli": "^6.24.1",
     "babel-plugin-transform-es2015-modules-commonjs": "^6.24.1",

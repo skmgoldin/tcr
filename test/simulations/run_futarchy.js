@@ -19,6 +19,7 @@ const CentralizedTimedOracleFactory = artifacts.require('CentralizedTimedOracleF
 const CentralizedTimedOracle = artifacts.require('CentralizedTimedOracle')
 const FutarchyChallenge = artifacts.require('FutarchyChallenge')
 const FutarchyOracle = artifacts.require('FutarchyOracle')
+const DutchExchange = artifacts.require('DutchExchange')
 
 const fs = require('fs')
 const BN = require('bignumber.js')

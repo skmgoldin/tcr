@@ -1,5 +1,6 @@
 pragma solidity ^0.4.8;
 import '@gnosis.pm/gnosis-core-contracts/contracts/Oracles/FutarchyOracleFactory.sol';
+import '@gnosis.pm/dx-contracts/contracts/DutchExchange.sol';
 import './Oracles/CentralizedTimedOracleFactory.sol';
 import "./ChallengeFactoryInterface.sol";
 import "./FutarchyChallenge.sol";
@@ -18,6 +19,7 @@ contract FutarchyChallengeFactory is ChallengeFactoryInterface {
   FutarchyOracleFactory public futarchyOracleFactory;                  // Factory for creating Futarchy Oracles
   CentralizedTimedOracleFactory public centralizedTimedOracleFactory;  // Factory for creating Oracles to resolve Futarchy's scalar prediction markets
   LMSRMarketMaker public lmsrMarketMaker;                              // LMSR Market Maker for futarchy's prediction markets
+  DutchExchange public dutchExchange;                                  // Dutch Exchange contract to retrive token prices
 
   // ------------
   // CONSTRUCTOR:
@@ -37,7 +39,8 @@ contract FutarchyChallengeFactory is ChallengeFactoryInterface {
     uint _timeToPriceResolution,
     FutarchyOracleFactory _futarchyOracleFactory,
     CentralizedTimedOracleFactory _centralizedTimedOracleFactory,
-    LMSRMarketMaker _lmsrMarketMaker
+    LMSRMarketMaker _lmsrMarketMaker,
+    DutchExchange _dutchExchange
   ) public {
     token                 = _tokenAddr;
     stakeAmount           = _stakeAmount;
@@ -47,6 +50,7 @@ contract FutarchyChallengeFactory is ChallengeFactoryInterface {
     futarchyOracleFactory         = _futarchyOracleFactory;
     centralizedTimedOracleFactory = _centralizedTimedOracleFactory;
     lmsrMarketMaker               = _lmsrMarketMaker;
+    dutchExchange                 = _dutchExchange;
   }
 
   // --------------------
@@ -68,5 +72,10 @@ contract FutarchyChallengeFactory is ChallengeFactoryInterface {
       centralizedTimedOracleFactory,
       lmsrMarketMaker
     );
+  }
+
+  function determinePriceBounds() internal returns (uint upperBound, int lowerBound) {
+    // call dx FIVE TIMES to get five lastest prices.
+    // determine spread...then double that.
   }
 }
