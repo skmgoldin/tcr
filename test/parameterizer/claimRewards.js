@@ -4,13 +4,10 @@ const Parameterizer = artifacts.require('./Parameterizer.sol');
 const Token = artifacts.require('EIP20.sol');
 
 const fs = require('fs');
-const BN = require('bn.js');
 const utils = require('../utils');
 
 const config = JSON.parse(fs.readFileSync('./conf/config.json'));
 const paramConfig = config.paramDefaults;
-
-const bigTen = number => new BN(number.toString(10), 10);
 
 contract('Parameterizer', (accounts) => {
   describe('Function: claimRewards', () => {
@@ -47,6 +44,8 @@ contract('Parameterizer', (accounts) => {
       const challengeIDs = [challengeID];
       const salts = ['420'];
 
+      const aliceVoterReward = await parameterizer.voterReward.call(voterAlice, challengeID, '420');
+
       // multi claimRewards, arrays as inputs
       await utils.as(voterAlice, parameterizer.claimRewards, challengeIDs, salts);
       await utils.as(voterAlice, voting.withdrawVotingRights, '10');
@@ -54,10 +53,7 @@ contract('Parameterizer', (accounts) => {
       // state assertion
       const voterAliceFinalBalance = await token.balanceOf.call(voterAlice);
       // expected = starting balance + voterReward
-      const voterAliceExpected = voterAliceStartingBalance.add(utils.multiplyByPercentage(
-        paramConfig.pMinDeposit,
-        bigTen(100).sub(bigTen(paramConfig.pDispensationPct)),
-      ));
+      const voterAliceExpected = voterAliceStartingBalance.add(aliceVoterReward);
       assert.strictEqual(
         voterAliceFinalBalance.toString(10), voterAliceExpected.toString(10),
         'A voterAlice\'s token balance is not as expected after claiming a reward',
@@ -113,6 +109,10 @@ contract('Parameterizer', (accounts) => {
       const challengeIDs = [challengeID1, challengeID2, challengeID3];
       const salts = ['420', '420', '420'];
 
+      const aliceVoterReward1 = await parameterizer.voterReward.call(voterAlice, challengeID1, '420');
+      const aliceVoterReward2 = await parameterizer.voterReward.call(voterAlice, challengeID2, '420');
+      const aliceVoterReward3 = await parameterizer.voterReward.call(voterAlice, challengeID3, '420');
+
       // multi claimRewards, arrays as inputs
       await utils.as(voterAlice, parameterizer.claimRewards, challengeIDs, salts);
       await utils.as(voterAlice, voting.withdrawVotingRights, '30');
@@ -121,18 +121,7 @@ contract('Parameterizer', (accounts) => {
       const voterAliceFinalBalance = await token.balanceOf.call(voterAlice);
       // expected = starting balance + voterReward x3
       const voterAliceExpected = voterAliceStartingBalance
-        .add(utils.multiplyByPercentage(
-          paramConfig.pMinDeposit,
-          bigTen(100).sub(bigTen(paramConfig.pDispensationPct)),
-        ))
-        .add(utils.multiplyByPercentage(
-          paramConfig.pMinDeposit,
-          bigTen(100).sub(bigTen(paramConfig.pDispensationPct)),
-        ))
-        .add(utils.multiplyByPercentage(
-          paramConfig.pMinDeposit,
-          bigTen(100).sub(bigTen(paramConfig.pDispensationPct)),
-        ));
+        .add(aliceVoterReward1).add(aliceVoterReward2).add(aliceVoterReward3);
       assert.strictEqual(
         voterAliceFinalBalance.toString(10), voterAliceExpected.toString(10),
         'A voterAlice\'s token balance is not as expected after claiming a reward',
