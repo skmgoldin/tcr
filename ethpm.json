@@ -21,7 +21,7 @@
   "dependencies": {
     "tokens": "1.0.0",
     "zeppelin": "1.3.0",
-    "plcrvoting": "1.2.0"
+    "plcr-revival": "1.3.0"
   },
   "license": "Apache 2.0"
 }
