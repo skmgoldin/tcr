@@ -19,7 +19,7 @@ const CentralizedTimedOracleFactory = artifacts.require('CentralizedTimedOracleF
 const CentralizedTimedOracle = artifacts.require('CentralizedTimedOracle')
 const FutarchyChallenge = artifacts.require('FutarchyChallenge')
 const FutarchyOracle = artifacts.require('FutarchyOracle')
-const DutchExchange = artifacts.require('DutchExchange')
+const DutchExchange = artifacts.require('DutchExchangeMock')
 
 const fs = require('fs')
 const BN = require('bignumber.js')
@@ -44,6 +44,7 @@ contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
       for(let account of accounts) {
         await token.transfer(account, 100 * 10 ** 18);
       }
+      const dutchExchange         = await DutchExchange.deployed()
       const parameterizer         = await Parameterizer.deployed()
       const eventFactory          = await EventFactory.new()
       const marketFactory         = await StandardMarketWithPriceLoggerFactory.new()
@@ -62,7 +63,8 @@ contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
         timeToPriceResolution,
         futarchyOracleFactory.address,
         centralizedTimedOracleFactory.address,
-        lmsrMarketMaker.address
+        lmsrMarketMaker.address,
+        dutchExchange.address
       )
       console.log('----------------------- CREATING REGISTRY -----------------------')
       const registry = await Registry.new(token.address, futarchyChallengeFactory.address, parameterizer.address, 'best registry' )

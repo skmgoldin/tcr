@@ -1,6 +1,6 @@
 pragma solidity ^0.4.8;
 import '@gnosis.pm/gnosis-core-contracts/contracts/Oracles/FutarchyOracleFactory.sol';
-import '@gnosis.pm/dx-contracts/contracts/DutchExchange.sol';
+import './Oracles/DutchExchangeMock.sol';
 import './Oracles/CentralizedTimedOracleFactory.sol';
 import "./ChallengeFactoryInterface.sol";
 import "./FutarchyChallenge.sol";
@@ -19,7 +19,7 @@ contract FutarchyChallengeFactory is ChallengeFactoryInterface {
   FutarchyOracleFactory public futarchyOracleFactory;                  // Factory for creating Futarchy Oracles
   CentralizedTimedOracleFactory public centralizedTimedOracleFactory;  // Factory for creating Oracles to resolve Futarchy's scalar prediction markets
   LMSRMarketMaker public lmsrMarketMaker;                              // LMSR Market Maker for futarchy's prediction markets
-  DutchExchange public dutchExchange;                                  // Dutch Exchange contract to retrive token prices
+  DutchExchangeMock public dutchExchange;                              // Dutch Exchange contract to retrive token prices
 
   // ------------
   // CONSTRUCTOR:
@@ -40,7 +40,7 @@ contract FutarchyChallengeFactory is ChallengeFactoryInterface {
     FutarchyOracleFactory _futarchyOracleFactory,
     CentralizedTimedOracleFactory _centralizedTimedOracleFactory,
     LMSRMarketMaker _lmsrMarketMaker,
-    DutchExchange _dutchExchange
+    DutchExchangeMock _dutchExchange
   ) public {
     token                 = _tokenAddr;
     stakeAmount           = _stakeAmount;

@@ -7,7 +7,7 @@
 
 const Math = artifacts.require('Math')
 
-const DutchExchange = artifacts.require('DutchExchange')
+const DutchExchangeMock = artifacts.require('DutchExchangeMock')
 const EtherToken = artifacts.require('EtherToken')
 const PriceFeed = artifacts.require('PriceFeed')
 const PriceOracleInterface = artifacts.require('PriceOracleInterface')
@@ -183,7 +183,7 @@ module.exports = function deploy(deployer, network, accounts) {
       .then(() => deployer.link(Math, [TokenRDN, TokenOMG]))
 
       // Deployment of Tokens
-      // .then(() => deployer.deploy(EtherToken))
+      .then(() => deployer.deploy(EtherToken))
       // .then(() => deployer.deploy(TokenGNO, 100000 * (10 ** 18)))
       // .then(() => deployer.deploy(TokenRDN, 100000 * (10 ** 18)))
       // .then(() => deployer.deploy(TokenOMG, 100000 * (10 ** 18)))
@@ -201,12 +201,12 @@ module.exports = function deploy(deployer, network, accounts) {
       .then(P => P.post(currentETHPrice, 1516168838 * 2, Medianizer.address, { from: accounts[0] }))
 
       // Deployment of DutchExchange
-      .then(() => deployer.deploy(DutchExchange))
-      .then(() => deployer.deploy(Proxy, DutchExchange.address))
+      .then(() => deployer.deploy(DutchExchangeMock))
+      .then(() => deployer.deploy(Proxy, DutchExchangeMock.address))
 
       // @dev DX Constructor creates exchange
       .then(() => Proxy.deployed())
-      .then(p => DutchExchange.at(p.address).setupDutchExchange(
+      .then(p => DutchExchangeMock.at(p.address).setupDutchExchange(
         TokenMGN.address,
         TokenOWLProxy.address,
         accounts[0],                           // @param _owner will be the admin of the contract
