@@ -12,7 +12,7 @@
     "test": "truffle test",
     "fix": "eslint --fix",
     "lint": "eslint",
-    "testrpc": "scripts/runTestrpc.sh"
+    "ganache": "scripts/runGanache.sh"
   },
   "author": "Irene Lin <irene.lin@consensys.net>, Mira Zeitlin <miranda.zeitlin@consensys.net>, Yorke Rhodes <yorke.rhodesiv@consensys.net>",
   "license": "ISC",
