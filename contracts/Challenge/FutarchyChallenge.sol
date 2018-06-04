@@ -8,6 +8,8 @@ import "./ChallengeInterface.sol";
 
 contract  FutarchyChallenge is ChallengeInterface {
 
+  event _Started(address challenger, uint stakeAmount, address futarchyOracleAddress);
+
   // ============
   // STATE:
   // ============
@@ -99,6 +101,8 @@ contract  FutarchyChallenge is ChallengeInterface {
     require(token.approve(futarchyOracle, stakeAmount));
     futarchyOracle.fund(stakeAmount);
     isStarted = true;
+
+    _Started(msg.sender, stakeAmount, address(futarchyOracle));
   }
 
   /// @dev ended  returns whether Challenge has ended
