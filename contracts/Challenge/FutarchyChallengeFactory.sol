@@ -4,14 +4,16 @@ import './Oracles/DutchExchangeMock.sol';
 import './Oracles/CentralizedTimedOracleFactory.sol';
 import "./ChallengeFactoryInterface.sol";
 import "./FutarchyChallenge.sol";
+import "zeppelin/math/SafeMath.sol";
 
 contract FutarchyChallengeFactory is ChallengeFactoryInterface {
 
-  // ============
+  // -------
   // STATE:
-  // ============
+  // -------
   // GLOBAL VARIABLES
   address public token;              // Address of the TCR's intrinsic ERC20 token
+  address public comparatorToken;    // Address of token to which TCR's intrinsic token will be compared
   uint public stakeAmount;           // Amount that must be staked to initiate a Challenge
   uint public tradingPeriod;         // Duration for open trading on futarchy prediction markets
   uint public timeToPriceResolution; // Duration from start of prediction markets until date of final price resolution
@@ -26,6 +28,7 @@ contract FutarchyChallengeFactory is ChallengeFactoryInterface {
   // ------------
   /// @dev Contructor                  Sets the global state of the factory
   /// @param _tokenAddr                Address of the TCR's intrinsic ERC20 token
+  /// @param _comparatorToken          Address of token to which TCR's intrinsic token value will be compared
   /// @param _stakeAmount              Amount that must be staked to initiate a Challenge
   /// @param _tradingPeriod            Duration for open trading on futarchy prediction markets before futarchy resolution
   /// @param _timeToPriceResolution    Duration from start of prediction markets until date of final price resolution
@@ -34,6 +37,7 @@ contract FutarchyChallengeFactory is ChallengeFactoryInterface {
   /// @param _lmsrMarketMaker          LMSR Market Maker for futarchy's prediction markets
   function FutarchyChallengeFactory(
     address _tokenAddr,
+    address _comparatorToken,
     uint _stakeAmount,
     uint _tradingPeriod,
     uint _timeToPriceResolution,
@@ -43,6 +47,7 @@ contract FutarchyChallengeFactory is ChallengeFactoryInterface {
     DutchExchangeMock _dutchExchange
   ) public {
     token                 = _tokenAddr;
+    comparatorToken       = _comparatorToken;
     stakeAmount           = _stakeAmount;
     tradingPeriod         = _tradingPeriod;
     timeToPriceResolution = _timeToPriceResolution;
@@ -74,8 +79,37 @@ contract FutarchyChallengeFactory is ChallengeFactoryInterface {
     );
   }
 
-  function determinePriceBounds() internal returns (uint upperBound, int lowerBound) {
-    // call dx FIVE TIMES to get five lastest prices.
-    // determine spread...then double that.
+  function determinePriceBounds() external returns (uint upperBound, uint lowerBound) {
+    uint[5] memory latestPrices;
+    uint currentAuctionIndex = dutchExchange.getAuctionIndex(token, comparatorToken);
+    uint firstReferencedIndex = currentAuctionIndex - 5;
+
+    uint i = 0;
+    uint num;
+    uint den;
+    uint avgPrice;
+    while(i < 5) {
+      (num, den) = dutchExchange.getPriceInPastAuction(token, comparatorToken, firstReferencedIndex + i);
+      latestPrices[i] = ((num * 10**18)/uint(den));
+      avgPrice += latestPrices[i];
+      i++;
+    }
+    avgPrice = avgPrice/uint(5);
+
+    uint highestDeviation;
+    while(i < 5) {
+      uint deviation;
+      if (avgPrice > latestPrices[i]) {
+        deviation = avgPrice - latestPrices[i];
+      } else {
+        deviation = latestPrices[i] - avgPrice;
+      }
+
+      if(deviation > highestDeviation) {
+        highestDeviation = deviation;
+      }
+    }
+    upperBound = avgPrice + (highestDeviation * 3);
+    lowerBound = avgPrice - (highestDeviation * 3);
   }
 }

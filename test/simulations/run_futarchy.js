@@ -5,6 +5,7 @@ const Registry = artifacts.require('Registry.sol')
 const Token = artifacts.require('EIP20.sol')
 const OutcomeToken = artifacts.require('OutcomeToken')
 const FutarchyChallengeFactory = artifacts.require('FutarchyChallengeFactory')
+const EtherToken = artifacts.require('EtherToken')
 const Event = artifacts.require('Event')
 const EventFactory = artifacts.require('EventFactory')
 const CategoricalEvent = artifacts.require('CategoricalEvent')
@@ -32,6 +33,7 @@ const { increaseTime } = lkTestHelpers(web3)
 const utils = require('../utils.js')
 
 contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
+
     it.only('...', async () => {
       const [creator, applicant, challenger, voterFor, voterAgainst, buyer1] = accounts
       const tradingPeriod = 60 * 60
@@ -45,6 +47,7 @@ contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
         await token.transfer(account, 100 * 10 ** 18);
       }
       const dutchExchange         = await DutchExchange.deployed()
+      const etherToken            = await EtherToken.deployed()
       const parameterizer         = await Parameterizer.deployed()
       const eventFactory          = await EventFactory.new()
       const marketFactory         = await StandardMarketWithPriceLoggerFactory.new()
@@ -58,6 +61,7 @@ contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
 
       const futarchyChallengeFactory = await FutarchyChallengeFactory.new(
         token.address,
+        etherToken.address,
         futarchyFundingAmount,
         tradingPeriod,
         timeToPriceResolution,
@@ -66,6 +70,11 @@ contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
         lmsrMarketMaker.address,
         dutchExchange.address
       )
+
+      // console.log("HEY!")
+      // let a = (await futarchyChallengeFactory.determinePriceBounds());
+      // console.log(a)
+
       console.log('----------------------- CREATING REGISTRY -----------------------')
       const registry = await Registry.new(token.address, futarchyChallengeFactory.address, parameterizer.address, 'best registry' )
       await logTCRBalances(accounts, token, registry)
