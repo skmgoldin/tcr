@@ -28,29 +28,3 @@ async function approveRegistryFor(addresses) {
   if (addresses.length === 1) { return true; }
   return approveRegistryFor(addresses.slice(1));
 }
-
-
-  // deployer.link(DLL, Registry);
-  // deployer.link(AttributeStore, Registry);
-
-  // return deployer.then(async () => {
-  //   const config = JSON.parse(fs.readFileSync('./conf/config.json'));
-  //   let tokenAddress = config.token.address;
-
-  //   if (config.token.deployToken) {
-  //     tokenAddress = Token.address;
-  //   }
-
-  //   return deployer.deploy(
-  //     Registry,
-  //     tokenAddress,
-  //     PLCRVotingChallengeFactory.address,
-  //     Parameterizer.address,
-  //     config.name,
-  //   );
-  // })
-  //   .then(async () => {
-  //     if (network === 'development' || network === 'test' || network === 'coverage') {
-  //       await approveRegistryFor(accounts);
-  //     }
-  //   }).catch((err) => { throw err; });
