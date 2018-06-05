@@ -71,10 +71,6 @@ contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
         dutchExchange.address
       )
 
-      // console.log("HEY!")
-      // let a = (await futarchyChallengeFactory.determinePriceBounds());
-      // console.log(a)
-
       console.log('----------------------- CREATING REGISTRY -----------------------')
       const registry = await Registry.new(token.address, futarchyChallengeFactory.address, parameterizer.address, 'best registry' )
       await logTCRBalances(accounts, token, registry)

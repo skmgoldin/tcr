@@ -23,6 +23,8 @@ contract FutarchyChallengeFactory is ChallengeFactoryInterface {
   LMSRMarketMaker public lmsrMarketMaker;                              // LMSR Market Maker for futarchy's prediction markets
   DutchExchangeMock public dutchExchange;                              // Dutch Exchange contract to retrive token prices
 
+  uint NUM_PRICE_POINTS = 5;  // number of past price points to reference for price average when determining TCR token value
+
   // ------------
   // CONSTRUCTOR:
   // ------------
@@ -80,36 +82,21 @@ contract FutarchyChallengeFactory is ChallengeFactoryInterface {
   }
 
   function determinePriceBounds() external returns (uint upperBound, uint lowerBound) {
-    uint[5] memory latestPrices;
     uint currentAuctionIndex = dutchExchange.getAuctionIndex(token, comparatorToken);
-    uint firstReferencedIndex = currentAuctionIndex - 5;
+    uint firstReferencedIndex = currentAuctionIndex - NUM_PRICE_POINTS;
 
     uint i = 0;
     uint num;
     uint den;
     uint avgPrice;
-    while(i < 5) {
+    while(i < NUM_PRICE_POINTS) {
       (num, den) = dutchExchange.getPriceInPastAuction(token, comparatorToken, firstReferencedIndex + i);
-      latestPrices[i] = ((num * 10**18)/uint(den));
-      avgPrice += latestPrices[i];
+      avgPrice += (num * 10**18)/uint(den);
       i++;
     }
-    avgPrice = avgPrice/uint(5);
+    avgPrice = avgPrice/uint(NUM_PRICE_POINTS);
 
-    uint highestDeviation;
-    while(i < 5) {
-      uint deviation;
-      if (avgPrice > latestPrices[i]) {
-        deviation = avgPrice - latestPrices[i];
-      } else {
-        deviation = latestPrices[i] - avgPrice;
-      }
-
-      if(deviation > highestDeviation) {
-        highestDeviation = deviation;
-      }
-    }
-    upperBound = avgPrice + (highestDeviation * 3);
-    lowerBound = avgPrice - (highestDeviation * 3);
+    upperBound = avgPrice * 2;
+    lowerBound = 0;
   }
 }
