@@ -7,6 +7,10 @@ import "./FutarchyChallenge.sol";
 import "zeppelin/math/SafeMath.sol";
 
 contract FutarchyChallengeFactory is ChallengeFactoryInterface {
+  // ------
+  // EVENTS
+  // ------
+  event SetUpperAndLowerBound(uint upperBound, uint lowerBound);
 
   // -------
   // STATE:
@@ -98,5 +102,7 @@ contract FutarchyChallengeFactory is ChallengeFactoryInterface {
 
     upperBound = avgPrice * 2;
     lowerBound = 0;
+
+    SetUpperAndLowerBound(upperBound, lowerBound);
   }
 }
