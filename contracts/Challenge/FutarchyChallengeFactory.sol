@@ -10,7 +10,7 @@ contract FutarchyChallengeFactory is ChallengeFactoryInterface {
   // ------
   // EVENTS
   // ------
-  event SetUpperAndLowerBound(uint upperBound, uint lowerBound);
+  event SetUpperAndLowerBound(int upperBound, int lowerBound);
 
   // -------
   // STATE:
@@ -72,6 +72,9 @@ contract FutarchyChallengeFactory is ChallengeFactoryInterface {
   /// @param _listingOwner        Address of the listing owner
   /// @return ChallengeInterface Newly created Challenge
   function createChallenge(address _challenger, address _listingOwner) external returns (ChallengeInterface) {
+    int upperBound;
+    int lowerBound;
+    (upperBound, lowerBound) = determinePriceBounds();
     return new FutarchyChallenge(
       token,
       _challenger,
@@ -79,13 +82,15 @@ contract FutarchyChallengeFactory is ChallengeFactoryInterface {
       stakeAmount,
       tradingPeriod,
       timeToPriceResolution,
+      upperBound,
+      lowerBound,
       futarchyOracleFactory,
       centralizedTimedOracleFactory,
       lmsrMarketMaker
     );
   }
 
-  function determinePriceBounds() external returns (uint upperBound, uint lowerBound) {
+  function determinePriceBounds() internal returns (int upperBound, int lowerBound) {
     uint currentAuctionIndex = dutchExchange.getAuctionIndex(token, comparatorToken);
     uint firstReferencedIndex = currentAuctionIndex - NUM_PRICE_POINTS;
 
@@ -100,7 +105,7 @@ contract FutarchyChallengeFactory is ChallengeFactoryInterface {
     }
     avgPrice = avgPrice/uint(NUM_PRICE_POINTS);
 
-    upperBound = avgPrice * 2;
+    upperBound = int(avgPrice) * 2;
     lowerBound = 0;
 
     SetUpperAndLowerBound(upperBound, lowerBound);

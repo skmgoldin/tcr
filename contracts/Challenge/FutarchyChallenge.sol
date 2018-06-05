@@ -18,6 +18,8 @@ contract  FutarchyChallenge is ChallengeInterface {
   uint public stakeAmount;           // number of tokens to stake for either party during challenge
   uint public tradingPeriod;         // duration for open trading on scalar prediction markets
   uint public timeToPriceResolution; // Duration from start of prediction markets until date of final price resolution
+  int public upperBound;
+  int public lowerBound;
 
   FutarchyOracle public futarchyOracle;                      // Futarchy Oracle to resolve challenge
   FutarchyOracleFactory public futarchyOracleFactory;        // Factory to create FutarchyOracle
@@ -47,6 +49,8 @@ contract  FutarchyChallenge is ChallengeInterface {
     uint _stakeAmount,
     uint _tradingPeriod,
     uint _timeToPriceResolution,
+    int _upperBound,
+    int _lowerBound,
     FutarchyOracleFactory _futarchyOracleFactory,
     CentralizedTimedOracleFactory _centralizedTimedOracleFactory,
     LMSRMarketMaker _lmsrMarketMaker
@@ -58,6 +62,8 @@ contract  FutarchyChallenge is ChallengeInterface {
     stakeAmount = _stakeAmount;
     tradingPeriod = _tradingPeriod;
     timeToPriceResolution = _timeToPriceResolution;
+    upperBound = _upperBound;
+    lowerBound = _lowerBound;
     futarchyOracleFactory = _futarchyOracleFactory;
     centralizedTimedOracleFactory = _centralizedTimedOracleFactory;
     lmsrMarketMaker = _lmsrMarketMaker;
@@ -69,9 +75,7 @@ contract  FutarchyChallenge is ChallengeInterface {
   /// @dev start          Creates and funds FutarchyOracle. Futarchy Oracle will spin up
   ///                     corresponding prediction markets which will open for trade within
   ///                     60 seconds of this function invocation
-  /// @param _lowerBound  Lower bound prediction for future token price given a Challenge outcome
-  /// @param _upperBound  Upper bound prediction for future token price given Challenge outcome
-  function start(int _lowerBound, int _upperBound) public {
+  function start() public {
     uint resolutionDate = now + timeToPriceResolution;
     CentralizedTimedOracle _centralizedTimedOracle = centralizedTimedOracleFactory.createCentralizedTimedOracle(
       'QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG',
@@ -83,8 +87,8 @@ contract  FutarchyChallenge is ChallengeInterface {
       token,
       _centralizedTimedOracle,
       2,
-      _lowerBound,
-      _upperBound,
+      lowerBound,
+      upperBound,
       lmsrMarketMaker,
       0,
       tradingPeriod,
