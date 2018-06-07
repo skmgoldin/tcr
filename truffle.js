@@ -1,6 +1,16 @@
 const HDWalletProvider = require('truffle-hdwallet-provider');
+const fs = require('fs');
 
-const mnemonic = process.env.MNEMONIC;
+let mnemonic = '';
+
+if (fs.existsSync('secrets.json')) {
+  const secrets = JSON.parse(fs.readFileSync('secrets.json', 'utf8'));
+  ({ mnemonic } = secrets);
+}
+
+if (process.env.MNEMONIC) {
+  mnemonic = process.env.MNEMONIC;
+}
 
 module.exports = {
   networks: {
