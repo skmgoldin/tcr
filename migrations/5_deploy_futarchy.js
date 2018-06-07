@@ -1,7 +1,7 @@
 /* global artifacts */
 
 const Token = artifacts.require('tokens/eip20/EIP20.sol');
-const Math = artifacts.require('zeppelin/contracts/math/Math.sol')
+const Math = artifacts.require('Math')
 const StandardMarketFactory = artifacts.require('StandardMarketFactory')
 const StandardMarketWithPriceLoggerFactory = artifacts.require('StandardMarketWithPriceLoggerFactory')
 const FutarchyChallengeFactory = artifacts.require('FutarchyChallengeFactory')
