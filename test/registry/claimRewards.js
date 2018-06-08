@@ -1,8 +1,5 @@
 /* eslint-env mocha */
-/* global assert contract artifacts */
-const Registry = artifacts.require('Registry.sol');
-const Token = artifacts.require('EIP20.sol');
-
+/* global assert contract */
 const fs = require('fs');
 const BN = require('bignumber.js');
 
@@ -18,10 +15,20 @@ contract('Registry', (accounts) => {
     const [applicant, challenger, voterAlice] = accounts;
     const minDeposit = bigTen(paramConfig.minDeposit);
 
+    let token;
+    let voting;
+    let registry;
+
+    before(async () => {
+      const { votingProxy, registryProxy, tokenInstance } = await utils.getProxies();
+      voting = votingProxy;
+      registry = registryProxy;
+      token = tokenInstance;
+
+      await utils.approveProxies(accounts, token, voting, false, registry);
+    });
+
     it('should transfer the correct number of tokens once a challenge has been resolved', async () => {
-      const registry = await Registry.deployed();
-      const voting = await utils.getVoting();
-      const token = Token.at(await registry.token.call());
       const listing = utils.getListingHash('claimthis.net');
 
       // Apply
@@ -29,10 +36,10 @@ contract('Registry', (accounts) => {
       const aliceStartingBalance = await token.balanceOf.call(voterAlice);
 
       // Challenge
-      const pollID = await utils.challengeAndGetPollID(listing, challenger);
+      const pollID = await utils.challengeAndGetPollID(listing, challenger, registry);
 
       // Alice is so committed
-      await utils.commitVote(pollID, '0', 500, '420', voterAlice);
+      await utils.commitVote(pollID, '0', 500, '420', voterAlice, voting);
       await utils.increaseTime(paramConfig.commitStageLength + 1);
 
       // Alice is so revealing
@@ -62,9 +69,6 @@ contract('Registry', (accounts) => {
     });
 
     it('should transfer an array of 3 rewards once a challenge has been resolved', async () => {
-      const registry = await Registry.deployed();
-      const voting = await utils.getVoting();
-      const token = Token.at(await registry.token.call());
       const listing1 = utils.getListingHash('claimthis1.net');
       const listing2 = utils.getListingHash('claimthis2.net');
       const listing3 = utils.getListingHash('claimthis3.net');
@@ -77,14 +81,14 @@ contract('Registry', (accounts) => {
       await utils.as(applicant, registry.apply, listing3, minDeposit, '');
 
       // Challenge
-      const pollID1 = await utils.challengeAndGetPollID(listing1, challenger);
-      const pollID2 = await utils.challengeAndGetPollID(listing2, challenger);
-      const pollID3 = await utils.challengeAndGetPollID(listing3, challenger);
+      const pollID1 = await utils.challengeAndGetPollID(listing1, challenger, registry);
+      const pollID2 = await utils.challengeAndGetPollID(listing2, challenger, registry);
+      const pollID3 = await utils.challengeAndGetPollID(listing3, challenger, registry);
 
       // Alice is so committed
-      await utils.commitVote(pollID1, '0', 500, '420', voterAlice);
-      await utils.commitVote(pollID2, '0', 500, '420', voterAlice);
-      await utils.commitVote(pollID3, '0', 500, '420', voterAlice);
+      await utils.commitVote(pollID1, '0', 500, '420', voterAlice, voting);
+      await utils.commitVote(pollID2, '0', 500, '420', voterAlice, voting);
+      await utils.commitVote(pollID3, '0', 500, '420', voterAlice, voting);
       await utils.increaseTime(paramConfig.commitStageLength + 1);
 
       // Alice is so revealing

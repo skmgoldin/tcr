@@ -169,8 +169,8 @@ contract Parameterizer {
     }
 
     /**
-    @notice for the provided proposal ID, set it, resolve its challenge, or delete it depending on whether it can be set, has a challenge which can be resolved, or if its "process by" date has passed
-    @param _propID the proposal ID to make a determination and state transition for
+    @notice             for the provided proposal ID, set it, resolve its challenge, or delete it depending on whether it can be set, has a challenge which can be resolved, or if its "process by" date has passed
+    @param _propID      the proposal ID to make a determination and state transition for
     */
     function processProposal(bytes32 _propID) public {
         ParamProposal storage prop = proposals[_propID];
@@ -214,9 +214,9 @@ contract Parameterizer {
     }
 
     /**
-    @notice claim the tokens owed for the msg.sender in the provided challenge
-    @param _challengeID the challenge ID to claim tokens for
-    @param _salt the salt used to vote in the challenge being withdrawn for
+    @notice                 Claim the tokens owed for the msg.sender in the provided challenge
+    @param _challengeID     the challenge ID to claim tokens for
+    @param _salt            the salt used to vote in the challenge being withdrawn for
     */
     function claimReward(uint _challengeID, uint _salt) public {
         // ensure voter has not already claimed tokens and challenge results have been processed
@@ -236,6 +236,22 @@ contract Parameterizer {
 
         emit _RewardClaimed(_challengeID, reward, msg.sender);
         require(token.transfer(msg.sender, reward));
+    }
+
+    /**
+    @dev                    Called by a voter to claim their rewards for each completed vote.
+                            Someone must call updateStatus() before this can be called.
+    @param _challengeIDs    The PLCR pollIDs of the challenges rewards are being claimed for
+    @param _salts           The salts of a voter's commit hashes in the given polls
+    */
+    function claimRewards(uint[] _challengeIDs, uint[] _salts) public {
+        // make sure the array lengths are the same
+        require(_challengeIDs.length == _salts.length);
+
+        // loop through arrays, claiming each individual vote reward
+        for (uint i = 0; i < _challengeIDs.length; i++) {
+            claimReward(_challengeIDs[i], _salts[i]);
+        }
     }
 
     // --------
