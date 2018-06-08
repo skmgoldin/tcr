@@ -1,8 +1,5 @@
 /* eslint-env mocha */
-/* global artifacts assert contract */
-const Parameterizer = artifacts.require('./Parameterizer.sol');
-const Token = artifacts.require('EIP20.sol');
-
+/* global assert contract */
 const fs = require('fs');
 const utils = require('../utils');
 
@@ -13,11 +10,22 @@ contract('Parameterizer', (accounts) => {
   describe('Function: claimRewards', () => {
     const [proposer, challenger, voterAlice] = accounts;
 
-    it('should give the correct number of tokens to a voter on the winning side.', async () => {
-      const parameterizer = await Parameterizer.deployed();
-      const token = Token.at(await parameterizer.token.call());
-      const voting = await utils.getVoting();
+    let token;
+    let voting;
+    let parameterizer;
 
+    before(async () => {
+      const {
+        votingProxy, paramProxy, tokenInstance,
+      } = await utils.getProxies(token);
+      voting = votingProxy;
+      parameterizer = paramProxy;
+      token = tokenInstance;
+
+      await utils.approveProxies(accounts, token, voting, parameterizer, false);
+    });
+
+    it('should give the correct number of tokens to a voter on the winning side.', async () => {
       const voterAliceStartingBalance = await token.balanceOf.call(voterAlice);
 
       // propose reparam
@@ -30,7 +38,7 @@ contract('Parameterizer', (accounts) => {
       const { challengeID } = challengeReceipt.logs[0].args;
 
       // commit vote
-      await utils.commitVote(challengeID, '1', '10', '420', voterAlice);
+      await utils.commitVote(challengeID, '1', '10', '420', voterAlice, voting);
       await utils.increaseTime(paramConfig.pCommitStageLength + 1);
 
       // reveal vote
@@ -61,10 +69,6 @@ contract('Parameterizer', (accounts) => {
     });
 
     it('should transfer an array of 3 rewards once a challenge has been resolved', async () => {
-      const parameterizer = await Parameterizer.deployed();
-      const token = Token.at(await parameterizer.token.call());
-      const voting = await utils.getVoting();
-
       const voterAliceStartingBalance = await token.balanceOf.call(voterAlice);
 
       // propose reparams
@@ -89,9 +93,9 @@ contract('Parameterizer', (accounts) => {
       const challengeID3 = challengeReceipt3.logs[0].args.challengeID;
 
       // commit votes
-      await utils.commitVote(challengeID1, '1', '10', '420', voterAlice);
-      await utils.commitVote(challengeID2, '1', '10', '420', voterAlice);
-      await utils.commitVote(challengeID3, '1', '10', '420', voterAlice);
+      await utils.commitVote(challengeID1, '1', '10', '420', voterAlice, voting);
+      await utils.commitVote(challengeID2, '1', '10', '420', voterAlice, voting);
+      await utils.commitVote(challengeID3, '1', '10', '420', voterAlice, voting);
       await utils.increaseTime(paramConfig.pCommitStageLength + 1);
 
       // reveal votes
