@@ -15,8 +15,6 @@ const Parameterizer = artifacts.require('Parameterizer.sol');
 const Registry = artifacts.require('Registry.sol');
 const Token = artifacts.require('EIP20.sol');
 
-const PLCRFactory = artifacts.require('PLCRFactory.sol');
-const ParameterizerFactory = artifacts.require('ParameterizerFactory.sol');
 const RegistryFactory = artifacts.require('RegistryFactory.sol');
 
 const config = JSON.parse(fs.readFileSync('./conf/config.json'));
@@ -26,20 +24,12 @@ const BN = small => new Eth.BN(small.toString(10), 10);
 
 const utils = {
   getProxies: async () => {
-    const plcrFactory = await PLCRFactory.deployed();
-    const plcrReceipt = await plcrFactory.newPLCRWithToken(
+    const registryFactory = await RegistryFactory.deployed();
+    const registryReceipt = await registryFactory.newRegistryWithToken(
       config.token.supply,
       config.token.name,
       config.token.decimals,
       config.token.symbol,
-    );
-    const plcr = PLCRVoting.at(plcrReceipt.logs[0].args.plcr);
-    const token = Token.at(plcrReceipt.logs[0].args.token);
-
-    const parameterizerFactory = await ParameterizerFactory.deployed();
-    const parameterizerReceipt = await parameterizerFactory.newParameterizerBYOTokenAndPLCR(
-      token.address,
-      plcr.address,
       [
         paramConfig.minDeposit,
         paramConfig.pMinDeposit,
@@ -54,23 +44,28 @@ const utils = {
         paramConfig.voteQuorum,
         paramConfig.pVoteQuorum,
       ],
-    );
-    const parameterizer = Parameterizer.at(parameterizerReceipt.logs[0].args.parameterizer);
-
-    const registryFactory = await RegistryFactory.deployed();
-    const registryReceipt = await registryFactory.newRegistryBYOTokenAndFriends(
-      token.address,
-      plcr.address,
-      parameterizer.address,
       'The TestChain Registry',
     );
-    const registry = Registry.at(registryReceipt.logs[0].args.registry);
-    return {
-      votingProxy: plcr,
-      paramProxy: parameterizer,
-      registryProxy: registry,
-      tokenInstance: token,
+
+    const {
+      token,
+      plcr,
+      parameterizer,
+      registry,
+    } = registryReceipt.logs[0].args;
+
+    const tokenInstance = Token.at(token);
+    const votingProxy = PLCRVoting.at(plcr);
+    const paramProxy = Parameterizer.at(parameterizer);
+    const registryProxy = Registry.at(registry);
+
+    const proxies = {
+      tokenInstance,
+      votingProxy,
+      paramProxy,
+      registryProxy,
     };
+    return proxies;
   },
 
   approveProxies: async (accounts, token, plcr, parameterizer, registry) => (

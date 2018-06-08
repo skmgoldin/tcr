@@ -14,7 +14,7 @@ const config = JSON.parse(fs.readFileSync('./conf/config.json'));
 const paramConfig = config.paramDefaults;
 
 contract('RegistryFactory', (accounts) => {
-  describe('Function: newRegistryBYOTokenAndFriends', () => {
+  describe('Function: newRegistryBYOToken', () => {
     let registryFactory;
     let parameterizerFactory;
     let plcrFactory;
@@ -67,7 +67,7 @@ contract('RegistryFactory', (accounts) => {
         paramConfig.pVoteQuorum,
       ];
       const parameterizerReceipt = await parameterizerFactory
-        .newParameterizerBYOTokenAndPLCR(token.address, plcr.address, parameters);
+        .newParameterizerBYOToken(token.address, parameters);
       const parameterizer = Parameterizer.at(parameterizerReceipt.logs[0].args.parameterizer);
 
       // verify: parameterizer's token
@@ -79,10 +79,9 @@ contract('RegistryFactory', (accounts) => {
       );
 
       // new registry using factory/proxy
-      const registryReceipt = await registryFactory.newRegistryBYOTokenAndFriends(
+      const registryReceipt = await registryFactory.newRegistryBYOToken(
         token.address,
-        plcr.address,
-        parameterizer.address,
+        parameters,
         'NEW TCR',
       );
       const { creator } = registryReceipt.logs[0].args;
@@ -105,13 +104,6 @@ contract('RegistryFactory', (accounts) => {
       // verify: registry's creator
       assert.strictEqual(creator, accounts[0], 'the creator emitted in the newRegistry event ' +
         'not correspond to the one which sent the creation transaction');
-      // verify: registry's plcr
-      const registryPLCR = await registry.voting.call();
-      assert.strictEqual(
-        registryPLCR,
-        plcr.address,
-        'the registry\'s plcr is incorrect',
-      );
     });
   });
 });
