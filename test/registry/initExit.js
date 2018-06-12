@@ -6,10 +6,11 @@ const config = JSON.parse(fs.readFileSync('./conf/config.json'));
 const paramConfig = config.paramDefaults;
 
 const utils = require('../utils.js');
+const BigNumber = require('bignumber.js');
 
 contract('Registry', (accounts) => {
-  describe('Function: exit', () => {
-    const [applicant, challenger, voter] = accounts;
+  describe('Function: initExit', () => {
+    const [applicant, challenger] = accounts;
 
     let token;
     let registry;
@@ -22,8 +23,8 @@ contract('Registry', (accounts) => {
       await utils.approveProxies(accounts, token, false, false, registry);
     });
 
-    it('should allow a listing to exit when no challenge exists', async () => {
-      const listing = utils.getListingHash('consensys.net');
+    it('exit time state should be correctly set', async () => {
+      const listing = utils.getListingHash('hangoutz.com');
 
       const initialApplicantTokenHoldings = await token.balanceOf.call(applicant);
 
@@ -31,22 +32,22 @@ contract('Registry', (accounts) => {
 
       const isWhitelisted = await registry.isWhitelisted.call(listing);
       assert.strictEqual(isWhitelisted, true, 'the listing was not added to the registry');
-
-      await registry.exit(listing, { from: applicant });
-
-      const isWhitelistedAfterExit = await registry.isWhitelisted.call(listing);
-      assert.strictEqual(isWhitelistedAfterExit, false, 'the listing was not removed on exit');
+      await registry.initExit(listing, { from: applicant });
+      // blockTimestamp is used to calculate when the applicant's exit time is up
+      const blockTimestamp = new BigNumber(await utils.getBlockTimestamp());
 
       const finalApplicantTokenHoldings = await token.balanceOf.call(applicant);
       assert.strictEqual(
-        initialApplicantTokenHoldings.toString(10),
-        finalApplicantTokenHoldings.toString(10),
-        'the applicant\'s tokens were not returned to them after exiting the registry',
+        finalApplicantTokenHoldings.toString(),
+        initialApplicantTokenHoldings.sub(paramConfig.minDeposit).toString(),
+        'the applicant\'s tokens were returned in spite of exit',
       );
+      const listingStruct = await registry.listings.call(listing);
+      assert.strictEqual(listingStruct[5].toString(), blockTimestamp.add(paramConfig.exitTimeDelay).toString(), 'exit time was not initialized');
     });
 
-    it('should not allow a listing to exit when a challenge does exist', async () => {
-      const listing = utils.getListingHash('consensys.net');
+    it('should not allow a listing to initialize an exit when a challenge exists', async () => {
+      const listing = utils.getListingHash('420.com');
 
       const initialApplicantTokenHoldings = await token.balanceOf.call(applicant);
 
@@ -57,7 +58,7 @@ contract('Registry', (accounts) => {
 
       await registry.challenge(listing, '', { from: challenger });
       try {
-        await registry.exit(listing, { from: applicant });
+        await registry.initExit(listing, { from: applicant });
         assert(false, 'exit succeeded when it should have failed');
       } catch (err) {
         const errMsg = err.toString();
@@ -72,24 +73,24 @@ contract('Registry', (accounts) => {
       );
 
       const finalApplicantTokenHoldings = await token.balanceOf.call(applicant);
-      assert(
-        initialApplicantTokenHoldings.gt(finalApplicantTokenHoldings),
+      assert.strictEqual(
+        finalApplicantTokenHoldings.toString(),
+        initialApplicantTokenHoldings.sub(paramConfig.minDeposit).toString(),
         'the applicant\'s tokens were returned in spite of failing to exit',
       );
 
-      // Clean up state, remove consensys.net (it fails its challenge due to draw)
-      await utils.increaseTime(paramConfig.commitStageLength + paramConfig.revealStageLength + 1);
-      await registry.updateStatus(listing);
+      const listingStruct = await registry.listings.call(listing);
+      assert.strictEqual(listingStruct[5].toString(), '0', 'exit time was initialized');
     });
 
-    it('should not allow a listing to be exited by someone who doesn\'t own it', async () => {
-      const listing = utils.getListingHash('consensys.net');
+    it('should not initialize an exit by someone who doesn\'t own the listing', async () => {
+      const listing = utils.getListingHash('chilling.com');
 
       await utils.addToWhitelist(listing, paramConfig.minDeposit, applicant, registry);
 
       try {
-        await registry.exit(listing, { from: voter });
-        assert(false, 'exit succeeded when it should have failed');
+        await registry.initExit(listing, { from: challenger });
+        assert(false, 'exit initialized when it should have failed');
       } catch (err) {
         const errMsg = err.toString();
         assert(utils.isEVMException(err), errMsg);
@@ -98,22 +99,33 @@ contract('Registry', (accounts) => {
       assert.strictEqual(
         isWhitelistedAfterExit,
         true,
-        'the listing was exited by someone other than its owner',
+        'the listing was initialized by someone other than its owner',
       );
+
+      const listingStruct = await registry.listings.call(listing);
+      assert.strictEqual(listingStruct[5].toString(), '0', 'exit time should not have been initialized');
     });
 
     it('should revert if listing is in application stage', async () => {
-      const listing = utils.getListingHash('real.net');
+      const listing = utils.getListingHash('nogoodnames.com');
 
       await utils.as(applicant, registry.apply, listing, paramConfig.minDeposit, '');
 
+      const initialListingStruct = await registry.listings.call(listing);
+      // Getting blockTimestamp to prove the listing is indeed in application stage
+      const blockTimestamp = new BigNumber(await utils.getBlockTimestamp());
+      // Checking to see if the listing is still in application stage
+      assert((initialListingStruct[0] > 0 && initialListingStruct[0] > blockTimestamp), 'Listing is not in application stage ');
       try {
-        await registry.exit(listing, { from: applicant });
+        await registry.initExit(listing, { from: applicant });
       } catch (err) {
         assert(utils.isEVMException(err), err.toString());
         return;
       }
       assert(false, 'exit succeeded for non-whitelisted listing');
+
+      const listingStruct = await registry.listings.call(listing);
+      assert.strictEqual(listingStruct[5].toString(), '0', 'exit time should not have been initialized');
     });
   });
 });

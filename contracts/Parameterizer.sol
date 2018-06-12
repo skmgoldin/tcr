@@ -113,6 +113,9 @@ contract Parameterizer {
 
         // type of majority out of 100 necessary for proposal success in parameterizer
         set("pVoteQuorum", _parameters[11]);
+
+        // minimum length of time between initExit & finalizeExit
+        set("exitTimeDelay", _parameters[12]);
     }
 
     // -----------------------
