@@ -81,6 +81,7 @@ contract Parameterizer {
   @param _pRevealStageLen length of reveal period for voting in parameterizer
   @param _voteQuorum       type of majority out of 100 necessary for vote success
   @param _pVoteQuorum      type of majority out of 100 necessary for vote success in parameterizer
+  @param _exitTimeDelay	    length of waiting time to leave listing
   */
   function Parameterizer(
     address _tokenAddr,
@@ -96,7 +97,8 @@ contract Parameterizer {
     uint _dispensationPct,
     uint _pDispensationPct,
     uint _voteQuorum,
-    uint _pVoteQuorum
+    uint _pVoteQuorum,
+    uint _exitTimeDelay
     ) public {
       token = EIP20Interface(_tokenAddr);
       voting = PLCRVoting(_plcrAddr);
@@ -113,6 +115,7 @@ contract Parameterizer {
       set("pDispensationPct", _pDispensationPct);
       set("voteQuorum", _voteQuorum);
       set("pVoteQuorum", _pVoteQuorum);
+      set("exitTimeDelay", _exitTimeDelay);
   }
 
   // -----------------------
