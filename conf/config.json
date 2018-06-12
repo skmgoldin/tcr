@@ -11,7 +11,8 @@
     "dispensationPct": 50,
     "pDispensationPct": 50,
     "voteQuorum": 50,
-    "pVoteQuorum": 50
+    "pVoteQuorum": 50,
+    "exitTimeDelay": 600
 	},
   "name": "The TestChain Registry",
   "token": {

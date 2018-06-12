@@ -48,7 +48,10 @@ contract('Registry', (accounts) => {
       assert.strictEqual(resultThree, true, 'should have returned true because its whitelisted');
 
       // Exit
-      await utils.as(applicant, registry.exit, listing);
+      await registry.initExit(listing, { from: applicant });
+      await utils.increaseTime(paramConfig.exitTimeDelay + 1);
+      await registry.finalizeExit(listing, { from: applicant });
+      // await utils.as(applicant, registry.exit, listing);
       const resultFour = await registry.appWasMade(listing);
       assert.strictEqual(resultFour, false, 'should have returned false because exit');
     });

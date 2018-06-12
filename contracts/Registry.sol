@@ -18,11 +18,12 @@ contract Registry {
     event _ApplicationWhitelisted(bytes32 indexed listingHash);
     event _ApplicationRemoved(bytes32 indexed listingHash);
     event _ListingRemoved(bytes32 indexed listingHash);
-    event _ListingWithdrawn(bytes32 indexed listingHash);
+    event _ListingWithdrawn(bytes32 indexed listingHash, address indexed owner);
     event _TouchAndRemoved(bytes32 indexed listingHash);
     event _ChallengeFailed(bytes32 indexed listingHash, uint indexed challengeID, uint rewardPool, uint totalTokens);
     event _ChallengeSucceeded(bytes32 indexed listingHash, uint indexed challengeID, uint rewardPool, uint totalTokens);
     event _RewardClaimed(uint indexed challengeID, uint reward, address indexed voter);
+    event _ExitInitialized(bytes32 indexed listingHash, uint exitTime, address indexed owner);
 
     using SafeMath for uint;
 
@@ -32,6 +33,7 @@ contract Registry {
         address owner;          // Owner of Listing
         uint unstakedDeposit;   // Number of tokens in the listing not locked in a challenge
         uint challengeID;       // Corresponds to a PollID in PLCRVoting
+	uint exitTime;		// Time the listing may leave the registry
     }
 
     struct Challenge {
@@ -139,7 +141,26 @@ contract Registry {
                         Returns all tokens to the owner of the listingHash
     @param _listingHash A listingHash msg.sender is the owner of.
     */
-    function exit(bytes32 _listingHash) external {
+    // function exit(bytes32 _listingHash) external {
+        // Listing storage listing = listings[_listingHash];
+
+        // require(msg.sender == listing.owner);
+        // require(isWhitelisted(_listingHash));
+
+        // // Cannot exit during ongoing challenge
+        // require(listing.challengeID == 0 || challenges[listing.challengeID].resolved);
+
+        // // Remove listingHash & return tokens
+        // resetListing(_listingHash);
+        // _ListingWithdrawn(_listingHash);
+    // }
+
+    
+    /**
+    @dev		Initialize an exit timer for a listing to leave the whitelist
+    @param _listingHash	A listing hash msg.sender is the owner of
+    */
+    function initExit(bytes32 _listingHash) external {	
         Listing storage listing = listings[_listingHash];
 
         require(msg.sender == listing.owner);
@@ -147,6 +168,31 @@ contract Registry {
 
         // Cannot exit during ongoing challenge
         require(listing.challengeID == 0 || challenges[listing.challengeID].resolved);
+        // If you initialized before you should not be able to again
+            require(listing.exitTime == 0);
+        // Set when the listing may be removed from the whitelist
+        listing.exitTime = block.timestamp.add(parameterizer.get("exitTimeDelay"));
+        emit _ExitInitialized(_listingHash, listing.exitTime, msg.sender);
+    }
+
+    /**
+    @dev		Allow a listing to leave the whitelist
+    @param _listingHash A listing hash msg.sender is the owner of
+    */
+    function finalizeExit(bytes32 _listingHash) external {
+        Listing storage listing = listings[_listingHash];
+
+        require(msg.sender == listing.owner);
+        require(isWhitelisted(_listingHash));
+
+        // Cannot exit during ongoing challenge
+        require(listing.challengeID == 0 || challenges[listing.challengeID].resolved);
+
+        // Make sure the exit was initialized
+        require(listing.exitTime > 0);
+
+        // Make sure time has elapsed passed the exit time
+        require(block.timestamp >= listing.exitTime);
 
         // Remove listingHash & return tokens
         resetListing(_listingHash);
