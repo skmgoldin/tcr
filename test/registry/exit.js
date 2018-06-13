@@ -17,7 +17,7 @@ contract('Registry', (accounts) => {
     it('should allow a listing to exit when no challenge exists', async () => {
       const registry = await Registry.deployed();
       const token = Token.at(await registry.token.call());
-      const listing = utils.getListingHash('consensys.net');
+      const listing = utils.getListingHash('google.com');
 
       const initialApplicantTokenHoldings = await token.balanceOf.call(applicant);
 
@@ -43,7 +43,7 @@ contract('Registry', (accounts) => {
     it('should not allow a listing to finalize exit when exit was not initialized', async () => {
       const registry = await Registry.deployed();
       const token = Token.at(await registry.token.call());
-      const listing = utils.getListingHash('consensys.net');
+      const listing = utils.getListingHash('youtube.com');
 
       const initialApplicantTokenHoldings = await token.balanceOf.call(applicant);
 
@@ -70,7 +70,7 @@ contract('Registry', (accounts) => {
     it('should not allow a listing to finalize exit when time is not up', async () => {
       const registry = await Registry.deployed();
       const token = Token.at(await registry.token.call());
-      const listing = utils.getListingHash('consensys.net');
+      const listing = utils.getListingHash('hangouts.com');
 
       const initialApplicantTokenHoldings = await token.balanceOf.call(applicant);
 
@@ -99,7 +99,7 @@ contract('Registry', (accounts) => {
     it('should not allow a listing to exit when a challenge does exist', async () => {
       const registry = await Registry.deployed();
       const token = Token.at(await registry.token.call());
-      const listing = utils.getListingHash('consensys.net');
+      const listing = utils.getListingHash('420.com');
 
       const initialApplicantTokenHoldings = await token.balanceOf.call(applicant);
 
@@ -139,7 +139,7 @@ contract('Registry', (accounts) => {
 
     it('should not initialize an exit by someone who doesn\'t own the listing', async () => {
       const registry = await Registry.deployed();
-      const listing = utils.getListingHash('consensys.net');
+      const listing = utils.getListingHash('chilling.com');
 
       await utils.addToWhitelist(listing, paramConfig.minDeposit, applicant);
 
@@ -160,7 +160,7 @@ contract('Registry', (accounts) => {
 
     it('should not finalize an exit by someone who doesn\'t own the listing', async () => {
       const registry = await Registry.deployed();
-      const listing = utils.getListingHash('consensys.net');
+      const listing = utils.getListingHash('helpme.com');
 
       await utils.addToWhitelist(listing, paramConfig.minDeposit, applicant);
       await registry.initExit(listing, { from: applicant });
@@ -182,12 +182,12 @@ contract('Registry', (accounts) => {
 
     it('should revert if listing is in application stage', async () => {
       const registry = await Registry.deployed();
-      const listing = utils.getListingHash('real.net');
+      const listing = utils.getListingHash('nogoodnames.com');
 
       await utils.as(applicant, registry.apply, listing, paramConfig.minDeposit, '');
 
       try {
-        await registry.exit(listing, { from: applicant });
+        await registry.initExit(listing, { from: applicant });
       } catch (err) {
         assert(utils.isEVMException(err), err.toString());
         return;

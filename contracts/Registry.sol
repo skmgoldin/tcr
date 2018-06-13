@@ -175,7 +175,8 @@ contract Registry {
 
 	// Cannot exit during ongoing challenge
 	require(listing.challengeID == 0 || challenges[listing.challengeID].resolved);
-
+	// If you initialized before you should not be able to again
+        require(listing.exitTime == 0);
 	// Set when the listing may be removed from the whitelist
 	listing.exitTime = block.timestamp.add(parameterizer.get("exitTimeDelay"));
 	emit _ExitInitialized(_listingHash, listing.exitTime);
