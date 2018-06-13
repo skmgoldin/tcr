@@ -163,6 +163,10 @@ contract Registry {
     // }
 
     
+    /**
+    @dev		Initialize an exit timer for a listing to leave the whitelist
+    @param _listingHash	A listing hash msg.sender is the owner of
+    */
     function initExit(bytes32 _listingHash) external {	
 	Listing storage listing = listings[_listingHash];
 
@@ -172,11 +176,16 @@ contract Registry {
 	// Cannot exit during ongoing challenge
 	require(listing.challengeID == 0 || challenges[listing.challengeID].resolved);
 
+	// Set when the listing may be removed from the whitelist
 	listing.exitTime = block.timestamp.add(parameterizer.get("exitTimeDelay"));
 	emit _ExitInitialized(_listingHash, listing.exitTime);
     }
 
-    function finializeExit(bytes32 _listingHash) external {
+    /**
+    @dev		Allow a listing to leave the whitelist
+    @param _listingHash A listing hash msg.sender is the owner of
+    */
+    function finalizeExit(bytes32 _listingHash) external {
 	Listing storage listing = listings[_listingHash];
 
 	require(msg.sender == listing.owner);
@@ -185,7 +194,10 @@ contract Registry {
 	// Cannot exit during ongoing challenge
 	require(listing.challengeID == 0 || challenges[listing.challengeID].resolved);
 
+	// Make sure the exit was initialized
 	require(listing.exitTime > 0);
+
+	// Make sure time has elapsed passed the exit time
 	require(block.timestamp >= listing.exitTime);
 
 	resetListing(_listingHash);
