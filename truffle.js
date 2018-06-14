@@ -1,3 +1,12 @@
+/*
+ * A bug in truffle-hdwallet-provider 0.0.5 makes `truffle compile` hang
+ * indefinitely when truffle-hdwallet-provider 0.0.5 is imported into the
+ * truffle.js. To use networks in this truffle.js, compile your code first
+ * and then uncomment the content of this file.
+ */
+
+// UNCOMMENT EVERYTHING BELOW THIS LINE TO USE THESE NETWORKS
+/*
 const HDWalletProvider = require('truffle-hdwallet-provider');
 const fs = require('fs');
 
@@ -48,3 +57,5 @@ module.exports = {
     },
   },
 };
+*/
+
