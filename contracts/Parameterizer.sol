@@ -77,18 +77,42 @@ contract Parameterizer {
 
         token = EIP20Interface(_token);
         voting = PLCRVoting(_plcr);
-        set("minDeposit", _parameters[0]);        // minimum deposit for listing to be whitelisted
-        set("pMinDeposit", _parameters[1]);       // minimum deposit to propose a reparameterization
-        set("applyStageLen", _parameters[2]);     // period over which applicants wait to be whitelisted
-        set("pApplyStageLen", _parameters[3]);    // period over which reparmeterization proposals wait to be processed
-        set("commitStageLen", _parameters[4]);    // length of commit period for voting
-        set("pCommitStageLen", _parameters[5]);   // length of commit period for voting in parameterizer
-        set("revealStageLen", _parameters[6]);    // length of reveal period for voting
-        set("pRevealStageLen", _parameters[7]);   // length of reveal period for voting in parameterizer
-        set("dispensationPct", _parameters[8]);   // percentage of losing party's deposit distributed to winning party
-        set("pDispensationPct", _parameters[9]);  // percentage of losing party's deposit distributed to winning party in parameterizer
-        set("voteQuorum", _parameters[10]);       // type of majority out of 100 necessary for vote success
-        set("pVoteQuorum", _parameters[11]);      // type of majority out of 100 necessary for vote success in parameterizer
+
+        // minimum deposit for listing to be whitelisted
+        set("minDeposit", _parameters[0]);
+        
+        // minimum deposit to propose a reparameterization
+        set("pMinDeposit", _parameters[1]);
+
+        // period over which applicants wait to be whitelisted
+        set("applyStageLen", _parameters[2]);
+
+        // period over which reparmeterization proposals wait to be processed
+        set("pApplyStageLen", _parameters[3]);
+
+        // length of commit period for voting
+        set("commitStageLen", _parameters[4]);
+        
+        // length of commit period for voting in parameterizer
+        set("pCommitStageLen", _parameters[5]);
+        
+        // length of reveal period for voting
+        set("revealStageLen", _parameters[6]);
+
+        // length of reveal period for voting in parameterizer
+        set("pRevealStageLen", _parameters[7]);
+
+        // percentage of losing party's deposit distributed to winning party
+        set("dispensationPct", _parameters[8]);
+
+        // percentage of losing party's deposit distributed to winning party in parameterizer
+        set("pDispensationPct", _parameters[9]);
+
+        // type of majority out of 100 necessary for candidate success
+        set("voteQuorum", _parameters[10]);
+
+        // type of majority out of 100 necessary for proposal success in parameterizer
+        set("pVoteQuorum", _parameters[11]);
     }
 
     // -----------------------
