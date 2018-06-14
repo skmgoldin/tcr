@@ -1,7 +1,7 @@
 pragma solidity ^0.4.11;
 
-// This is a useless import, but it forces EIP20.sol to be compiled. We need its build file for
-// the test pipeline.
+// These are useless imports, but they force these contracts to be compiled. We need their build
+// files for the test pipeline.
 import "tokens/eip20/EIP20.sol";
 import "plcr-revival/PLCRFactory.sol";
 
