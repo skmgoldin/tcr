@@ -92,8 +92,10 @@ contract('Registry', (accounts) => {
       await utils.addToWhitelist(listing, minDeposit, applicant);
       const resultOne = await registry.isWhitelisted(listing);
       assert.strictEqual(resultOne, true, 'Listing should have been whitelisted');
-
-      await utils.as(applicant, registry.exit, listing);
+      await registry.initExit(listing, { from: applicant });
+      await utils.increaseTime(paramConfig.exitTimeDelay + 1);
+      await registry.finalizeExit(listing, { from: applicant });
+      // await utils.as(applicant, registry.exit, listing);
       const resultTwo = await registry.isWhitelisted(listing);
       assert.strictEqual(resultTwo, false, 'Listing should not be in the whitelist');
 
