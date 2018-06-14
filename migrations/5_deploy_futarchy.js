@@ -22,8 +22,6 @@ const futarchyFundingAmount = paramConfig.minDeposit * 10 ** 18
 
 module.exports = (deployer) => {
   return deployer.then(async () => {
-    await deployer.deploy(Math)
-    
     deployer.link(Math, [EtherToken, StandardMarketFactory, StandardMarketWithPriceLoggerFactory, FutarchyChallengeFactory, EventFactory, LMSRMarketMaker])
 
     await deployer.deploy(EventFactory)
