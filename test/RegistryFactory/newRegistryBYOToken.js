@@ -2,10 +2,6 @@
 /* global contract assert artifacts */
 
 const EIP20 = artifacts.require('tokens/eip20/EIP20.sol');
-const PLCRFactory = artifacts.require('./PLCRFactory.sol');
-const PLCRVoting = artifacts.require('./PLCRVoting.sol');
-const ParameterizerFactory = artifacts.require('./ParameterizerFactory.sol');
-const Parameterizer = artifacts.require('./Parameterizer.sol');
 const RegistryFactory = artifacts.require('./RegistryFactory.sol');
 const Registry = artifacts.require('./Registry.sol');
 const fs = require('fs');
@@ -16,12 +12,8 @@ const paramConfig = config.paramDefaults;
 contract('RegistryFactory', (accounts) => {
   describe('Function: newRegistryBYOToken', () => {
     let registryFactory;
-    let parameterizerFactory;
-    let plcrFactory;
 
     before(async () => {
-      plcrFactory = await PLCRFactory.deployed();
-      parameterizerFactory = await ParameterizerFactory.deployed();
       registryFactory = await RegistryFactory.deployed();
     });
 
@@ -39,17 +31,6 @@ contract('RegistryFactory', (accounts) => {
         tokenParams.decimals,
         tokenParams.symbol,
       );
-      // new plcr using factory/proxy
-      const plcrReceipt = await plcrFactory.newPLCRBYOToken(token.address);
-      const plcr = PLCRVoting.at(plcrReceipt.logs[0].args.plcr);
-
-      // verify: plcr's token is the one we deployed earlier
-      const plcrToken = await plcr.token.call();
-      assert.strictEqual(
-        plcrToken,
-        token.address,
-        'the token connected to plcr is incorrect',
-      );
 
       // new parameterizer using factory/proxy
       const parameters = [
@@ -66,23 +47,13 @@ contract('RegistryFactory', (accounts) => {
         paramConfig.voteQuorum,
         paramConfig.pVoteQuorum,
       ];
-      const parameterizerReceipt = await parameterizerFactory
-        .newParameterizerBYOToken(token.address, parameters);
-      const parameterizer = Parameterizer.at(parameterizerReceipt.logs[0].args.parameterizer);
-
-      // verify: parameterizer's token
-      const parameterizerToken = await parameterizer.token.call();
-      assert.strictEqual(
-        parameterizerToken,
-        token.address,
-        'the token connected to parameterizer is incorrect',
-      );
 
       // new registry using factory/proxy
       const registryReceipt = await registryFactory.newRegistryBYOToken(
         token.address,
         parameters,
         'NEW TCR',
+        { from: accounts[0] },
       );
       const { creator } = registryReceipt.logs[0].args;
       const registry = Registry.at(registryReceipt.logs[0].args.registry);

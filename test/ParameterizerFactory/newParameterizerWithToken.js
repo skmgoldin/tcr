@@ -45,6 +45,7 @@ contract('ParameterizerFactory', (accounts) => {
         tokenParams.decimals,
         tokenParams.symbol,
         parameters,
+        { from: accounts[0] },
       );
       const { creator, token } = parameterizerReceipt.logs[0].args;
 

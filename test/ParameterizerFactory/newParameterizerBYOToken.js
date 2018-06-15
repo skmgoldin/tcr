@@ -48,7 +48,7 @@ contract('ParameterizerFactory', (accounts) => {
         paramConfig.pVoteQuorum,
       ];
       const parameterizerReceipt = await parameterizerFactory
-        .newParameterizerBYOToken(token.address, parameters);
+        .newParameterizerBYOToken(token.address, parameters, { from: accounts[0] });
       const parameterizer = Parameterizer.at(parameterizerReceipt.logs[0].args.parameterizer);
       const { creator } = parameterizerReceipt.logs[0].args;
 
