@@ -23,7 +23,7 @@ contract Registry {
     event _ChallengeFailed(bytes32 indexed listingHash, uint indexed challengeID, uint rewardPool, uint totalTokens);
     event _ChallengeSucceeded(bytes32 indexed listingHash, uint indexed challengeID, uint rewardPool, uint totalTokens);
     event _RewardClaimed(uint indexed challengeID, uint reward, address indexed voter);
-    event _ExitInitialized(bytes32 indexed listingHash, uint exitTime);
+    event _ExitInitialized(bytes32 indexed listingHash, uint exitTime, address indexed owner);
 
     using SafeMath for uint;
 
@@ -179,7 +179,7 @@ contract Registry {
         require(listing.exitTime == 0);
 	// Set when the listing may be removed from the whitelist
 	listing.exitTime = block.timestamp.add(parameterizer.get("exitTimeDelay"));
-	emit _ExitInitialized(_listingHash, listing.exitTime);
+	emit _ExitInitialized(_listingHash, listing.exitTime, msg.sender);
     }
 
     /**

@@ -47,7 +47,6 @@ module.exports = (deployer, network, accounts) => {
       parameterizerConfig.voteQuorum,
       parameterizerConfig.pVoteQuorum,
       parameterizerConfig.exitTimeDelay,
-      parameterizerConfig.pExitTimeDelay,
     );
   })
     .then(async () => {
