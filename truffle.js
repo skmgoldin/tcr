@@ -1,12 +1,3 @@
-/*
- * A bug in truffle-hdwallet-provider 0.0.5 makes `truffle compile` hang
- * indefinitely when truffle-hdwallet-provider 0.0.5 is imported into the
- * truffle.js. To use networks in this truffle.js, compile your code first
- * and then uncomment the content of this file.
- */
-
-// UNCOMMENT EVERYTHING BELOW THIS LINE TO USE THESE NETWORKS
-/*
 const HDWalletProvider = require('truffle-hdwallet-provider');
 const fs = require('fs');
 
@@ -24,25 +15,25 @@ if (process.env.MNEMONIC) {
 module.exports = {
   networks: {
     mainnet: {
-      provider: new HDWalletProvider(mnemonic, 'https://mainnet.infura.io'),
+      provider: () => new HDWalletProvider(mnemonic, 'https://mainnet.infura.io'),
       network_id: '1',
       gas: 4500000,
       gasPrice: 10000000000,
     },
     ganache: {
-      provider: new HDWalletProvider(mnemonic, 'http://localhost:8545'),
+      provider: () => new HDWalletProvider(mnemonic, 'http://localhost:8545'),
       network_id: '*',
       gas: 6000000,
       gasPrice: 25000000000,
     },
     rinkeby: {
-      provider: new HDWalletProvider(mnemonic, 'https://rinkeby.infura.io'),
+      provider: () => new HDWalletProvider(mnemonic, 'https://rinkeby.infura.io'),
       network_id: '*',
       gas: 4500000,
       gasPrice: 25000000000,
     },
     ropsten: {
-      provider: new HDWalletProvider(mnemonic, 'https://ropsten.infura.io'),
+      provider: () => new HDWalletProvider(mnemonic, 'https://ropsten.infura.io'),
       network_id: '*',
       gas: 4500000,
       gasPrice: 25000000000,
@@ -57,5 +48,4 @@ module.exports = {
     },
   },
 };
-*/
 
