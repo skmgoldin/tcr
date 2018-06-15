@@ -187,9 +187,10 @@ contract Registry {
             parameterizer.get("revealStageLen")
         );
 
+        uint oneHundred = 100; // Kludge that we need to use SafeMath
         challenges[pollID] = Challenge({
             challenger: msg.sender,
-            rewardPool: ((100 - parameterizer.get("dispensationPct")) * minDeposit) / 100,
+            rewardPool: ((oneHundred.sub(parameterizer.get("dispensationPct"))).mul(minDeposit)).div(100),
             stake: minDeposit,
             resolved: false,
             totalTokens: 0
