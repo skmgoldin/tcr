@@ -145,7 +145,7 @@ const utils = {
   },
 
   isEVMException: err => (
-    err.toString().includes('revert') || err.toString().includes('invalid opcode')
+    err.toString().includes('revert')
   ),
 
   // returns block timestamp
