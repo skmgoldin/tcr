@@ -12,7 +12,7 @@ const utils = require('../utils.js');
 const BigNumber = require('bignumber.js');
 
 contract('Registry', (accounts) => {
-  describe('Function: exit', () => {
+  describe('Function: initExit', () => {
     const [applicant, challenger] = accounts;
 
     it('exit time state should be correctly set', async () => {
@@ -100,7 +100,7 @@ contract('Registry', (accounts) => {
       );
 
       const listingStruct = await registry.listings.call(listing);
-      assert.strictEqual(listingStruct[5].toString(), '0', 'exit time was initialized');
+      assert.strictEqual(listingStruct[5].toString(), '0', 'exit time should not have been initialized');
     });
 
     it('should revert if listing is in application stage', async () => {
@@ -123,7 +123,7 @@ contract('Registry', (accounts) => {
       assert(false, 'exit succeeded for non-whitelisted listing');
 
       const listingStruct = await registry.listings.call(listing);
-      assert.strictEqual(listingStruct[5].toString(), '0', 'exit time was initialized');
+      assert.strictEqual(listingStruct[5].toString(), '0', 'exit time should not have been initialized');
     });
   });
 });

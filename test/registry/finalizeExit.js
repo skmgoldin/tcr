@@ -12,7 +12,7 @@ const utils = require('../utils.js');
 const BigNumber = require('bignumber.js');
 
 contract('Registry', (accounts) => {
-  describe('Function: exit', () => {
+  describe('Function: finalizeExit', () => {
     const [applicant, challenger] = accounts;
 
     it('should allow a listing to exit when no challenge exists', async () => {
