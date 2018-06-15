@@ -18,7 +18,7 @@ contract Registry {
     event _ApplicationWhitelisted(bytes32 indexed listingHash);
     event _ApplicationRemoved(bytes32 indexed listingHash);
     event _ListingRemoved(bytes32 indexed listingHash);
-    event _ListingWithdrawn(bytes32 indexed listingHash);
+    event _ListingWithdrawn(bytes32 indexed listingHash, address indexed owner);
     event _TouchAndRemoved(bytes32 indexed listingHash);
     event _ChallengeFailed(bytes32 indexed listingHash, uint indexed challengeID, uint rewardPool, uint totalTokens);
     event _ChallengeSucceeded(bytes32 indexed listingHash, uint indexed challengeID, uint rewardPool, uint totalTokens);
@@ -190,7 +190,7 @@ contract Registry {
 	Listing storage listing = listings[_listingHash];
 
 	require(msg.sender == listing.owner);
-	//require(isWhitelisted(_listingHash));
+	require(isWhitelisted(_listingHash));
 
 	// Cannot exit during ongoing challenge
 	require(listing.challengeID == 0 || challenges[listing.challengeID].resolved);
@@ -202,7 +202,7 @@ contract Registry {
 	require(block.timestamp >= listing.exitTime);
 
 	resetListing(_listingHash);
-	emit _ListingWithdrawn(_listingHash);
+	emit _ListingWithdrawn(_listingHash, msg.sender);
     }
 
     // -----------------------
