@@ -4,6 +4,12 @@
 
 A hash-keyed [token-curated registry (TCR)](https://medium.com/@ilovebagels/token-curated-registries-1-0-61a232f8dac7). [Owner's Manual available](https://github.com/skmgoldin/tcr/blob/master/owners_manual.md).
 
+Mainnet factory: [0xcc0df91b86795f21c3d43dbeb3ede0dfcf8dccaf](https://etherscan.io/address/0xcc0df91b86795f21c3d43dbeb3ede0dfcf8dccaf#code)
+
+Rinkeby factory: [0x822415a1e4d0d7f99425d794a817d9b823bdcd0c](https://rinkeby.etherscan.io/address/0x822415a1e4d0d7f99425d794a817d9b823bdcd0c#code)
+
+EPM: [tcr](https://www.ethpm.com/registry/packages/44)
+
 ## Initialize
 The only environmental dependency you need is Node. Presently we can guarantee this all works with Node 8.
 ```
