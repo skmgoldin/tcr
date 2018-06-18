@@ -154,5 +154,50 @@ contract('Registry', (accounts) => {
       const listingStruct = await registry.listings.call(listing);
       assert.strictEqual(listingStruct[5].toString(), blockTimestamp.add(paramConfig.exitTimeDelay).toString(), 'exit time was not initialized');
     });
+
+    it('should not allow a listing to finalize an exit when exitTimeExpiry has elapsed', async () => {
+      const registry = await Registry.deployed();
+      const token = Token.at(await registry.token.call());
+      const listing = utils.getListingHash('620-200.com');
+
+      const initialApplicantTokenHoldings = await token.balanceOf.call(applicant);
+
+      await utils.addToWhitelist(listing, paramConfig.minDeposit, applicant);
+
+      const isWhitelisted = await registry.isWhitelisted.call(listing);
+      assert.strictEqual(isWhitelisted, true, 'the listing was not added to the registry');
+
+      await registry.initExit(listing, { from: applicant });
+      // blockTimestamp is used to calculate when the applicant's exit time is up
+      const blockTimestamp = new BigNumber(await utils.getBlockTimestamp());
+      await utils.increaseTime(paramConfig.exitTimeDelay + 1);
+      await utils.increaseTime(paramConfig.exitTimeExpiry + 1);
+      const blockTimestamp2 = await utils.getBlockTimestamp();
+      try {
+        await registry.finalizeExit(listing, { from: applicant });
+        assert(false, 'exit succeeded when it should have failed since exitTimeExpiry elapsed');
+      } catch (err) {
+        const errMsg = err.toString();
+        assert(utils.isEVMException(err), errMsg);
+      }
+      const isWhitelistedAfterExit = await registry.isWhitelisted.call(listing);
+      assert.strictEqual(
+        isWhitelistedAfterExit,
+        true,
+        'the listing was able to exit since exitTimeExpiry elapsed',
+      );
+      const finalApplicantTokenHoldings = await token.balanceOf.call(applicant);
+      assert.strictEqual(
+        finalApplicantTokenHoldings.toString(),
+        initialApplicantTokenHoldings.sub(paramConfig.minDeposit).toString(),
+        'the applicant\'s tokens were returned in spite of failing to exit',
+      );
+      const listingStruct = await registry.listings.call(listing);
+      assert.strictEqual(listingStruct[5].toString(), blockTimestamp.add(paramConfig.exitTimeDelay).toString(), 'exit time was not initialized');
+      // add 2 if we want to make it be strict equal, ask isaac --------------------
+      const expectedBlockTimestamp = listingStruct[5].add(paramConfig.exitTimeExpiry);
+      //  assert.strictEqual(expectedBlockTimestamp.toString(), blockTimestamp2, 'e ');
+      assert.isBelow(expectedBlockTimestamp.toString(), blockTimestamp2, 'expiry timestamp is not correct');
+    });
   });
 });

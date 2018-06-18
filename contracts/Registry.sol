@@ -175,8 +175,9 @@ contract Registry {
 
 	// Cannot exit during ongoing challenge
 	require(listing.challengeID == 0 || challenges[listing.challengeID].resolved);
-	// If you initialized before you should not be able to again
-        require(listing.exitTime == 0);
+	// Ensure that you either never called initExit() or your expiry time is up
+        require(listing.exitTime == 0 || block.timestamp >
+		listing.exitTime.add(parameterizer.get("exitTimeExpiry")));
 	// Set when the listing may be removed from the whitelist
 	listing.exitTime = block.timestamp.add(parameterizer.get("exitTimeDelay"));
 	emit _ExitInitialized(_listingHash, listing.exitTime, msg.sender);
@@ -198,10 +199,9 @@ contract Registry {
 	// Make sure the exit was initialized
 	require(listing.exitTime > 0);
 
-	// Make sure time has elapsed passed the exit time
-	// require(block.timestamp >= listing.exitTime);
-        require(listing.exitTime < block.timestamp && (block.timestamp <
-						       listing.exitTime.add(parameterizer.get("exitTimeExpiry"))));
+	// Get the time when the exit is no longer valid
+	uint timeExpired = listing.exitTime.add(parameterizer.get("exitTimeExpiry"));
+        require(listing.exitTime < block.timestamp && block.timestamp < timeExpired);
 	resetListing(_listingHash);
 	emit _ListingWithdrawn(_listingHash, msg.sender);
     }
