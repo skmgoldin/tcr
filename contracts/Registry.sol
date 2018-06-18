@@ -199,8 +199,9 @@ contract Registry {
 	require(listing.exitTime > 0);
 
 	// Make sure time has elapsed passed the exit time
-	require(block.timestamp >= listing.exitTime);
-
+	// require(block.timestamp >= listing.exitTime);
+        require(listing.exitTime < block.timestamp && (block.timestamp <
+						       listing.exitTime.add(parameterizer.get("exitTimeExpiry"))));
 	resetListing(_listingHash);
 	emit _ListingWithdrawn(_listingHash, msg.sender);
     }

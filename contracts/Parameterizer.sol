@@ -98,7 +98,8 @@ contract Parameterizer {
     uint _pDispensationPct,
     uint _voteQuorum,
     uint _pVoteQuorum,
-    uint _exitTimeDelay
+    uint _exitTimeDelay,
+    uint _exitTimeExpiry
     ) public {
       token = EIP20Interface(_tokenAddr);
       voting = PLCRVoting(_plcrAddr);
@@ -116,6 +117,7 @@ contract Parameterizer {
       set("voteQuorum", _voteQuorum);
       set("pVoteQuorum", _pVoteQuorum);
       set("exitTimeDelay", _exitTimeDelay);
+      set("exitTimeExpiry", _exitTimeExpiry);
   }
 
   // -----------------------
