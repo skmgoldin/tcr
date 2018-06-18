@@ -23,7 +23,7 @@ contract Registry {
     event _ChallengeFailed(bytes32 indexed listingHash, uint indexed challengeID, uint rewardPool, uint totalTokens);
     event _ChallengeSucceeded(bytes32 indexed listingHash, uint indexed challengeID, uint rewardPool, uint totalTokens);
     event _RewardClaimed(uint indexed challengeID, uint reward, address indexed voter);
-    event _ExitInitialized(bytes32 indexed listingHash, uint exitTime, address indexed owner);
+    event _ExitInitialized(bytes32 indexed listingHash, uint exitTime, uint exitDelayEndDate, address indexed owner);
 
     using SafeMath for uint;
 
@@ -168,11 +168,14 @@ contract Registry {
 
         // Cannot exit during ongoing challenge
         require(listing.challengeID == 0 || challenges[listing.challengeID].resolved);
-        // If you initialized before you should not be able to again
-            require(listing.exitTime == 0);
+        // Ensure that you either never called initExit() or your expiry time is up
+        require(listing.exitTime == 0 || now >
+            listing.exitTime.add(parameterizer.get("exitTimeExpiry")));
+
         // Set when the listing may be removed from the whitelist
-        listing.exitTime = block.timestamp.add(parameterizer.get("exitTimeDelay"));
-        emit _ExitInitialized(_listingHash, listing.exitTime, msg.sender);
+        listing.exitTime = now.add(parameterizer.get("exitTimeDelay"));
+        emit _ExitInitialized(_listingHash, listing.exitTime,
+            listing.exitTime.add(parameterizer.get("exitTimeExpiry")), msg.sender);
     }
 
     /**
@@ -191,12 +194,14 @@ contract Registry {
         // Make sure the exit was initialized
         require(listing.exitTime > 0);
 
-        // Make sure time has elapsed passed the exit time
-        require(block.timestamp >= listing.exitTime);
+        // Get the time when the exit is no longer valid
+        uint timeExpired = listing.exitTime.add(parameterizer.get("exitTimeExpiry"));
 
-        // Remove listingHash & return tokens
+        // Time to exit has to be after exit delay but before the exit expiry time
+        require((listing.exitTime < now) && (now < timeExpired));
+
         resetListing(_listingHash);
-        emit _ListingWithdrawn(_listingHash);
+        emit _ListingWithdrawn(_listingHash, msg.sender);
     }
 
     // -----------------------
