@@ -172,7 +172,6 @@ contract('Registry', (accounts) => {
       const blockTimestamp = new BigNumber(await utils.getBlockTimestamp());
       await utils.increaseTime(paramConfig.exitTimeDelay + 1);
       await utils.increaseTime(paramConfig.exitTimeExpiry + 1);
-      const blockTimestamp2 = await utils.getBlockTimestamp();
       try {
         await registry.finalizeExit(listing, { from: applicant });
         assert(false, 'exit succeeded when it should have failed since exitTimeExpiry elapsed');
@@ -194,10 +193,57 @@ contract('Registry', (accounts) => {
       );
       const listingStruct = await registry.listings.call(listing);
       assert.strictEqual(listingStruct[5].toString(), blockTimestamp.add(paramConfig.exitTimeDelay).toString(), 'exit time was not initialized');
-      // add 2 if we want to make it be strict equal, ask isaac --------------------
-      const expectedBlockTimestamp = listingStruct[5].add(paramConfig.exitTimeExpiry);
-      //  assert.strictEqual(expectedBlockTimestamp.toString(), blockTimestamp2, 'e ');
-      assert.isBelow(expectedBlockTimestamp.toString(), blockTimestamp2, 'expiry timestamp is not correct');
+      // Add 2 to account for increasing the time by an extra 2
+      const expectedBlockTimestamp = listingStruct[5].add(paramConfig.exitTimeExpiry).add(2);
+      // blockTimestamp2 is the time after the expiry date
+      const blockTimestamp2 = await utils.getBlockTimestamp();
+      assert.strictEqual(blockTimestamp2.toString(), expectedBlockTimestamp.toString(), 'expiry timestamp is not correct');
+    });
+
+    it('should allow a listing to finalize after re-initializing a previous exit', async () => {
+      const registry = await Registry.deployed();
+      const token = Token.at(await registry.token.call());
+      const listing = utils.getListingHash('720-300.com');
+
+      const initialApplicantTokenHoldings = await token.balanceOf.call(applicant);
+
+      await utils.addToWhitelist(listing, paramConfig.minDeposit, applicant);
+
+      const isWhitelisted = await registry.isWhitelisted.call(listing);
+      assert.strictEqual(isWhitelisted, true, 'the listing was not added to the registry');
+
+      // Initialize exit and fast forward past expiry date
+      await registry.initExit(listing, { from: applicant });
+      await utils.increaseTime(paramConfig.exitTimeDelay + 1);
+      await utils.increaseTime(paramConfig.exitTimeExpiry + 1);
+      try {
+        await registry.finalizeExit(listing, { from: applicant });
+        assert(false, 'exit succeeded when it should have failed since exitTimeExpiry elapsed');
+      } catch (err) {
+        const errMsg = err.toString();
+        assert(utils.isEVMException(err), errMsg);
+      }
+
+      // Re-initialize the exit and finalize the exit before the expiry time
+      await registry.initExit(listing, { from: applicant });
+      await utils.increaseTime(paramConfig.exitTimeDelay + 1);
+      await registry.finalizeExit(listing, { from: applicant });
+      // ----------------------------------------
+      const isWhitelistedAfterExit = await registry.isWhitelisted.call(listing);
+      assert.strictEqual(
+        isWhitelistedAfterExit,
+        false,
+        'the listing was not able to exit even though exitTimeExpiry did not elapse',
+      );
+      const finalApplicantTokenHoldings = await token.balanceOf.call(applicant);
+      assert.strictEqual(
+        finalApplicantTokenHoldings.toString(),
+        initialApplicantTokenHoldings.toString(),
+        'the applicant\'s tokens were not returned in spite of exiting',
+      );
+      const listingStruct = await registry.listings.call(listing);
+      assert.strictEqual(listingStruct[5].toString(), '0', 'user was not able to successfully exit the listing');
     });
   });
 });
+
