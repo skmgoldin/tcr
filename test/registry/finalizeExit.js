@@ -226,7 +226,7 @@ contract('Registry', (accounts) => {
       await registry.initExit(listing, { from: applicant });
       await utils.increaseTime(paramConfig.exitTimeDelay + 1);
       await registry.finalizeExit(listing, { from: applicant });
-      // ----------------------------------------
+
       const isWhitelistedAfterExit = await registry.isWhitelisted.call(listing);
       assert.strictEqual(
         isWhitelistedAfterExit,
