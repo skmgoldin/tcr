@@ -152,7 +152,7 @@ contract Registry {
 
         // // Remove listingHash & return tokens
         // resetListing(_listingHash);
-        // _ListingWithdrawn(_listingHash);
+        // emit _ListingWithdrawn(_listingHash);
     // }
 
     
@@ -256,7 +256,9 @@ contract Registry {
         // Takes tokens from challenger
         require(token.transferFrom(msg.sender, this, minDeposit));
 
-        var (commitEndDate, revealEndDate,) = voting.pollMap(pollID);
+	uint commitEndDate;
+	uint revealEndDate;
+        (commitEndDate, revealEndDate,) = voting.pollMap(pollID);
 
         emit _Challenge(_listingHash, pollID, _data, commitEndDate, revealEndDate, msg.sender);
         return pollID;
