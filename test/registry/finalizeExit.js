@@ -161,17 +161,20 @@ contract('Registry', (accounts) => {
       const listing = utils.getListingHash('620-200.com');
 
       const initialApplicantTokenHoldings = await token.balanceOf.call(applicant);
-
       await utils.addToWhitelist(listing, paramConfig.minDeposit, applicant);
 
       const isWhitelisted = await registry.isWhitelisted.call(listing);
       assert.strictEqual(isWhitelisted, true, 'the listing was not added to the registry');
 
       await registry.initExit(listing, { from: applicant });
+
       // blockTimestamp is used to calculate when the applicant's exit time is up
       const blockTimestamp = new BigNumber(await utils.getBlockTimestamp());
+
       await utils.increaseTime(paramConfig.exitTimeDelay + 1);
       await utils.increaseTime(paramConfig.exitTimeExpiry + 1);
+      const listingStruct = await registry.listings.call(listing);
+
       try {
         await registry.finalizeExit(listing, { from: applicant });
         assert(false, 'exit succeeded when it should have failed since exitTimeExpiry elapsed');
@@ -191,13 +194,8 @@ contract('Registry', (accounts) => {
         initialApplicantTokenHoldings.sub(paramConfig.minDeposit).toString(),
         'the applicant\'s tokens were returned in spite of failing to exit',
       );
-      const listingStruct = await registry.listings.call(listing);
+
       assert.strictEqual(listingStruct[5].toString(), blockTimestamp.add(paramConfig.exitTimeDelay).toString(), 'exit time was not initialized');
-      // Add 2 to account for increasing the time by an extra 2
-      const expectedBlockTimestamp = listingStruct[5].add(paramConfig.exitTimeExpiry).add(2);
-      // blockTimestamp2 is the time after the expiry date
-      const blockTimestamp2 = await utils.getBlockTimestamp();
-      assert.strictEqual(blockTimestamp2.toString(), expectedBlockTimestamp.toString(), 'expiry timestamp is not correct');
     });
 
     it('should allow a listing to finalize after re-initializing a previous exit', async () => {
