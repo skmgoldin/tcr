@@ -10,7 +10,7 @@
     "deploy-mainnet": "truffle migrate --network mainnet",
     "test:truffle": "run-with-testrpc -l 20000000 'truffle test --network testing'",
     "test": "truffle test",
-    "migrate": "truffle migrate",
+    "migrate": "truffle migrate --reset",
     "fix": "eslint --fix",
     "lint": "eslint",
     "ganache": "scripts/runGanache.sh"
