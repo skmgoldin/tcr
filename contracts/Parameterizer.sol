@@ -116,6 +116,9 @@ contract Parameterizer {
 
         // minimum length of time between initExit & finalizeExit
         set("exitTimeDelay", _parameters[12]);
+
+        // maximum length of time between initExit & finalizeExit
+        set("exitTimeExpiry", _parameters[13]);
     }
 
     // -----------------------

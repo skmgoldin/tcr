@@ -43,6 +43,8 @@ const utils = {
         paramConfig.pDispensationPct,
         paramConfig.voteQuorum,
         paramConfig.pVoteQuorum,
+        paramConfig.exitTimeDelay,
+        paramConfig.exitTimeExpiry,
       ],
       'The TestChain Registry',
     );
