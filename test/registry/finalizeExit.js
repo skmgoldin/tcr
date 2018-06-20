@@ -1,8 +1,5 @@
 /* eslint-env mocha */
-/* global assert contract artifacts */
-const Registry = artifacts.require('Registry.sol');
-const Token = artifacts.require('EIP20.sol');
-
+/* global assert contract */
 const fs = require('fs');
 
 const config = JSON.parse(fs.readFileSync('./conf/config.json'));
@@ -15,18 +12,29 @@ contract('Registry', (accounts) => {
   describe('Function: finalizeExit', () => {
     const [applicant, challenger] = accounts;
 
+    let token;
+    let registry;
+
+    before(async () => {
+      const { registryProxy, tokenInstance } = await utils.getProxies();
+      registry = registryProxy;
+      token = tokenInstance;
+
+      await utils.approveProxies(accounts, token, false, false, registry);
+    });
+
     it('should allow a listing to exit when no challenge exists', async () => {
-      const registry = await Registry.deployed();
-      const token = Token.at(await registry.token.call());
       const listing = utils.getListingHash('google.com');
 
       const initialApplicantTokenHoldings = await token.balanceOf.call(applicant);
 
-      await utils.addToWhitelist(listing, paramConfig.minDeposit, applicant);
+      await utils.addToWhitelist(listing, paramConfig.minDeposit, applicant, registry);
 
       const isWhitelisted = await registry.isWhitelisted.call(listing);
       assert.strictEqual(isWhitelisted, true, 'the listing was not added to the registry');
+
       await registry.initExit(listing, { from: applicant });
+
       await utils.increaseTime(paramConfig.exitTimeDelay + 1);
       await registry.finalizeExit(listing, { from: applicant });
 
@@ -45,13 +53,11 @@ contract('Registry', (accounts) => {
     });
 
     it('should not allow a listing to finalize exit when exit was not initialized', async () => {
-      const registry = await Registry.deployed();
-      const token = Token.at(await registry.token.call());
       const listing = utils.getListingHash('youtube.com');
 
       const initialApplicantTokenHoldings = await token.balanceOf.call(applicant);
 
-      await utils.addToWhitelist(listing, paramConfig.minDeposit, applicant);
+      await utils.addToWhitelist(listing, paramConfig.minDeposit, applicant, registry);
 
       const isWhitelisted = await registry.isWhitelisted.call(listing);
       assert.strictEqual(isWhitelisted, true, 'the listing was not added to the registry');
@@ -78,13 +84,11 @@ contract('Registry', (accounts) => {
     });
 
     it('should not allow a listing to finalize exit when time is not up', async () => {
-      const registry = await Registry.deployed();
-      const token = Token.at(await registry.token.call());
       const listing = utils.getListingHash('hangouts.com');
 
       const initialApplicantTokenHoldings = await token.balanceOf.call(applicant);
 
-      await utils.addToWhitelist(listing, paramConfig.minDeposit, applicant);
+      await utils.addToWhitelist(listing, paramConfig.minDeposit, applicant, registry);
 
       const isWhitelisted = await registry.isWhitelisted.call(listing);
       assert.strictEqual(isWhitelisted, true, 'the listing was not added to the registry');
@@ -112,13 +116,11 @@ contract('Registry', (accounts) => {
     });
 
     it('should not allow a listing to finalize an exit when a challenge does exist', async () => {
-      const registry = await Registry.deployed();
-      const token = Token.at(await registry.token.call());
       const listing = utils.getListingHash('520.com');
 
       const initialApplicantTokenHoldings = await token.balanceOf.call(applicant);
 
-      await utils.addToWhitelist(listing, paramConfig.minDeposit, applicant);
+      await utils.addToWhitelist(listing, paramConfig.minDeposit, applicant, registry);
 
       const isWhitelisted = await registry.isWhitelisted.call(listing);
       assert.strictEqual(isWhitelisted, true, 'the listing was not added to the registry');
@@ -156,12 +158,10 @@ contract('Registry', (accounts) => {
     });
 
     it('should not allow a listing to finalize an exit when exitTimeExpiry has elapsed', async () => {
-      const registry = await Registry.deployed();
-      const token = Token.at(await registry.token.call());
       const listing = utils.getListingHash('620-200.com');
 
       const initialApplicantTokenHoldings = await token.balanceOf.call(applicant);
-      await utils.addToWhitelist(listing, paramConfig.minDeposit, applicant);
+      await utils.addToWhitelist(listing, paramConfig.minDeposit, applicant, registry);
 
       const isWhitelisted = await registry.isWhitelisted.call(listing);
       assert.strictEqual(isWhitelisted, true, 'the listing was not added to the registry');
@@ -199,13 +199,11 @@ contract('Registry', (accounts) => {
     });
 
     it('should allow a listing to finalize after re-initializing a previous exit', async () => {
-      const registry = await Registry.deployed();
-      const token = Token.at(await registry.token.call());
       const listing = utils.getListingHash('720-300.com');
 
       const initialApplicantTokenHoldings = await token.balanceOf.call(applicant);
 
-      await utils.addToWhitelist(listing, paramConfig.minDeposit, applicant);
+      await utils.addToWhitelist(listing, paramConfig.minDeposit, applicant, registry);
 
       const isWhitelisted = await registry.isWhitelisted.call(listing);
       assert.strictEqual(isWhitelisted, true, 'the listing was not added to the registry');
