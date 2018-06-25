@@ -43,7 +43,12 @@ contract('Registry', (accounts) => {
       );
       // Make sure exitTimeDelay was correctly set
       const listingStruct = await registry.listings.call(listing);
-      assert.strictEqual(listingStruct[5].toString(), blockTimestamp.add(paramConfig.exitTimeDelay).toString(), 'exit time was not initialized');
+      const exitTime = blockTimestamp.add(paramConfig.exitTimeDelay);
+      assert.strictEqual(listingStruct[5].toString(), exitTime.toString(), 'exitTime was not initialized');
+
+      // Make sure exitTimeExpiry was correctly set
+      const exitTimeExpiry = exitTime.add(paramConfig.exitPeriodLen);
+      assert.strictEqual(listingStruct[6].toString(), exitTimeExpiry.toString(), 'exitTimeExpiry was not initialized');
     });
 
     it('should not allow a listing to initialize an exit when a challenge exists', async () => {
@@ -79,6 +84,8 @@ contract('Registry', (accounts) => {
       // Make sure the listing did not successfully initialize exit
       const listingStruct = await registry.listings.call(listing);
       assert.strictEqual(listingStruct[5].toString(), '0', 'exitTimeDelay was initialized');
+      // Make sure exitTimeExpiry was correctly set
+      assert.strictEqual(listingStruct[6].toString(), '0', 'exitTimeExpiry was initialized');
     });
 
     it('should not initialize an exit by someone who doesn\'t own the listing', async () => {

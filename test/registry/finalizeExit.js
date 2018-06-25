@@ -44,7 +44,8 @@ contract('Registry', (accounts) => {
       );
       // Make sure resetListing(), called in finalizeExit() correctly removed the listing
       const listingStruct = await registry.listings.call(listing);
-      assert.strictEqual(listingStruct[5].toString(), '0', 'exit time did not reset');
+      assert.strictEqual(listingStruct[5].toString(), '0', 'exitTime did not reset');
+      assert.strictEqual(listingStruct[6].toString(), '0', 'exitTimeExpiry did not reset');
     });
 
     it('should not allow a listing to finalize exit when exit was not initialized', async () => {
@@ -75,7 +76,8 @@ contract('Registry', (accounts) => {
       );
       // Make sure the listing did not successfully initialize exit
       const listingStruct = await registry.listings.call(listing);
-      assert.strictEqual(listingStruct[5].toString(), '0', 'exit time was initialized even though initExit() was never called');
+      assert.strictEqual(listingStruct[5].toString(), '0', 'exitTime was initialized even though initExit() was never called');
+      assert.strictEqual(listingStruct[6].toString(), '0', 'exitTimeExpiry initialized even though initExit() was never called');
     });
 
     it('should not allow a listing to finalize exit during the waiting period', async () => {
@@ -108,7 +110,11 @@ contract('Registry', (accounts) => {
       );
       // Make sure exitTimeDelay was correctly set
       const listingStruct = await registry.listings.call(listing);
-      assert.strictEqual(listingStruct[5].toString(), blockTimestamp.add(paramConfig.exitTimeDelay).toString(), 'exit time was not initialized');
+      const exitTime = blockTimestamp.add(paramConfig.exitTimeDelay);
+      assert.strictEqual(listingStruct[5].toString(), exitTime.toString(), 'exitTime was not initialized');
+      // Make sure exitTimeExpiry was correctly set
+      const exitTimeExpiry = exitTime.add(paramConfig.exitPeriodLen);
+      assert.strictEqual(listingStruct[6].toString(), exitTimeExpiry.toString(), 'exitTimeExpiry was not initialized');
     });
 
     it('should not allow a listing to finalize an exit when a challenge does exist', async () => {
@@ -149,8 +155,14 @@ contract('Registry', (accounts) => {
         initialApplicantTokenHoldings.sub(paramConfig.minDeposit).toString(),
         'the applicant\'s tokens were returned in spite of failing to exit',
       );
+
+      // Make sure exitTimeDelay was correctly set
       const listingStruct = await registry.listings.call(listing);
-      assert.strictEqual(listingStruct[5].toString(), blockTimestamp.add(paramConfig.exitTimeDelay).toString(), 'exit time was not initialized');
+      const exitTime = blockTimestamp.add(paramConfig.exitTimeDelay);
+      assert.strictEqual(listingStruct[5].toString(), exitTime.toString(), 'exitTime was not initialized');
+      // Make sure exitTimeExpiry was correctly set
+      const exitTimeExpiry = exitTime.add(paramConfig.exitPeriodLen);
+      assert.strictEqual(listingStruct[6].toString(), exitTimeExpiry.toString(), 'exitTimeExpiry was not initialized');
     });
 
     it('should not allow a listing to finalize an exit when exitPeriodLen has elapsed', async () => {
@@ -189,7 +201,11 @@ contract('Registry', (accounts) => {
         'the applicant\'s tokens were returned in spite of failing to exit',
       );
 
-      assert.strictEqual(listingStruct[5].toString(), blockTimestamp.add(paramConfig.exitTimeDelay).toString(), 'exit time was not initialized');
+      const exitTime = blockTimestamp.add(paramConfig.exitTimeDelay);
+      assert.strictEqual(listingStruct[5].toString(), exitTime.toString(), 'exitTime was not initialized');
+
+      const exitTimeExpiry = exitTime.add(paramConfig.exitPeriodLen);
+      assert.strictEqual(listingStruct[6].toString(), exitTimeExpiry.toString(), 'exitTimeExpiry was not initialized');
     });
 
     it('should allow a listing to finalize after re-initializing a previous exit', async () => {
@@ -232,6 +248,7 @@ contract('Registry', (accounts) => {
       );
       const listingStruct = await registry.listings.call(listing);
       assert.strictEqual(listingStruct[5].toString(), '0', 'user was not able to successfully exit the listing');
+      assert.strictEqual(listingStruct[6].toString(), '0', 'user was not able to successfully exit the listing');
     });
   });
 });
