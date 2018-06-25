@@ -137,26 +137,6 @@ contract Registry {
     }
 
     /**
-    @dev                Allows the owner of a listingHash to remove the listingHash from the whitelist
-                        Returns all tokens to the owner of the listingHash
-    @param _listingHash A listingHash msg.sender is the owner of.
-    */
-    // function exit(bytes32 _listingHash) external {
-        // Listing storage listing = listings[_listingHash];
-
-        // require(msg.sender == listing.owner);
-        // require(isWhitelisted(_listingHash));
-
-        // // Cannot exit during ongoing challenge
-        // require(listing.challengeID == 0 || challenges[listing.challengeID].resolved);
-
-        // // Remove listingHash & return tokens
-        // resetListing(_listingHash);
-        // emit _ListingWithdrawn(_listingHash);
-    // }
-
-    
-    /**
     @dev		Initialize an exit timer for a listing to leave the whitelist
     @param _listingHash	A listing hash msg.sender is the owner of
     */
@@ -168,14 +148,14 @@ contract Registry {
 
         // Cannot exit during ongoing challenge
         require(listing.challengeID == 0 || challenges[listing.challengeID].resolved);
-        // Ensure that you either never called initExit() or your expiry time is up
+        // Ensure that you either never called initExit() or exitPeriodLen passed
         require(listing.exitTime == 0 || now >
-            listing.exitTime.add(parameterizer.get("exitTimeExpiry")));
+            listing.exitTime.add(parameterizer.get("exitPeriodLen")));
 
         // Set when the listing may be removed from the whitelist
         listing.exitTime = now.add(parameterizer.get("exitTimeDelay"));
         emit _ExitInitialized(_listingHash, listing.exitTime,
-            listing.exitTime.add(parameterizer.get("exitTimeExpiry")), msg.sender);
+            listing.exitTime.add(parameterizer.get("exitPeriodLen")), msg.sender);
     }
 
     /**
@@ -195,10 +175,10 @@ contract Registry {
         require(listing.exitTime > 0);
 
         // Get the time when the exit is no longer valid
-        uint timeExpired = listing.exitTime.add(parameterizer.get("exitTimeExpiry"));
+        uint timeExpired = listing.exitTime.add(parameterizer.get("exitPeriodLen"));
 
-        // Time to exit has to be after exit delay but before the exit expiry time
-        require((listing.exitTime < now) && (now < timeExpired));
+        // Time to exit has to be after exit delay but before the exitPeriodLen is over 
+	require(listing.exitTime < now && now < timeExpired);
 
         resetListing(_listingHash);
         emit _ListingWithdrawn(_listingHash, msg.sender);

@@ -47,7 +47,7 @@ contract('RegistryFactory', (accounts) => {
         paramConfig.voteQuorum,
         paramConfig.pVoteQuorum,
         paramConfig.exitTimeDelay,
-        paramConfig.exitTimeExpiry,
+        paramConfig.exitPeriodLen,
       ];
 
       // new registry using factory/proxy
