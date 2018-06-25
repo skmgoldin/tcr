@@ -39,7 +39,7 @@ contract('ParameterizerFactory', (accounts) => {
         paramConfig.voteQuorum,
         paramConfig.pVoteQuorum,
         paramConfig.exitTimeDelay,
-        paramConfig.exitTimeExpiry,
+        paramConfig.exitPeriodLen,
       ];
       const parameterizerReceipt = await parameterizerFactory.newParameterizerWithToken(
         tokenParams.supply,

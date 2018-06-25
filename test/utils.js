@@ -44,7 +44,7 @@ const utils = {
         paramConfig.voteQuorum,
         paramConfig.pVoteQuorum,
         paramConfig.exitTimeDelay,
-        paramConfig.exitTimeExpiry,
+        paramConfig.exitPeriodLen,
       ],
       'The TestChain Registry',
     );

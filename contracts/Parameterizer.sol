@@ -114,11 +114,11 @@ contract Parameterizer {
         // type of majority out of 100 necessary for proposal success in parameterizer
         set("pVoteQuorum", _parameters[11]);
 
-        // minimum length of time between initExit & finalizeExit
+        // minimum length of time user has to wait to exit the registry 
         set("exitTimeDelay", _parameters[12]);
 
-        // maximum length of time between initExit & finalizeExit
-        set("exitTimeExpiry", _parameters[13]);
+        // maximum length of time user can wait to exit the registry
+        set("exitPeriodLen", _parameters[13]);
     }
 
     // -----------------------
