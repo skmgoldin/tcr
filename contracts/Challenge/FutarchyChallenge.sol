@@ -8,10 +8,14 @@ import "./ChallengeInterface.sol";
 
 contract  FutarchyChallenge is ChallengeInterface {
 
+  event _Started(address challenger, uint stakeAmount, address futarchyOracleAddress);
+  event _Funded(address challenger, uint stakeAmount, address futarchyOracleAddress);
+
   // ============
   // STATE:
   // ============
   // GLOBAL VARIABLES
+
   address public challenger;         // the address of the challenger
   address public listingOwner;       // the address of the listingOwner
   bool public isStarted;             // true if challenger has executed start()
@@ -20,6 +24,7 @@ contract  FutarchyChallenge is ChallengeInterface {
   uint public timeToPriceResolution; // Duration from start of prediction markets until date of final price resolution
   int public upperBound;
   int public lowerBound;
+  bool public isFunded;
 
   FutarchyOracle public futarchyOracle;                      // Futarchy Oracle to resolve challenge
   FutarchyOracleFactory public futarchyOracleFactory;        // Factory to create FutarchyOracle
@@ -75,12 +80,16 @@ contract  FutarchyChallenge is ChallengeInterface {
   /// @dev start          Creates and funds FutarchyOracle. Futarchy Oracle will spin up
   ///                     corresponding prediction markets which will open for trade within
   ///                     60 seconds of this function invocation
+
   function start() public {
+    require(!isStarted);
+
     uint resolutionDate = now + timeToPriceResolution;
     CentralizedTimedOracle _centralizedTimedOracle = centralizedTimedOracleFactory.createCentralizedTimedOracle(
       'QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG',
       resolutionDate
     );
+
     uint _startDate = now + 60;
 
     futarchyOracle = futarchyOracleFactory.createFutarchyOracle(
@@ -95,10 +104,20 @@ contract  FutarchyChallenge is ChallengeInterface {
       _startDate
     );
 
+    isStarted = true;
+
+    _Started(msg.sender, stakeAmount, address(futarchyOracle));
+  }
+
+  function fund() public {
+    require(isStarted && !isFunded);
     require(token.transferFrom(msg.sender, this, stakeAmount));
     require(token.approve(futarchyOracle, stakeAmount));
+
     futarchyOracle.fund(stakeAmount);
-    isStarted = true;
+    isFunded = true;
+
+    _Funded(msg.sender, stakeAmount, address(futarchyOracle));
   }
 
   /// @dev ended  returns whether Challenge has ended

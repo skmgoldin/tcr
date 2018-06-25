@@ -89,8 +89,14 @@ contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
       const challenge = await getFutarchyChallenge(challengeID, registry)
       console.log('----------------------- SUBMITTING CHALLENGE -----------------------')
       await logTCRBalances(accounts, token, registry, challenge)
+
       await token.approve(challenge.address, futarchyFundingAmount, {from: challenger})
       await challenge.start({from: challenger})
+
+      console.log('----------------------- FUNDING CHALLENGE -----------------------')
+      await token.approve(challenge.address, futarchyFundingAmount, {from: challenger})
+      await challenge.fund({from: challenger})
+
       console.log('----------------------- STARTING CHALLENGE -----------------------')
       const futarchyAddress = await challenge.futarchyOracle();
       const futarchyOracle = await FutarchyOracle.at(futarchyAddress)
