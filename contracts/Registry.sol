@@ -34,6 +34,7 @@ contract Registry {
         uint unstakedDeposit;   // Number of tokens in the listing not locked in a challenge
         uint challengeID;       // Corresponds to a PollID in PLCRVoting
 	uint exitTime;		// Time the listing may leave the registry
+        uint exitTimeExpiry;    // Expiration date of exit period
     }
 
     struct Challenge {
@@ -145,17 +146,19 @@ contract Registry {
 
         require(msg.sender == listing.owner);
         require(isWhitelisted(_listingHash));
-
         // Cannot exit during ongoing challenge
         require(listing.challengeID == 0 || challenges[listing.challengeID].resolved);
+
         // Ensure that you either never called initExit() or exitPeriodLen passed
         require(listing.exitTime == 0 || now >
             listing.exitTime.add(parameterizer.get("exitPeriodLen")));
 
         // Set when the listing may be removed from the whitelist
         listing.exitTime = now.add(parameterizer.get("exitTimeDelay"));
+	// Set exit period end time
+	listing.exitTimeExpiry = listing.exitTime.add(parameterizer.get("exitPeriodLen"));
         emit _ExitInitialized(_listingHash, listing.exitTime,
-            listing.exitTime.add(parameterizer.get("exitPeriodLen")), msg.sender);
+            listing.exitTimeExpiry, msg.sender);
     }
 
     /**
@@ -167,18 +170,13 @@ contract Registry {
 
         require(msg.sender == listing.owner);
         require(isWhitelisted(_listingHash));
-
         // Cannot exit during ongoing challenge
         require(listing.challengeID == 0 || challenges[listing.challengeID].resolved);
 
         // Make sure the exit was initialized
         require(listing.exitTime > 0);
-
-        // Get the time when the exit is no longer valid
-        uint timeExpired = listing.exitTime.add(parameterizer.get("exitPeriodLen"));
-
         // Time to exit has to be after exit delay but before the exitPeriodLen is over 
-	require(listing.exitTime < now && now < timeExpired);
+	require(listing.exitTime < now && now < listing.exitTimeExpiry);
 
         resetListing(_listingHash);
         emit _ListingWithdrawn(_listingHash, msg.sender);
