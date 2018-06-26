@@ -4,7 +4,6 @@ const fs = require('fs');
 
 const config = JSON.parse(fs.readFileSync('./conf/config.json'));
 const paramConfig = config.paramDefaults;
-
 const utils = require('../utils.js');
 const BigNumber = require('bignumber.js');
 
@@ -13,14 +12,20 @@ contract('Registry', (accounts) => {
     const [applicant, challenger] = accounts;
 
     let token;
+    let voting;
     let registry;
+    let parameterizer;
 
     before(async () => {
-      const { registryProxy, tokenInstance } = await utils.getProxies();
+      const {
+        votingProxy, registryProxy, paramProxy, tokenInstance,
+      } = await utils.getProxies();
+      voting = votingProxy;
       registry = registryProxy;
+      parameterizer = paramProxy;
       token = tokenInstance;
 
-      await utils.approveProxies(accounts, token, false, false, registry);
+      await utils.approveProxies(accounts, token, voting, parameterizer, registry);
     });
 
     it('should allow a listing to exit when no challenge exists', async () => {
@@ -249,6 +254,46 @@ contract('Registry', (accounts) => {
       const listingStruct = await registry.listings.call(listing);
       assert.strictEqual(listingStruct[5].toString(), '0', 'user was not able to successfully exit the listing');
       assert.strictEqual(listingStruct[6].toString(), '0', 'user was not able to successfully exit the listing');
+    });
+
+    /** This test verifies that if a user calls initExit() and the expiration to exit is Friday,
+     * and the parameter exitPeriodLen changes so the expiration is Saturday,
+     * the user has until Friday to leave NOT Saturday
+    */
+    it('should use snapshot values from initExit() to process finalizeExit()', async () => {
+      // Add an application to the whitelsit
+      const listing = utils.getListingHash('820-400.com');
+      await utils.addToWhitelist(listing, paramConfig.minDeposit, applicant, registry);
+      const isWhitelisted = await registry.isWhitelisted.call(listing);
+      assert.strictEqual(isWhitelisted, true, 'the listing was not added to the registry');
+
+      // Get initial value of exitPeriodLen
+      const initialExitPeriodLen = await parameterizer.get('exitPeriodLen');
+      // Initialize exit
+      await registry.initExit(listing, { from: applicant });
+
+      // Propose parameter change of exitPeriodLen so user has more time to leave
+      const proposalReceipt = await utils.as(applicant, parameterizer.proposeReparameterization, 'exitPeriodLen', '60000');
+      const { propID } = proposalReceipt.logs[0].args;
+      // Assert that we are advancing time passed exitTimeExpiry
+      assert.isAbove((paramConfig.pApplyStageLength + 1), initialExitPeriodLen, 'Did not advance passed exitTimeExpiry');
+      // Increase time goes passed exitTimeDelay, exitTimeExpiry, and pApplyStageLength
+      await utils.increaseTime(paramConfig.pApplyStageLength + 1);
+      await parameterizer.processProposal(propID);
+
+      const proposedExitPeriodLen = await parameterizer.get('exitPeriodLen');
+      // Assert that initial is less than proposed so that finalizeExit() will fail
+      assert.isBelow(initialExitPeriodLen, proposedExitPeriodLen, 'reparameterization did not work');
+      // Trying to finalize an exit: initialExitTimeExpiry > now < proposedExitTimeExpiry
+      // exitTimeExpiry = exitTime + exitPeriodLen
+      // If the new parameter affects this exit, then the assert statement will run
+      try {
+        await registry.finalizeExit(listing, { from: applicant });
+        assert(false, 'exit succeeded when it should have failed because the original exitPeriodLen was snapshotted ');
+      } catch (err) {
+        const errMsg = err.toString();
+        assert(utils.isEVMException(err), errMsg);
+      }
     });
   });
 });
