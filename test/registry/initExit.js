@@ -15,7 +15,7 @@ contract('Registry', (accounts) => {
     let token;
     let registry;
 
-    before(async () => {
+    beforeEach(async () => {
       const { registryProxy, tokenInstance } = await utils.getProxies();
       registry = registryProxy;
       token = tokenInstance;
@@ -44,7 +44,7 @@ contract('Registry', (accounts) => {
       // Make sure exitTimeDelay was correctly set
       const listingStruct = await registry.listings.call(listing);
       const exitTime = blockTimestamp.add(paramConfig.exitTimeDelay);
-      assert.strictEqual(listingStruct[5].toString(), exitTime.toString(), 'exitTime was not initialized');
+      assert.strictEqual(listingStruct[5].toString(), exitTime.toString(), 'exitTime was not set correctly');
 
       // Make sure exitTimeExpiry was correctly set
       const exitTimeExpiry = exitTime.add(paramConfig.exitPeriodLen);
@@ -119,14 +119,12 @@ contract('Registry', (accounts) => {
       try {
         await registry.initExit(listing, { from: applicant });
       } catch (err) {
-        assert(utils.isEVMException(err), err.toString());
+        const errMsg = err.toString();
+        assert(utils.isEVMException(err), errMsg);
         return;
       }
-      assert(false, 'exit succeeded for non-whitelisted listing');
 
-      // Make sure the listing did not successfully initialize exit
-      const listingStruct = await registry.listings.call(listing);
-      assert.strictEqual(listingStruct[5].toString(), '0', 'exit time should not have been initialized since listing is in application stage');
+      assert(false, 'exit succeeded for non-whitelisted listing');
     });
   });
 });

@@ -16,7 +16,7 @@ contract('Registry', (accounts) => {
     let registry;
     let parameterizer;
 
-    before(async () => {
+    beforeEach(async () => {
       const {
         votingProxy, registryProxy, paramProxy, tokenInstance,
       } = await utils.getProxies();
@@ -178,7 +178,7 @@ contract('Registry', (accounts) => {
       const isWhitelisted = await registry.isWhitelisted.call(listing);
       assert.strictEqual(isWhitelisted, true, 'the listing was not added to the registry');
 
-      // Initialize exit and advance time passed exitPeriodLen
+      // Initialize exit and advance time past exitPeriodLen
       await registry.initExit(listing, { from: applicant });
       // blockTimestamp is used to calculate when the applicant's exit time is up
       const blockTimestamp = new BigNumber(await utils.getBlockTimestamp());
@@ -225,7 +225,7 @@ contract('Registry', (accounts) => {
       await registry.initExit(listing, { from: applicant });
       await utils.increaseTime(paramConfig.exitTimeDelay + 1);
       await utils.increaseTime(paramConfig.exitPeriodLen + 1);
-      // finalizeExit should fail since exitPeriodLen has passed
+      // finalizeExit should fail since exitPeriodLen has elapsed
       try {
         await registry.finalizeExit(listing, { from: applicant });
         assert(false, 'exit succeeded when it should have failed since exitPeriodLen elapsed');
@@ -267,33 +267,34 @@ contract('Registry', (accounts) => {
       const isWhitelisted = await registry.isWhitelisted.call(listing);
       assert.strictEqual(isWhitelisted, true, 'the listing was not added to the registry');
 
-      // Get initial value of exitPeriodLen
+      // Get initial value of exitPeriodLen and calculate a longer exitPeriodLen
       const initialExitPeriodLen = await parameterizer.get('exitPeriodLen');
-      // Initialize exit
-      await registry.initExit(listing, { from: applicant });
+      const newExitPeriodLen = initialExitPeriodLen.times(10);
 
       // Propose parameter change of exitPeriodLen so user has more time to leave
-      const proposalReceipt = await utils.as(applicant, parameterizer.proposeReparameterization, 'exitPeriodLen', '60000');
+      const proposalReceipt = await utils.as(applicant, parameterizer.proposeReparameterization, 'exitPeriodLen', newExitPeriodLen);
       const { propID } = proposalReceipt.logs[0].args;
-      // Assert that we are advancing time passed exitTimeExpiry
-      assert.isAbove((paramConfig.pApplyStageLength + 1), initialExitPeriodLen, 'Did not advance passed exitTimeExpiry');
-      // Increase time goes passed exitTimeDelay, exitTimeExpiry, and pApplyStageLength
+
+      // Increase time to allow proposal to be processed
       await utils.increaseTime(paramConfig.pApplyStageLength + 1);
+
+      // Process reparameterization proposal after the user has initialized exit
+      await registry.initExit(listing, { from: applicant });
       await parameterizer.processProposal(propID);
 
-      const proposedExitPeriodLen = await parameterizer.get('exitPeriodLen');
-      // Assert that initial is less than proposed so that finalizeExit() will fail
-      assert.isBelow(initialExitPeriodLen, proposedExitPeriodLen, 'reparameterization did not work');
-      // Trying to finalize an exit: initialExitTimeExpiry > now < proposedExitTimeExpiry
-      // exitTimeExpiry = exitTime + exitPeriodLen
-      // If the new parameter affects this exit, then the assert statement will run
+      // Increase time past exitTimeExpiry so finalizeExit fails
+      await utils.increaseTime(paramConfig.exitTimeDelay + paramConfig.exitTimeExpiry + 1);
+
+      // Expect to fail because even though exitPeriodLen was increased,
+      // the snapshotted values should have been retained
       try {
         await registry.finalizeExit(listing, { from: applicant });
-        assert(false, 'exit succeeded when it should have failed because the original exitPeriodLen was snapshotted ');
       } catch (err) {
         const errMsg = err.toString();
         assert(utils.isEVMException(err), errMsg);
+        return;
       }
+      assert(false, 'exit succeeded when it should have failed because the original exitPeriodLen was snapshotted ');
     });
   });
 });
