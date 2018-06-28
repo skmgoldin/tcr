@@ -149,9 +149,8 @@ contract Registry {
         // Cannot exit during ongoing challenge
         require(listing.challengeID == 0 || challenges[listing.challengeID].resolved);
 
-        // Ensure that you either never called initExit() or exitPeriodLen passed
-        require(listing.exitTime == 0 || now >
-            listing.exitTime.add(parameterizer.get("exitPeriodLen")));
+        // Ensure user never initializedExit or exitPeriodLen passed
+        require(listing.exitTime == 0 || now > listing.exitTimeExpiry);
 
         // Set when the listing may be removed from the whitelist
         listing.exitTime = now.add(parameterizer.get("exitTimeDelay"));
