@@ -5,7 +5,7 @@
 // };
 
 
-const Math = artifacts.require('Math')
+const Math = artifacts.require('@gnosis.pm/gnosis-core-contracts/Math')
 
 const DutchExchangeMock = artifacts.require('DutchExchangeMock')
 const EtherToken = artifacts.require('EtherToken')
@@ -34,7 +34,7 @@ const getTime = new Promise((resolve, reject) => {
 
 module.exports = function deploy(deployer, network, accounts) {
   if (network == 'testing' || network == 'development') {
-    deployer.deploy(Math)
+      deployer.deploy(Math)
       // Linking
       .then(() => deployer.link(Math, [StandardToken, EtherToken, TokenGNO, TokenMGN, TokenOWL, TokenOWLProxy, OWLAirdrop]))
       .then(() => deployer.link(Math, [TokenRDN, TokenOMG]))
