@@ -11,13 +11,13 @@
     "dispensationPct": 50,
     "pDispensationPct": 50
 	},
-  "name": "The TestChain Registry",
+  "name": "The Futarchy Registry",
   "token": {
-    "address": "0x337cDDa6D41A327c5ad456166CCB781a9722AFf9",
+    "address": "0x337cDDa6D41A327c5ad456166CCB781a9722AFf6",
     "deployToken": true,
     "decimals": "18",
-    "name": "TestCoin",
-    "symbol": "TEST",
+    "name": "Futarchy Curated Registry",
+    "symbol": "FCR",
     "supply": "1000000000000000000000000000",
     "tokenHolders": [
       { "address": "0xE3717CCDfbE15649F44FF27a81BE38d4648E1Ef0",

@@ -1,4 +1,4 @@
-pragma solidity ^0.4.8;
+pragma solidity ^0.4.24;
 
 import '@gnosis.pm/gnosis-core-contracts/contracts/Tokens/EtherToken.sol';
 import '@gnosis.pm/gnosis-core-contracts/contracts/Markets/StandardMarketFactory.sol';
@@ -11,7 +11,6 @@ import '@gnosis.pm/dx-contracts/contracts/Oracle/PriceOracleInterface.sol';
 import '@gnosis.pm/dx-contracts/contracts/ForTestingOnly/TokenOMG.sol';
 import '@gnosis.pm/dx-contracts/contracts/ForTestingOnly/TokenRDN.sol';
 import '@gnosis.pm/dx-contracts/contracts/Utils/Getter.sol';
-import '@gnosis.pm/dx-contracts/contracts/Proxy.sol';
 
 contract Imports {
 

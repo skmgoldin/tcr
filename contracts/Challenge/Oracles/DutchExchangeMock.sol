@@ -1,4 +1,4 @@
-pragma solidity ^0.4.19;
+pragma solidity ^0.4.24;
 
 import '@gnosis.pm/dx-contracts/contracts/Tokens/TokenFRT.sol';
 import "@gnosis.pm/owl-token/contracts/TokenOWL.sol";

@@ -1,4 +1,4 @@
-pragma solidity ^0.4.11;
+pragma solidity ^0.4.24;
 
 // This is a useless import, but it forces EIP20.sol to be compiled. We need its build file for
 // the test pipeline.

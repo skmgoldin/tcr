@@ -20,8 +20,11 @@ const tradingPeriod = 60 * 60
 const timeToPriceResolution = 60 * 60 * 24 * 7 // a week
 const futarchyFundingAmount = paramConfig.minDeposit * 10 ** 18
 
-module.exports = (deployer) => {
+module.exports = (deployer, network) => {
   return deployer.then(async () => {
+    if (network == 'rinkeby') {
+      await deployer.deploy(Math)
+    }
     deployer.link(Math, [EtherToken, StandardMarketFactory, StandardMarketWithPriceLoggerFactory, FutarchyChallengeFactory, EventFactory, LMSRMarketMaker])
 
     await deployer.deploy(EventFactory)
@@ -29,12 +32,8 @@ module.exports = (deployer) => {
     await deployer.deploy(CentralizedTimedOracleFactory)
     await deployer.deploy(StandardMarketFactory)
     await deployer.deploy(LMSRMarketMaker)
-    await deployer.deploy(DutchExchange)
-    await deployer.deploy(
-      FutarchyOracleFactory,
-      EventFactory.address,
-      StandardMarketWithPriceLoggerFactory.address
-    )
+    await deployer.deploy(FutarchyOracleFactory, EventFactory.address, StandardMarketWithPriceLoggerFactory.address)
+
     await deployer.deploy(
       FutarchyChallengeFactory,
       Token.address,
@@ -45,7 +44,8 @@ module.exports = (deployer) => {
       FutarchyOracleFactory.address,
       CentralizedTimedOracleFactory.address,
       LMSRMarketMaker.address,
-      DutchExchange.address
+      network == 'rinkeby' ? '0x4e69969D9270fF55fc7c5043B074d4e45F795587' : DutchExchange.address
     )
+
   }).catch((err) => { throw err })
 };

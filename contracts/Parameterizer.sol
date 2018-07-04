@@ -1,4 +1,4 @@
-pragma solidity^0.4.11;
+pragma solidity^ 0.4.24;
 
 import "tokens/eip20/EIP20Interface.sol";
 import "zeppelin/math/SafeMath.sol";
@@ -197,4 +197,3 @@ contract Parameterizer {
     params[keccak256(_name)] = _value;
   }
 }
-

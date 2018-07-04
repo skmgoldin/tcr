@@ -1,4 +1,4 @@
-pragma solidity ^0.4.8;
+pragma solidity ^0.4.24;
 
 contract ChallengeInterface {
   function ended() public view returns (bool);
