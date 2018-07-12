@@ -88,7 +88,7 @@ contract('Parameterizer', (accounts) => {
 
       const voteQuorum = await parameterizer.get.call('voteQuorum');
       assert.strictEqual(
-        voteQuorum.toString(10), '51',
+        voteQuorum.toString(10), '50',
         'A proposal whose processBy date passed was able to update the parameterizer',
       );
     });
@@ -125,7 +125,7 @@ contract('Parameterizer', (accounts) => {
       // check parameters
       const voteQuorum = await parameterizer.get.call('voteQuorum');
       assert.strictEqual(
-        voteQuorum.toString(10), '51',
+        voteQuorum.toString(10), '50',
         'A proposal whose processBy date passed was able to update the parameterizer',
       );
 
@@ -169,7 +169,7 @@ contract('Parameterizer', (accounts) => {
 
       const voteQuorum = await parameterizer.get.call('voteQuorum');
       assert.strictEqual(
-        voteQuorum.toString(10), '51',
+        voteQuorum.toString(10), '50',
         'A proposal whose processBy date passed was able to update the parameterizer',
       );
     });
