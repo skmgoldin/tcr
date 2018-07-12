@@ -13,7 +13,7 @@ contract('ParameterizerFactory', (accounts) => {
   describe('Function: newParameterizerBYOToken', () => {
     let parameterizerFactory;
 
-    before(async () => {
+    beforeEach(async () => {
       parameterizerFactory = await ParameterizerFactory.deployed();
     });
 

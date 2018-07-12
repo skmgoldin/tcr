@@ -13,7 +13,7 @@ contract('RegistryFactory', (accounts) => {
   describe('Function: newRegistryWithToken', () => {
     let registryFactory;
 
-    before(async () => {
+    beforeEach(async () => {
       registryFactory = await RegistryFactory.deployed();
     });
 

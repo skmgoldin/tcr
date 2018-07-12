@@ -13,7 +13,7 @@ contract('Parameterizer', (accounts) => {
     let token;
     let parameterizer;
 
-    before(async () => {
+    beforeEach(async () => {
       const { paramProxy, tokenInstance } = await utils.getProxies();
       parameterizer = paramProxy;
       token = tokenInstance;

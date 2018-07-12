@@ -12,7 +12,7 @@ contract('Parameterizer', (accounts) => {
     let voting;
     let parameterizer;
 
-    before(async () => {
+    beforeEach(async () => {
       const { votingProxy, paramProxy, tokenInstance } = await utils.getProxies(token);
       voting = votingProxy;
       parameterizer = paramProxy;
