@@ -89,6 +89,14 @@ contract('Parameterizer', (accounts) => {
     });
 
     it('should not allow a reparameterization for a proposal that already exists', async () => {
+      const receipt = await utils.as(proposer, parameterizer.proposeReparameterization, 'voteQuorum', '51');
+
+      const propID = utils.getReceiptValue(receipt, 'propID');
+      const paramProposal = await parameterizer.proposals.call(propID);
+
+      assert.strictEqual(paramProposal[6].toString(10), '51', 'The reparameterization proposal ' +
+        'was not created, or not created correctly.');
+
       const applicantStartingBalance = await token.balanceOf.call(secondProposer);
 
       try {
