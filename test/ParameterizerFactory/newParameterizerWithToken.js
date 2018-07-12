@@ -12,7 +12,7 @@ contract('ParameterizerFactory', (accounts) => {
   describe('Function: newParameterizerWithToken', () => {
     let parameterizerFactory;
 
-    before(async () => {
+    beforeEach(async () => {
       parameterizerFactory = await ParameterizerFactory.deployed();
     });
 
