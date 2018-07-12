@@ -44,6 +44,7 @@ contract('Registry', (accounts) => {
 
     it('should not allow a listing to apply which has a pending application', async () => {
       const listing = utils.getListingHash('nochallenge.net');
+      await utils.as(applicant, registry.apply, listing, paramConfig.minDeposit, '');
 
       // Verify that the application exists.
       const result = await registry.listings.call(listing);
@@ -62,6 +63,7 @@ contract('Registry', (accounts) => {
       'should add a listing to the whitelist which went unchallenged in its application period',
       async () => {
         const listing = utils.getListingHash('nochallenge.net');
+        await utils.as(applicant, registry.apply, listing, paramConfig.minDeposit, '');
         await utils.increaseTime(paramConfig.applyStageLength + 1);
         await registry.updateStatus(listing);
         const result = await registry.isWhitelisted.call(listing);
@@ -71,6 +73,7 @@ contract('Registry', (accounts) => {
 
     it('should not allow a listing to apply which is already listed', async () => {
       const listing = utils.getListingHash('nochallenge.net');
+      await utils.addToWhitelist(listing, paramConfig.minDeposit, applicant, registry);
 
       // Verify that the listing is whitelisted.
       const result = await registry.isWhitelisted.call(listing);
