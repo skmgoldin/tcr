@@ -43,7 +43,8 @@ contract('Parameterizer', (accounts) => {
         'should have been successfully challenged');
 
       const proposerFinalBalance = await token.balanceOf.call(proposer);
-      const proposerExpected = proposerStartingBalance.sub(new BN(paramConfig.pMinDeposit, 10));
+      const proposerExpected = proposerStartingBalance
+        .sub(new BN(paramConfig.pMinDeposit.toString(), 10));
       assert.strictEqual(
         proposerFinalBalance.toString(10), proposerExpected.toString(10),
         'The challenge loser\'s token balance is not as expected',
@@ -51,7 +52,8 @@ contract('Parameterizer', (accounts) => {
 
       // Edge case, challenger gets both deposits back because there were no voters
       const challengerFinalBalance = await token.balanceOf.call(challenger);
-      const challengerExpected = challengerStartingBalance.add(new BN(paramConfig.pMinDeposit, 10));
+      const challengerExpected = challengerStartingBalance
+        .add(new BN(paramConfig.pMinDeposit.toString(), 10));
       assert.strictEqual(
         challengerFinalBalance.toString(10), challengerExpected.toString(10),
         'The challenge winner\'s token balance is not as expected',
@@ -93,7 +95,8 @@ contract('Parameterizer', (accounts) => {
       );
 
       const challengerFinalBalance = await token.balanceOf.call(challenger);
-      const challengerExpected = challengerStartingBalance.sub(new BN(paramConfig.pMinDeposit, 10));
+      const challengerExpected = challengerStartingBalance
+        .sub(new BN(paramConfig.pMinDeposit.toString(), 10));
       assert.strictEqual(
         challengerFinalBalance.toString(10), challengerExpected.toString(10),
         'The challenge loser\'s token balance is not as expected',
@@ -106,7 +109,7 @@ contract('Parameterizer', (accounts) => {
         // make proposal to change pMinDeposit
         // this is to induce an error where:
         // a challenge could have a different stake than the proposal being challenged
-        const proposalReceiptOne = await utils.as(proposer, parameterizer.proposeReparameterization, 'pMinDeposit', paramConfig.pMinDeposit + 1);
+        const proposalReceiptOne = await utils.as(proposer, parameterizer.proposeReparameterization, 'pMinDeposit', paramConfig.pMinDeposit * 10);
         const propIDOne = proposalReceiptOne.logs[0].args.propID;
 
         // increase time
