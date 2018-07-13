@@ -72,15 +72,15 @@ const utils = {
 
   approveProxies: async (accounts, token, plcr, parameterizer, registry) => (
     Promise.all(accounts.map(async (user) => {
-      await token.transfer(user, 10000000000);
+      await token.transfer(user, 10000000000000000000000000);
       if (plcr) {
-        await token.approve(plcr.address, 10000000000, { from: user });
+        await token.approve(plcr.address, 10000000000000000000000000, { from: user });
       }
       if (parameterizer) {
-        await token.approve(parameterizer.address, 10000000000, { from: user });
+        await token.approve(parameterizer.address, 10000000000000000000000000, { from: user });
       }
       if (registry) {
-        await token.approve(registry.address, 10000000000, { from: user });
+        await token.approve(registry.address, 10000000000000000000000000, { from: user });
       }
     }))
   ),
