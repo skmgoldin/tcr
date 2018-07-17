@@ -397,4 +397,3 @@ contract Parameterizer {
         params[keccak256(abi.encodePacked(_name))] = _value;
     }
 }
-

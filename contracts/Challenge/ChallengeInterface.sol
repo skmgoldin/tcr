@@ -1,7 +1,7 @@
 pragma solidity ^0.4.8;
 
 contract ChallengeInterface {
-  /// @dev returns whether challenge is ready for resolutin
+  /// @dev returns whether challenge is ready for resolution
   function ended() public view returns (bool);
 
   /// @dev returns whether challenge has passed
@@ -13,7 +13,7 @@ contract ChallengeInterface {
   /// @dev returns the amount of challenge deposit tokens
   ///      the challenge requires to carry out functionality
   function requiredTokenDeposit() public view returns(uint);
-    
+
   /// @dev returns the number of tokens awarded to the winning party
   function tokenRewardAmount() public view returns (uint);
 }

@@ -11,11 +11,13 @@ const ethRPC = new EthRPC(new HttpProvider('http://localhost:7545'));
 const ethQuery = new Eth(new HttpProvider('http://localhost:7545'));
 
 const PLCRVoting = artifacts.require('PLCRVoting.sol');
+const PLCRVotingChallenge = artifacts.require('PLCRVotingChallenge.sol');
+const PLCRVotingChallengeFactory = artifacts.require('PLCRVotingChallengeFactory.sol');
 const Parameterizer = artifacts.require('Parameterizer.sol');
 const Registry = artifacts.require('Registry.sol');
 const Token = artifacts.require('EIP20.sol');
 
-const RegistryFactory = artifacts.require('RegistryFactory.sol');
+const PLCRVotingRegistryFactory = artifacts.require('PLCRVotingRegistryFactory.sol');
 
 const config = JSON.parse(fs.readFileSync('./conf/config.json'));
 const paramConfig = config.paramDefaults;
@@ -24,7 +26,7 @@ const BN = small => new Eth.BN(small.toString(10), 10);
 
 const utils = {
   getProxies: async () => {
-    const registryFactory = await RegistryFactory.deployed();
+    const registryFactory = await PLCRVotingRegistryFactory.deployed();
     const registryReceipt = await registryFactory.newRegistryWithToken(
       config.token.supply,
       config.token.name,
@@ -51,15 +53,16 @@ const utils = {
 
     const {
       token,
-      plcr,
       parameterizer,
       registry,
     } = registryReceipt.logs[0].args;
 
     const tokenInstance = Token.at(token);
-    const votingProxy = PLCRVoting.at(plcr);
     const paramProxy = Parameterizer.at(parameterizer);
     const registryProxy = Registry.at(registry);
+
+    const plcr = await paramProxy.voting.call();
+    const votingProxy = PLCRVoting.at(plcr);
 
     const proxies = {
       tokenInstance,
@@ -84,6 +87,12 @@ const utils = {
       }
     }))
   ),
+
+  getVoting: async () => {
+    const plcrVotingChallengeFactory = await PLCRVotingChallengeFactory.deployed();
+    const votingAddr = await plcrVotingChallengeFactory.voting.call();
+    return PLCRVoting.at(votingAddr);
+  },
 
   increaseTime: async seconds =>
     new Promise((resolve, reject) => ethRPC.sendAsync({
@@ -166,6 +175,20 @@ const utils = {
   challengeAndGetPollID: async (domain, actor, registry) => {
     const receipt = await utils.as(actor, registry.challenge, domain, '');
     return receipt.logs[0].args.challengeID;
+  },
+
+  getChallengeID: async (domain, registry) => {
+    const listing = await registry.listings.call(domain);
+    const challengeID = listing[4];
+    return challengeID;
+  },
+
+  getPLCRVotingChallenge: async (domain, registry) => {
+    const listing = await registry.listings.call(domain);
+    const challengeID = listing[4];
+    const challengeInfo = await registry.challenges(challengeID);
+    const challengeAddress = challengeInfo[0];
+    return PLCRVotingChallenge.at(challengeAddress);
   },
 
   commitVote: async (pollID, voteOption, tokensArg, salt, voter, voting) => {
