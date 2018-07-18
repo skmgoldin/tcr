@@ -10,6 +10,9 @@
     "deploy-rinkeby": "truffle migrate --network rinkeby",
     "deploy-ganache": "truffle migrate --network ganache",
     "deploy-mainnet": "truffle migrate --network mainnet",
+    "deploy-proxies:rinkeby": "truffle exec --network rinkeby ./scripts/deploy_proxies.js",
+    "deploy-proxies:ganache": "truffle exec --network ganache ./scripts/deploy_proxies.js",
+    "deploy-proxies:mainnet": "truffle exec --network mainnet ./scripts/deploy_proxies.js",
     "test": "npm run lint ./ && truffle test",
     "fix": "eslint --fix",
     "lint": "eslint"
