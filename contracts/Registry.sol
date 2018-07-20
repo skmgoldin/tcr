@@ -299,6 +299,28 @@ contract Registry {
         emit _RewardClaimed(_challengeID, reward, msg.sender);
     }
 
+    function claimRewardSaltBaeStyle(uint _challengeID) public {
+        Challenge storage challenge = challenges[_challengeID];
+        // Ensures the voter has not already claimed tokens and challenge results have been processed
+        require(challenge.tokenClaims[msg.sender] == false);
+        require(challenge.resolved == true);
+
+        uint voterTokens = voting.getNumPassingTokensSaltBaeStyle(msg.sender, _challengeID);
+        uint reward = (voterTokens * challenge.rewardPool) / challenge.totalTokens;
+
+        // Subtracts the voter's information to preserve the participation ratios
+        // of other voters compared to the remaining pool of rewards
+        challenge.totalTokens -= voterTokens;
+        challenge.rewardPool -= reward;
+
+        // Ensures a voter cannot claim tokens again
+        challenge.tokenClaims[msg.sender] = true;
+
+        require(token.transfer(msg.sender, reward));
+
+        emit _RewardClaimed(_challengeID, reward, msg.sender);
+    }
+
     /**
     @dev                 Called by a voter to claim their rewards for each completed vote. Someone
                          must call updateStatus() before this can be called.
