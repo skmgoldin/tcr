@@ -31,14 +31,14 @@ contract Registry {
         uint applicationExpiry; // Expiration date of apply stage
         bool whitelisted;       // Indicates registry status
         address owner;          // Owner of Listing
-        uint unstakedDeposit;           // Number of tokens in the listing not locked in a challenge
+        uint unstakedDeposit;   // Number of tokens in the listing not locked in a challenge
         uint challengeID;       // Corresponds to challenge contract in the challenges mapping
         address challenger;     // Address of the challenger
     }
 
     struct Challenge {
-      ChallengeInterface challengeAddress;
-      bool resolved;
+        ChallengeInterface challengeAddress;
+        bool resolved;
     }
 
     // Maps challengeID to challenge struct
@@ -105,7 +105,7 @@ contract Registry {
         // Transfers tokens from user to Registry contract
         require(token.transferFrom(listing.owner, this, _amount));
 
-        _Application(_listingHash, _amount, listing.applicationExpiry, _data, msg.sender);
+        emit _Application(_listingHash, _amount, listing.applicationExpiry, _data, msg.sender);
     }
 
     /**
@@ -121,7 +121,7 @@ contract Registry {
         listing.unstakedDeposit += _amount;
         require(token.transferFrom(msg.sender, this, _amount));
 
-        _Deposit(_listingHash, _amount, listing.unstakedDeposit, msg.sender);
+        emit _Deposit(_listingHash, _amount, listing.unstakedDeposit, msg.sender);
     }
 
     /**
@@ -139,7 +139,7 @@ contract Registry {
         listing.unstakedDeposit -= _amount;
         require(token.transfer(msg.sender, _amount));
 
-        _Withdrawal(_listingHash, _amount, listing.unstakedDeposit, msg.sender);
+        emit _Withdrawal(_listingHash, _amount, listing.unstakedDeposit, msg.sender);
     }
 
     /**
@@ -158,7 +158,7 @@ contract Registry {
 
         // Remove listingHash & return tokens
         resetListing(_listingHash);
-        _ListingWithdrawn(_listingHash);
+        emit _ListingWithdrawn(_listingHash);
     }
 
     // -----------------------
@@ -193,12 +193,22 @@ contract Registry {
         listing.challengeID = challengeNonce;
         listing.challenger = msg.sender;
 
-        _Challenge(_listingHash, challengeNonce, challengeAddress, _data, msg.sender);
+        emit _Challenge(_listingHash, challengeNonce, challengeAddress, _data, msg.sender);
 
         return challengeNonce;
     }
 
     function updateStatus(bytes32 _listingHash) public {
+        if (canBeWhitelisted(_listingHash)) {
+            whitelistApplication(_listingHash);
+        } else if (challengeCanBeResolved(_listingHash)) {
+            resolveChallenge(_listingHash);
+        } else {
+            revert();
+        }
+
+
+
         Listing storage listing = listings[_listingHash];
         uint challengeID = listings[_listingHash].challengeID;
         ChallengeInterface challenge = challengeAddr(_listingHash);
@@ -207,14 +217,14 @@ contract Registry {
 
         if (!challenge.passed()) {
             whitelistApplication(_listingHash);
-            _ChallengeFailed(_listingHash, challengeID);
+            emit _ChallengeFailed(_listingHash, challengeID);
         } else {
             // Transfer the reward to the challenger
             require(token.transfer(listing.challenger, challengeAddr(_listingHash).winnerRewardAmount()));
 
             resetListing(_listingHash);
 
-            _ChallengeSucceeded(_listingHash, challengeID);
+            emit _ChallengeSucceeded(_listingHash, challengeID);
         }
     }
 
@@ -237,7 +247,7 @@ contract Registry {
             appWasMade(_listingHash) &&
             listings[_listingHash].applicationExpiry < now &&
             !isWhitelisted(_listingHash) &&
-            (challengeID == 0 || challengeAddr(_listingHash).ended() == true)
+            (challengeID == 0 || challengeAddr(_listingHash).resolved == true)
         ) { return true; }
 
         return false;
@@ -259,6 +269,28 @@ contract Registry {
         return listings[_listingHash].applicationExpiry > 0;
     }
 
+    /**
+    @dev                Returns true if the application/listingHash has an unresolved challenge
+    @param _listingHash The listingHash whose status is to be examined
+    */
+    function challengeExists(bytes32 _listingHash) view public returns (bool) {
+        uint challengeID = listings[_listingHash].challengeID;
+
+        return (challengeID > 0 && !challenges[challengeID].resolved);
+    }
+
+    /**
+    @dev                Determines whether voting has concluded in a challenge for a given
+                        listingHash. Throws if no challenge exists.
+    @param _listingHash A listingHash with an unresolved challenge
+    */
+    function challengeCanBeResolved(bytes32 _listingHash) view public returns (bool) {
+        uint challengeID = listings[_listingHash].challengeID;
+
+        require(challengeExists(_listingHash));
+        return challengeForListingHash(_listingHash).ended();
+    }
+
     function challengeAddr(bytes32 _listingHash) public returns (ChallengeInterface) {
       Listing storage listing = listings[_listingHash];
       return challenges[listing.challengeID].challengeAddress;
@@ -275,7 +307,7 @@ contract Registry {
     @param _listingHash The listingHash of an application/listingHash to be whitelisted
     */
     function whitelistApplication(bytes32 _listingHash) private {
-        if (!listings[_listingHash].whitelisted) { _ApplicationWhitelisted(_listingHash); }
+        if (!listings[_listingHash].whitelisted) { emit _ApplicationWhitelisted(_listingHash); }
         listings[_listingHash].whitelisted = true;
     }
 
@@ -288,9 +320,9 @@ contract Registry {
 
         // Emit events before deleting listing to check whether is whitelisted
         if (listing.whitelisted) {
-            _ListingRemoved(_listingHash);
+            emit _ListingRemoved(_listingHash);
         } else {
-            _ApplicationRemoved(_listingHash);
+            emit _ApplicationRemoved(_listingHash);
         }
 
         // Deleting listing to prevent reentry
