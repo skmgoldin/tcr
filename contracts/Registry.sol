@@ -31,7 +31,7 @@ contract Registry {
         uint applicationExpiry; // Expiration date of apply stage
         bool whitelisted;       // Indicates registry status
         address owner;          // Owner of Listing
-        uint deposit;           // Number of tokens in the listing not locked in a challenge
+        uint unstakedDeposit;           // Number of tokens in the listing not locked in a challenge
         uint challengeID;       // Corresponds to challenge contract in the challenges mapping
         address challenger;     // Address of the challenger
     }
@@ -95,7 +95,7 @@ contract Registry {
 
         // Sets apply stage end time
         listing.applicationExpiry = block.timestamp.add(parameterizer.get("applyStageLen"));
-        listing.deposit = _amount;
+        listing.unstakedDeposit = _amount;
 
         // Transfers tokens from user to Registry contract
         require(token.transferFrom(listing.owner, this, _amount));
@@ -113,10 +113,10 @@ contract Registry {
 
         require(listing.owner == msg.sender);
 
-        listing.deposit += _amount;
+        listing.unstakedDeposit += _amount;
         require(token.transferFrom(msg.sender, this, _amount));
 
-        _Deposit(_listingHash, _amount, listing.deposit, msg.sender);
+        _Deposit(_listingHash, _amount, listing.unstakedDeposit, msg.sender);
     }
 
     /**
@@ -128,13 +128,13 @@ contract Registry {
         Listing storage listing = listings[_listingHash];
 
         require(listing.owner == msg.sender);
-        require(_amount <= listing.deposit);
-        require(listing.deposit - _amount >= parameterizer.get("minDeposit"));
+        require(_amount <= listing.unstakedDeposit);
+        require(listing.unstakedDeposit - _amount >= parameterizer.get("minDeposit"));
 
-        listing.deposit -= _amount;
+        listing.unstakedDeposit -= _amount;
         require(token.transfer(msg.sender, _amount));
 
-        _Withdrawal(_listingHash, _amount, listing.deposit, msg.sender);
+        _Withdrawal(_listingHash, _amount, listing.unstakedDeposit, msg.sender);
     }
 
     /**
@@ -175,7 +175,7 @@ contract Registry {
         // Prevent multiple challenges
         require(listing.challengeID == 0 || challenges[listing.challengeID].ended());
 
-        if (listing.deposit < deposit) {
+        if (listing.unstakedDeposit < deposit) {
             // Not enough tokens, listingHash auto-delisted
             resetListing(_listingHash);
             _TouchAndRemoved(_listingHash);
@@ -285,9 +285,9 @@ contract Registry {
         address owner = listing.owner;
         uint unstakedDeposit;
         if (listing.challengeID > 0 && challenges[listing.challengeID].passed()) {
-            unstakedDeposit = listing.deposit - challenges[listing.challengeID].winnerRewardAmount();
+            unstakedDeposit = listing.unstakedDeposit - challenges[listing.challengeID].winnerRewardAmount();
         } else {
-            unstakedDeposit = listing.deposit;
+            unstakedDeposit = listing.unstakedDeposit;
         }
         delete listings[_listingHash];
 
