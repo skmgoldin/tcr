@@ -36,8 +36,13 @@ contract Registry {
         address challenger;     // Address of the challenger
     }
 
-    // Maps challengeID to challenge contract address
-    mapping(uint => ChallengeInterface) public challenges;
+    struct Challenge {
+      ChallengeInterface challengeAddress;
+      bool resolved;
+    }
+
+    // Maps challengeID to challenge struct
+    mapping(uint => Challenge) public challenges;
 
     // Maps listingHashes to associated listingHash data
     mapping(bytes32 => Listing) public listings;
@@ -149,7 +154,7 @@ contract Registry {
         require(isWhitelisted(_listingHash));
 
         // Cannot exit during ongoing challenge
-        require(listing.challengeID == 0 || challenges[listing.challengeID].ended());
+        require(listing.challengeID == 0 || challengeAddr(_listingHash).ended());
 
         // Remove listingHash & return tokens
         resetListing(_listingHash);
@@ -173,7 +178,7 @@ contract Registry {
         // Listing must be in apply stage or already on the whitelist
         require(appWasMade(_listingHash) || listing.whitelisted);
         // Prevent multiple challenges
-        require(listing.challengeID == 0 || challenges[listing.challengeID].ended());
+        require(listing.challengeID == 0 || challengeAddr(_listingHash).ended());
 
         if (listing.unstakedDeposit < deposit) {
             // Not enough tokens, listingHash auto-delisted
@@ -183,11 +188,12 @@ contract Registry {
         }
 
         challengeNonce = challengeNonce + 1;
-        challenges[challengeNonce] = challengeFactory.createChallenge(msg.sender, listing.owner);
+        ChallengeInterface challengeAddress = challengeFactory.createChallenge(msg.sender, listing.owner);
+        challenges[challengeNonce].challengeAddress = challengeAddress;
         listing.challengeID = challengeNonce;
         listing.challenger = msg.sender;
 
-        _Challenge(_listingHash, challengeNonce, challenges[challengeNonce], _data, msg.sender);
+        _Challenge(_listingHash, challengeNonce, challengeAddress, _data, msg.sender);
 
         return challengeNonce;
     }
@@ -195,15 +201,16 @@ contract Registry {
     function updateStatus(bytes32 _listingHash) public {
         Listing storage listing = listings[_listingHash];
         uint challengeID = listings[_listingHash].challengeID;
+        ChallengeInterface challenge = challengeAddr(_listingHash);
 
-        require(challenges[challengeID].ended());
+        require(challenge.ended());
 
-        if (!challenges[challengeID].passed()) {
+        if (!challenge.passed()) {
             whitelistApplication(_listingHash);
             _ChallengeFailed(_listingHash, challengeID);
         } else {
             // Transfer the reward to the challenger
-            require(token.transfer(listing.challenger, challenges[challengeID].winnerRewardAmount()));
+            require(token.transfer(listing.challenger, challengeAddr(_listingHash).winnerRewardAmount()));
 
             resetListing(_listingHash);
 
@@ -230,7 +237,7 @@ contract Registry {
             appWasMade(_listingHash) &&
             listings[_listingHash].applicationExpiry < now &&
             !isWhitelisted(_listingHash) &&
-            (challengeID == 0 || challenges[challengeID].ended() == true)
+            (challengeID == 0 || challengeAddr(_listingHash).ended() == true)
         ) { return true; }
 
         return false;
@@ -250,6 +257,11 @@ contract Registry {
     */
     function appWasMade(bytes32 _listingHash) view public returns (bool exists) {
         return listings[_listingHash].applicationExpiry > 0;
+    }
+
+    function challengeAddr(bytes32 _listingHash) public returns (ChallengeInterface) {
+      Listing storage listing = listings[_listingHash];
+      return challenges[listing.challengeID].challengeAddress;
     }
 
     // ----------------
@@ -284,8 +296,8 @@ contract Registry {
         // Deleting listing to prevent reentry
         address owner = listing.owner;
         uint unstakedDeposit;
-        if (listing.challengeID > 0 && challenges[listing.challengeID].passed()) {
-            unstakedDeposit = listing.unstakedDeposit - challenges[listing.challengeID].winnerRewardAmount();
+        if (listing.challengeID > 0 && challengeAddr(_listingHash).passed()) {
+            unstakedDeposit = listing.unstakedDeposit - challengeAddr(_listingHash).winnerRewardAmount();
         } else {
             unstakedDeposit = listing.unstakedDeposit;
         }

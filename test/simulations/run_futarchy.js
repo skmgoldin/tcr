@@ -366,6 +366,6 @@ async function logRegistryStatus(registry) {
 }
 
 async function getFutarchyChallenge(challengeID, registry) {
-  const challenge = await registry.challenges(challengeID)
+  const challenge = (await registry.challenges(challengeID))[0]
   return FutarchyChallenge.at(challenge)
 }
