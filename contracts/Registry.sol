@@ -206,26 +206,27 @@ contract Registry {
         } else {
             revert();
         }
+    }
 
+    function resolveChallenge(bytes32 _listingHash) private {
+      Listing storage listing      = listings[_listingHash];
+      ChallengeInterface challenge = challengeAddr(_listingHash);
+      uint challengeID             = listings[_listingHash].challengeID;
 
+      // get the winner's reward
+      uint reward = challenge.winnerRewardAmount();
 
-        Listing storage listing = listings[_listingHash];
-        uint challengeID = listings[_listingHash].challengeID;
-        ChallengeInterface challenge = challengeAddr(_listingHash);
-
-        require(challenge.ended());
-
-        if (!challenge.passed()) {
-            whitelistApplication(_listingHash);
-            emit _ChallengeFailed(_listingHash, challengeID);
-        } else {
-            // Transfer the reward to the challenger
-            require(token.transfer(listing.challenger, challengeAddr(_listingHash).winnerRewardAmount()));
-
-            resetListing(_listingHash);
-
-            emit _ChallengeSucceeded(_listingHash, challengeID);
-        }
+      if (!challenge.passed()) {
+          whitelistApplication(_listingHash);
+          listing.unstakedDeposit += reward;
+          _ChallengeFailed(_listingHash, challengeID);
+      } else {
+          // Transfer the reward to the challenger
+          require(token.transfer(listing.challenger, reward));
+          resetListing(_listingHash);
+          _ChallengeSucceeded(_listingHash, challengeID);
+      }
+      challenges[challengeID].resolved = true;
     }
 
     // --------
@@ -247,7 +248,7 @@ contract Registry {
             appWasMade(_listingHash) &&
             listings[_listingHash].applicationExpiry < now &&
             !isWhitelisted(_listingHash) &&
-            (challengeID == 0 || challengeAddr(_listingHash).resolved == true)
+            (challengeID == 0 || challenges[challengeID].resolved == true)
         ) { return true; }
 
         return false;
@@ -288,7 +289,7 @@ contract Registry {
         uint challengeID = listings[_listingHash].challengeID;
 
         require(challengeExists(_listingHash));
-        return challengeForListingHash(_listingHash).ended();
+        return challengeAddr(_listingHash).ended();
     }
 
     function challengeAddr(bytes32 _listingHash) public returns (ChallengeInterface) {
