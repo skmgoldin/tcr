@@ -153,14 +153,13 @@ async function logChallengeInfo(challengeID) {
   console.log(`   started(): ${await plcrChallenge.started()}`)
   console.log(`   ended(): ${await plcrChallenge.ended()}`)
   console.log(`   passed(): ${await plcrChallenge.passed()}`)
-  console.log(`   tokenLockAmount(): ${await plcrChallenge.tokenLockAmount()}`)
-  console.log(`   tokenRewardAmount(): ${await plcrChallenge.tokenRewardAmount()}`)
+  console.log(`   winnerRewardAmount(): ${await plcrChallenge.winnerRewardAmount()}`)
   console.log('')
 }
 
 async function logChallengeReward(challengeID) {
   const plcrChallenge = await utils.getPLCRChallenge(challengeID)
-  console.log(`Challenge #${challengeID} reward: ${await plcrChallenge.tokenRewardAmount()}`)
+  console.log(`Challenge #${challengeID} reward: ${await plcrChallenge.winnerRewardAmount()}`)
   console.log('')
 }
 

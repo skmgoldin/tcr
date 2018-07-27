@@ -127,15 +127,9 @@ contract Registry {
     function withdraw(bytes32 _listingHash, uint _amount) external {
         Listing storage listing = listings[_listingHash];
 
-        // TODO: test that this tokenLockAmount logic works
-        uint tokenLockAmount;
-        if (listing.challengeID > 0) {
-            tokenLockAmount = challenges[listing.challengeID].tokenLockAmount();
-        }
-
         require(listing.owner == msg.sender);
         require(_amount <= listing.deposit);
-        require(listing.deposit - _amount >= parameterizer.get("minDeposit") + tokenLockAmount);
+        require(listing.deposit - _amount >= parameterizer.get("minDeposit"));
 
         listing.deposit -= _amount;
         require(token.transfer(msg.sender, _amount));
@@ -209,7 +203,7 @@ contract Registry {
             _ChallengeFailed(_listingHash, challengeID);
         } else {
             // Transfer the reward to the challenger
-            require(token.transfer(listing.challenger, challenges[challengeID].tokenLockAmount()));
+            require(token.transfer(listing.challenger, challenges[challengeID].winnerRewardAmount()));
 
             resetListing(_listingHash);
 
@@ -291,7 +285,7 @@ contract Registry {
         address owner = listing.owner;
         uint unstakedDeposit;
         if (listing.challengeID > 0 && challenges[listing.challengeID].passed()) {
-            unstakedDeposit = listing.deposit - challenges[listing.challengeID].tokenLockAmount();
+            unstakedDeposit = listing.deposit - challenges[listing.challengeID].winnerRewardAmount();
         } else {
             unstakedDeposit = listing.deposit;
         }

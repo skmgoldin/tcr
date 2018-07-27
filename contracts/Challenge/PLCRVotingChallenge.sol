@@ -269,7 +269,7 @@ contract PLCRVotingChallenge is ChallengeInterface {
     /**
     @dev Determines the number of tokens awarded to the winning party
     */
-    function tokenRewardAmount() public view returns (uint) {
+    function winnerRewardAmount() public view returns (uint) {
         require(ended());
 
         // Edge case, nobody voted, give all tokens to the challenger.
@@ -278,10 +278,6 @@ contract PLCRVotingChallenge is ChallengeInterface {
         }
 
         return (2 * stake) - rewardPool;
-    }
-
-    function tokenLockAmount() public view returns (uint) {
-        return stake;
     }
 
     function started() public view returns (bool) {
