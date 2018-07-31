@@ -50,12 +50,11 @@ contract('Parameterizer', (accounts) => {
 
       // array args
       const challengeIDs = [challengeID];
-      const salts = ['420'];
 
-      const aliceVoterReward = await parameterizer.voterReward.call(voterAlice, challengeID, '420');
+      const aliceVoterReward = await parameterizer.voterReward.call(voterAlice, challengeID);
 
       // multi claimRewards, arrays as inputs
-      await utils.as(voterAlice, parameterizer.claimRewards, challengeIDs, salts);
+      await utils.as(voterAlice, parameterizer.claimRewards, challengeIDs);
       await utils.as(voterAlice, voting.withdrawVotingRights, '10');
 
       // state assertion
@@ -111,14 +110,13 @@ contract('Parameterizer', (accounts) => {
 
       // array args
       const challengeIDs = [challengeID1, challengeID2, challengeID3];
-      const salts = ['420', '420', '420'];
 
-      const aliceVoterReward1 = await parameterizer.voterReward.call(voterAlice, challengeID1, '420');
-      const aliceVoterReward2 = await parameterizer.voterReward.call(voterAlice, challengeID2, '420');
-      const aliceVoterReward3 = await parameterizer.voterReward.call(voterAlice, challengeID3, '420');
+      const aliceVoterReward1 = await parameterizer.voterReward.call(voterAlice, challengeID1);
+      const aliceVoterReward2 = await parameterizer.voterReward.call(voterAlice, challengeID2);
+      const aliceVoterReward3 = await parameterizer.voterReward.call(voterAlice, challengeID3);
 
       // multi claimRewards, arrays as inputs
-      await utils.as(voterAlice, parameterizer.claimRewards, challengeIDs, salts);
+      await utils.as(voterAlice, parameterizer.claimRewards, challengeIDs);
       await utils.as(voterAlice, voting.withdrawVotingRights, '30');
 
       // state assertion

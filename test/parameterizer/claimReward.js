@@ -50,7 +50,7 @@ contract('Parameterizer', (accounts) => {
 
       await parameterizer.processProposal(propID);
 
-      await utils.as(voterAlice, parameterizer.claimReward, challengeID, '420');
+      await utils.as(voterAlice, parameterizer.claimReward, challengeID);
       await utils.as(voterAlice, voting.withdrawVotingRights, '10');
 
       const voterAliceFinalBalance = await token.balanceOf.call(voterAlice);
@@ -90,16 +90,16 @@ contract('Parameterizer', (accounts) => {
 
         const voterAliceReward = await parameterizer.voterReward.call(
           voterAlice,
-          challengeID, '420',
+          challengeID,
         );
-        await utils.as(voterAlice, parameterizer.claimReward, challengeID, '420');
+        await utils.as(voterAlice, parameterizer.claimReward, challengeID);
         await utils.as(voterAlice, voting.withdrawVotingRights, '10');
 
         const voterBobReward = await parameterizer.voterReward.call(
           voterBob,
-          challengeID, '420',
+          challengeID,
         );
-        await utils.as(voterBob, parameterizer.claimReward, challengeID, '420');
+        await utils.as(voterBob, parameterizer.claimReward, challengeID);
         await utils.as(voterBob, voting.withdrawVotingRights, '20');
 
         // TODO: do better than approximately.
@@ -133,7 +133,7 @@ contract('Parameterizer', (accounts) => {
       await utils.increaseTime(paramConfig.pRevealStageLength + 1);
 
       try {
-        await utils.as(voterAlice, parameterizer.claimReward, challengeID, '420');
+        await utils.as(voterAlice, parameterizer.claimReward, challengeID);
         assert(false, 'should not have been able to claimReward for unresolved challenge');
       } catch (err) {
         assert(utils.isEVMException(err), err.toString());
@@ -174,10 +174,10 @@ contract('Parameterizer', (accounts) => {
 
       await parameterizer.processProposal(propID);
 
-      await utils.as(voterAlice, parameterizer.claimReward, challengeID, '420');
+      await utils.as(voterAlice, parameterizer.claimReward, challengeID);
 
       try {
-        await utils.as(voterAlice, parameterizer.claimReward, challengeID, '420');
+        await utils.as(voterAlice, parameterizer.claimReward, challengeID);
       } catch (err) {
         assert(utils.isEVMException(err), err.toString());
         return;
@@ -215,7 +215,7 @@ contract('Parameterizer', (accounts) => {
       assert.strictEqual(resolved, true, 'Challenge has not been resolved');
 
       try {
-        await utils.as(voterBob, parameterizer.claimReward, challengeID, '420');
+        await utils.as(voterBob, parameterizer.claimReward, challengeID);
       } catch (err) {
         assert(utils.isEVMException(err), err.toString());
         return;

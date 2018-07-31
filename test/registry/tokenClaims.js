@@ -47,7 +47,7 @@ contract('Registry', (accounts) => {
       assert.strictEqual(initialHasClaimed, false, 'The voter is purported to have claimed ' +
         'their reward, when in fact they have not');
 
-      await utils.as(voter, registry.claimReward, pollID, '420');
+      await utils.as(voter, registry.claimReward, pollID);
 
       const finalHasClaimed = await registry.tokenClaims.call(pollID, voter);
       assert.strictEqual(finalHasClaimed, true, 'The voter is purported to not have claimed ' +

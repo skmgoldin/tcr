@@ -71,7 +71,7 @@ contract('Parameterizer', (accounts) => {
 
       // Process the proposal and claim a reward
       await parameterizer.processProposal(propID);
-      await utils.as(alice, parameterizer.claimReward, challengeID, '420');
+      await utils.as(alice, parameterizer.claimReward, challengeID);
 
       const result = await parameterizer.tokenClaims.call(challengeID, alice);
       assert.strictEqual(

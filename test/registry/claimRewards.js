@@ -49,12 +49,11 @@ contract('Registry', (accounts) => {
       // Update status
       await utils.as(applicant, registry.updateStatus, listing);
 
-      const aliceVoterReward = await registry.voterReward.call(voterAlice, pollID, '420');
+      const aliceVoterReward = await registry.voterReward.call(voterAlice, pollID);
 
       // Alice claims reward
       const pollIDs = [pollID];
-      const salts = ['420'];
-      await utils.as(voterAlice, registry.claimRewards, pollIDs, salts);
+      await utils.as(voterAlice, registry.claimRewards, pollIDs);
 
       // Alice withdraws her voting rights
       await utils.as(voterAlice, voting.withdrawVotingRights, '500');
@@ -102,14 +101,13 @@ contract('Registry', (accounts) => {
       await utils.as(applicant, registry.updateStatus, listing2);
       await utils.as(applicant, registry.updateStatus, listing3);
 
-      const aliceVoterReward1 = await registry.voterReward(voterAlice, pollID1, '420');
-      const aliceVoterReward2 = await registry.voterReward(voterAlice, pollID2, '420');
-      const aliceVoterReward3 = await registry.voterReward(voterAlice, pollID3, '420');
+      const aliceVoterReward1 = await registry.voterReward(voterAlice, pollID1);
+      const aliceVoterReward2 = await registry.voterReward(voterAlice, pollID2);
+      const aliceVoterReward3 = await registry.voterReward(voterAlice, pollID3);
 
       // Alice claims reward
       const pollIDs = [pollID1, pollID2, pollID3];
-      const salts = ['420', '420', '420'];
-      await utils.as(voterAlice, registry.claimRewards, pollIDs, salts);
+      await utils.as(voterAlice, registry.claimRewards, pollIDs);
 
       // Alice withdraws her voting rights
       await utils.as(voterAlice, voting.withdrawVotingRights, '1500');

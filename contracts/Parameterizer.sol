@@ -246,23 +246,23 @@ contract Parameterizer {
     /**
     @notice                 Claim the tokens owed for the msg.sender in the provided challenge
     @param _challengeID     the challenge ID to claim tokens for
-    @param _salt            the salt used to vote in the challenge being withdrawn for
     */
-    function claimReward(uint _challengeID, uint _salt) public {
+    function claimReward(uint _challengeID) public {
+        Challenge storage challenge = challenges[_challengeID];
         // ensure voter has not already claimed tokens and challenge results have been processed
-        require(challenges[_challengeID].tokenClaims[msg.sender] == false);
-        require(challenges[_challengeID].resolved == true);
+        require(challenge.tokenClaims[msg.sender] == false);
+        require(challenge.resolved == true);
 
-        uint voterTokens = voting.getNumPassingTokens(msg.sender, _challengeID, _salt);
-        uint reward = voterReward(msg.sender, _challengeID, _salt);
+        uint voterTokens = voting.getNumPassingTokens(msg.sender, _challengeID);
+        uint reward = voterReward(msg.sender, _challengeID);
 
         // subtract voter's information to preserve the participation ratios of other voters
         // compared to the remaining pool of rewards
-        challenges[_challengeID].winningTokens -= voterTokens;
-        challenges[_challengeID].rewardPool -= reward;
+        challenge.winningTokens -= voterTokens;
+        challenge.rewardPool -= reward;
 
         // ensures a voter cannot claim tokens again
-        challenges[_challengeID].tokenClaims[msg.sender] = true;
+        challenge.tokenClaims[msg.sender] = true;
 
         emit _RewardClaimed(_challengeID, reward, msg.sender);
         require(token.transfer(msg.sender, reward));
@@ -272,15 +272,11 @@ contract Parameterizer {
     @dev                    Called by a voter to claim their rewards for each completed vote.
                             Someone must call updateStatus() before this can be called.
     @param _challengeIDs    The PLCR pollIDs of the challenges rewards are being claimed for
-    @param _salts           The salts of a voter's commit hashes in the given polls
     */
-    function claimRewards(uint[] _challengeIDs, uint[] _salts) public {
-        // make sure the array lengths are the same
-        require(_challengeIDs.length == _salts.length);
-
+    function claimRewards(uint[] _challengeIDs) public {
         // loop through arrays, claiming each individual vote reward
         for (uint i = 0; i < _challengeIDs.length; i++) {
-            claimReward(_challengeIDs[i], _salts[i]);
+            claimReward(_challengeIDs[i]);
         }
     }
 
@@ -292,14 +288,13 @@ contract Parameterizer {
     @dev                Calculates the provided voter's token reward for the given poll.
     @param _voter       The address of the voter whose reward balance is to be returned
     @param _challengeID The ID of the challenge the voter's reward is being calculated for
-    @param _salt        The salt of the voter's commit hash in the given poll
     @return             The uint indicating the voter's reward
     */
-    function voterReward(address _voter, uint _challengeID, uint _salt)
+    function voterReward(address _voter, uint _challengeID)
     public view returns (uint) {
         uint winningTokens = challenges[_challengeID].winningTokens;
         uint rewardPool = challenges[_challengeID].rewardPool;
-        uint voterTokens = voting.getNumPassingTokens(_voter, _challengeID, _salt);
+        uint voterTokens = voting.getNumPassingTokens(_voter, _challengeID);
         return (voterTokens * rewardPool) / winningTokens;
     }
 
