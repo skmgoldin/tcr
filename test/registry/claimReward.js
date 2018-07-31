@@ -50,8 +50,8 @@ contract('Registry', (accounts) => {
       await utils.as(applicant, registry.updateStatus, listing);
 
       // Alice claims reward
-      const aliceVoterReward = await registry.voterReward(voterAlice, pollID, '420');
-      await utils.as(voterAlice, registry.claimReward, pollID, '420');
+      const aliceVoterReward = await registry.voterReward(voterAlice, pollID);
+      await utils.as(voterAlice, registry.claimReward, pollID);
 
       // Alice withdraws her voting rights
       await utils.as(voterAlice, voting.withdrawVotingRights, '500');
@@ -71,49 +71,8 @@ contract('Registry', (accounts) => {
 
       try {
         const nonPollID = '666';
-        await utils.as(voterAlice, registry.claimReward, nonPollID, '420');
+        await utils.as(voterAlice, registry.claimReward, nonPollID);
         assert(false, 'should not have been able to claimReward for non-existant challengeID');
-      } catch (err) {
-        assert(utils.isEVMException(err), err.toString());
-      }
-    });
-
-    it('should revert if provided salt is incorrect', async () => {
-      const listing = utils.getListingHash('sugar.net');
-
-      const applicantStartingBalance = await token.balanceOf.call(applicant);
-      const aliceStartBal = await token.balanceOf.call(voterAlice);
-      await utils.addToWhitelist(listing, minDeposit, applicant, registry);
-
-      const pollID = await utils.challengeAndGetPollID(listing, challenger, registry);
-
-      // Alice is so committed
-      await utils.commitVote(pollID, '0', 500, '420', voterAlice, voting);
-      await utils.increaseTime(paramConfig.commitStageLength + 1);
-
-      // Alice is so revealing
-      await utils.as(voterAlice, voting.revealVote, pollID, '0', '420');
-      await utils.increaseTime(paramConfig.revealStageLength + 1);
-
-      const applicantFinalBalance = await token.balanceOf.call(applicant);
-      const aliceFinalBalance = await token.balanceOf.call(voterAlice);
-      const expectedBalance = applicantStartingBalance.sub(minDeposit);
-
-      assert.strictEqual(
-        applicantFinalBalance.toString(10), expectedBalance.toString(10),
-        'applicants final balance should be what they started with minus the minDeposit',
-      );
-      assert.strictEqual(
-        aliceFinalBalance.toString(10), (aliceStartBal.sub(bigTen(500))).toString(10),
-        'alices final balance should be exactly the same as her starting balance',
-      );
-
-      // Update status
-      await utils.as(applicant, registry.updateStatus, listing);
-
-      try {
-        await utils.as(voterAlice, registry.claimReward, pollID, '421');
-        assert(false, 'should not have been able to claimReward with the wrong salt');
       } catch (err) {
         assert(utils.isEVMException(err), err.toString());
       }
@@ -142,10 +101,10 @@ contract('Registry', (accounts) => {
       await utils.as(applicant, registry.updateStatus, listing);
 
       // Claim reward
-      await utils.as(voterAlice, registry.claimReward, pollID, '420');
+      await utils.as(voterAlice, registry.claimReward, pollID);
 
       try {
-        await utils.as(voterAlice, registry.claimReward, pollID, '420');
+        await utils.as(voterAlice, registry.claimReward, pollID);
         assert(false, 'should not have been able to call claimReward twice');
       } catch (err) {
         assert(utils.isEVMException(err), err.toString());
@@ -187,7 +146,7 @@ contract('Registry', (accounts) => {
       await utils.increaseTime(paramConfig.revealStageLength + 1);
 
       try {
-        await utils.as(voterAlice, registry.claimReward, pollID, '420');
+        await utils.as(voterAlice, registry.claimReward, pollID);
         assert(false, 'should not have been able to claimReward for unresolved challenge');
       } catch (err) {
         assert(utils.isEVMException(err), err.toString());
