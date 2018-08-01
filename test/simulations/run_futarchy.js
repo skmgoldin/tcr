@@ -35,7 +35,7 @@ const utils = require('../utils.js')
 contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
 
     it.only('...', async () => {
-      const [creator, applicant, challenger, voterFor, voterAgainst, buyer1] = accounts
+      const [creator, applicant, challenger, voterFor, voterAgainst, buyer1, buyer2] = accounts
       const tradingPeriod = 60 * 60
       const futarchyFundingAmount = paramConfig.minDeposit * 10 ** 18
       const categoricalMarketFunding = 10 * 10 ** 18
@@ -75,33 +75,38 @@ contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
       console.log('----------------------- CREATING REGISTRY -----------------------')
       const registry = await Registry.new(token.address, futarchyChallengeFactory.address, parameterizer.address, 'best registry' )
       await logTCRBalances(accounts, token, registry)
+
+
+
+
+
+      console.log('----------------------- SUBMITTING APPLICATION -----------------------')
       await token.approve(registry.address, approvalAmount, {from: applicant})
       const listingHash = utils.getListingHash('nochallenge.net')
       await utils.as(applicant, registry.apply, listingHash, futarchyFundingAmount, '')
-      console.log('----------------------- SUBMITTING APPLICATION -----------------------')
       await logTCRBalances(accounts, token, registry)
-
       const listingResult = await registry.listings.call(listingHash)
 
-      const receipt = await utils.as(challenger, registry.createChallenge, listingHash, '')
 
-      const { challengeID } = receipt.logs[0].args
 
-      const challenge = await getFutarchyChallenge(challengeID, registry)
+
+
+
       console.log('----------------------- SUBMITTING CHALLENGE -----------------------')
+      const receipt = await utils.as(challenger, registry.createChallenge, listingHash, '')
+      const { challengeID } = receipt.logs[0].args
+      const challenge = await getFutarchyChallenge(challengeID, registry)
       await logTCRBalances(accounts, token, registry, challenge)
 
-      await token.approve(challenge.address, futarchyFundingAmount, {from: challenger})
-      await challenge.start({from: challenger})
 
-      console.log('----------------------- FUNDING CHALLENGE -----------------------')
-      await token.approve(challenge.address, futarchyFundingAmount, {from: challenger})
-      await challenge.fund({from: challenger})
+
+
 
       console.log('----------------------- STARTING CHALLENGE -----------------------')
+      await token.approve(challenge.address, futarchyFundingAmount, {from: challenger})
+      await challenge.start({from: challenger})
       const futarchyAddress = await challenge.futarchyOracle();
       const futarchyOracle = await FutarchyOracle.at(futarchyAddress)
-
       const marketForAccepted = StandardMarketWithPriceLogger.at(await futarchyOracle.markets(0))
       const marketForDenied = StandardMarketWithPriceLogger.at(await futarchyOracle.markets(1))
       const categoricalEvent = CategoricalEvent.at(await futarchyOracle.categoricalEvent())
@@ -109,68 +114,75 @@ contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
       const deniedLongShortEvent = ScalarEvent.at(await marketForDenied.eventContract())
       await logTCRBalances(accounts, token, registry, challenge, categoricalEvent, acceptedLongShortEvent, deniedLongShortEvent)
 
-      // create standard market w/ LMSR for categorical event
-      console.log('-----------------------create categorical market -----------------------')
-      const categoricalEventMarketFee = 0
-      const { logs: createCategoricalMarketLogs } = await standardMarketFactory.createMarket(
-        categoricalEvent.address,
-        lmsrMarketMaker.address,
-        categoricalEventMarketFee
-      )
-      await logTCRBalances(accounts, token, registry, challenge, categoricalEvent, acceptedLongShortEvent, deniedLongShortEvent)
-      const { market: categoricalMarketAddress } = createCategoricalMarketLogs.find(
-        e => e.event === 'StandardMarketCreation'
-      ).args
-      const categoricalMarket = StandardMarket.at(categoricalMarketAddress)
+      const acceptedToken = await OutcomeToken.at(await acceptedLongShortEvent.collateralToken())
+      const acceptedLongToken = await OutcomeToken.at(await acceptedLongShortEvent.outcomeTokens(1))
 
-      const acceptedDeniedTokenAddresses = await categoricalEvent.getOutcomeTokens()
-      const acceptedToken = OutcomeToken.at(acceptedDeniedTokenAddresses[0])
-      const deniedToken = OutcomeToken.at(acceptedDeniedTokenAddresses[1])
 
-      const acceptedLongShortTokenAddresses = await acceptedLongShortEvent.getOutcomeTokens()
-      const acceptedLongToken = OutcomeToken.at(acceptedLongShortTokenAddresses[1])
-      const acceptedShortToken = OutcomeToken.at(acceptedLongShortTokenAddresses[0])
 
-      const deniedLongShortTokenAddresses = await deniedLongShortEvent.getOutcomeTokens()
-      const deniedLongToken = OutcomeToken.at(deniedLongShortTokenAddresses[1])
-      const deniedShortToken = OutcomeToken.at(deniedLongShortTokenAddresses[0])
+      console.log('----------------------- FUNDING CHALLENGE -----------------------')
+      await token.approve(challenge.address, futarchyFundingAmount, {from: challenger})
+      await challenge.fund({from: challenger})
+      await logTCRBalances(accounts, token, registry, challenge, futarchyOracle, categoricalEvent, acceptedLongShortEvent, deniedLongShortEvent)
+      await logTokenBalance('Accepted Token', acceptedToken, [buyer1, buyer2])
+      await logTokenBalance('Accepted Long Token', acceptedLongToken, [buyer1, buyer2])
 
-      console.log('-----------------------fund the categorical market-----------------------')
-      await fundMarket(categoricalMarket, token, categoricalMarketFunding, creator)
-      console.log('')
-      await logTCRBalances(accounts, token, registry, challenge, categoricalEvent, acceptedLongShortEvent, deniedLongShortEvent)
 
-      const buyAmt = 3 * 10 ** 18
       console.log('----------------------- Buy ACCEPTED -----------------------')
-      await marketBuy(categoricalMarket, 0, [buyAmt, 0], buyer1)
-      await logTCRBalances(accounts, token, registry, challenge, categoricalEvent, acceptedLongShortEvent, deniedLongShortEvent)
+      const buyAmt = 8 * 10 ** 18
+      const buyAmt2 = 4.5 * 10 **18
+      await token.approve(categoricalEvent.address, buyAmt2, {from: buyer1});
+      await categoricalEvent.buyAllOutcomes(buyAmt2, {from: buyer1})
+      await token.approve(categoricalEvent.address, buyAmt, {from: buyer2});
+      await categoricalEvent.buyAllOutcomes(buyAmt, {from: buyer2})
+      await logTokenBalance('Accepted Token', acceptedToken, [buyer1, buyer2])
+      await logTokenBalance('Accepted Long Token', acceptedLongToken, [buyer1, buyer2])
+      await logTCRBalances(accounts, token, registry, challenge, futarchyOracle, categoricalEvent, acceptedLongShortEvent, deniedLongShortEvent)
+
+
+
+
 
       console.log('----------------------- Buy LONG_ACCEPTED -----------------------')
-      await logTCRBalances(accounts, token, registry, challenge, categoricalEvent, acceptedLongShortEvent, deniedLongShortEvent)
-      await marketBuy(marketForAccepted, 1, [0, buyAmt], buyer1)
-
-      // console.log('  *** buy SHORT_ACCEPTED')
-      // await marketBuy(marketForAccepted, 0, [buyAmt, 0], buyer1)
+      await marketBuy(marketForAccepted, 0, [buyAmt2 * 1.5, 0], buyer1)
+      await marketBuy(marketForAccepted, 1, [0, buyAmt* 1.5], buyer2)
+      await logTokenBalance('Accepted Token', acceptedToken, [buyer1, buyer2])
+      await logTokenBalance('Accepted Long Token', acceptedLongToken, [buyer1, buyer2])
+      await logTCRBalances(accounts, token, registry, challenge, futarchyOracle, categoricalEvent, acceptedLongShortEvent, deniedLongShortEvent)
       console.log('')
 
-      await logBalances()
-      await logOutcomeTokenCosts()
+
+
+
+
 
       console.log('----------------------- Execute setOutcome -----------------------')
       increaseTime(tradingPeriod + 1000)
       await futarchyOracle.setOutcome()
+      await categoricalEvent.setOutcome()
       console.log('')
 
       const challengePassed = await challenge.passed()
       console.log('  Challenge.passed(): ', challengePassed)
       console.log('')
+      await logTokenBalance('Accepted Token', acceptedToken, [buyer1, buyer2])
+      await logTokenBalance('Accepted Long Token', acceptedLongToken, [buyer1, buyer2])
+      await logTCRBalances(accounts, token, registry, challenge, futarchyOracle, categoricalEvent, acceptedLongShortEvent, deniedLongShortEvent)
+
+
+
+
 
       console.log('  ----------------------- Update Registry -----------------------')
       await registry.updateStatus(listingHash)
       console.log('')
-
+      await logTokenBalance('Accepted Token', acceptedToken, [buyer1, buyer2])
+      await logTokenBalance('Accepted Long Token', acceptedLongToken, [buyer1, buyer2])
       console.log('  Listing isWhitelisted(): ', await registry.isWhitelisted(listingHash))
       console.log('')
+
+
+
+
 
       console.log('----------------------- Resolve Scalar Markets -----------------------')
       console.log('')
@@ -178,21 +190,53 @@ contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
       await utils.increaseTime(timeToPriceResolution + 1)
 
       const scalarEventAddr = await marketForAccepted.eventContract()
-      const scalarEvent = await ScalarEvent.at(scalarEventAddr)
+      const scalarAcceptedEvent = await ScalarEvent.at(scalarEventAddr)
 
-      const scalarOracleAddr = await scalarEvent.oracle()
+      const scalarOracleAddr = await scalarAcceptedEvent.oracle()
       const scalarOracle = await CentralizedTimedOracle.at(scalarOracleAddr)
 
       const outcomePrice = upperBound - ((upperBound - lowerBound) * 0.75)
 
-      console.log('Buyer1 Balance:')
-      await logTokenBalance('AcceptedToken', acceptedToken, buyer1)
       await challenge.setScalarOutcome(scalarOracleAddr, outcomePrice)
-      await scalarEvent.setOutcome()
+      await scalarAcceptedEvent.setOutcome()
+      await logTokenBalance('Accepted Token', acceptedToken, [buyer1, buyer2])
+      await logTokenBalance('Accepted Long Token', acceptedLongToken, [buyer1, buyer2])
+      await logTCRBalances(accounts, token, registry, challenge, futarchyOracle, categoricalEvent, acceptedLongShortEvent, deniedLongShortEvent)
+
+
+
+
+
       console.log('----------------------- Redeem Winnings -----------------------')
-      await scalarEvent.redeemWinnings({from: buyer1 })
-      console.log('Buyer1 Balance:')
-      await logTokenBalance('AcceptedToken', acceptedToken, buyer1)
+      await scalarAcceptedEvent.redeemWinnings({from: buyer1 })
+      await scalarAcceptedEvent.redeemWinnings({from: buyer2 })
+      await logTokenBalance('Accepted Token', acceptedToken, [buyer1, buyer2])
+      await logTokenBalance('Accepted Long Token', acceptedLongToken, [buyer1, buyer2])
+      await categoricalEvent.redeemWinnings({from: buyer1 })
+      await categoricalEvent.redeemWinnings({from: buyer2 })
+      console.log('')
+      console.log('----redeeming categorical... -------')
+      console.log('')
+      await logTokenBalance('Accepted Token', acceptedToken, [buyer1, buyer2])
+      await logTokenBalance('Accepted Long Token', acceptedLongToken, [buyer1, buyer2])
+      await logTCRBalances(accounts, token, registry, challenge, futarchyOracle, categoricalEvent, acceptedLongShortEvent, deniedLongShortEvent)
+
+
+
+
+
+
+      console.log('----------------------- Close Futarchy Markets -----------------------')
+      await challenge.close()
+      await logTCRBalances(accounts, token, registry, challenge, futarchyOracle, categoricalEvent, acceptedLongShortEvent, deniedLongShortEvent)
+
+
+
+
+
+
+
+
 
       async function marketBuy (market, outcomeTokenIndex, arrayGuy, from) {
         const evtContract = Event.at(await market.eventContract())
@@ -279,10 +323,20 @@ contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
         await logTokenBalance('LongDenied', deniedLongToken, account)
       }
 
-      async function logTokenBalance (tokenName, token, account) {
-        const bal = (await token.balanceOf(account)).toNumber()
-        if (bal > 0) {
-          console.log(`    ${tokenName}: ${bal / 10 ** 18}`)
+      async function logTokenBalance (tokenName, token, accountArray) {
+        console.log(`   ${tokenName} balances:`)
+        for (let account of accountArray) {
+          const bal = (await token.balanceOf(account)).toNumber()
+            console.log(`          ${await accountName(account)}: ${bal / 10 ** 18}`)
+        }
+      }
+
+      async function accountName(accountAddr) {
+        const accountNames = ["creator", "applicant", "challenger", "voterFor", "voterAgainst", "buyer1", "buyer2"]
+        let i = 0
+        for(let account of accounts) {
+          if(account == accountAddr) {return accountNames[i] }
+          i++
         }
       }
 
@@ -313,43 +367,55 @@ contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
         const fee = await market.calcMarketFee.call(tokenCost)
         return fee.toNumber()
       }
-
     })
  })
 
-async function logTCRBalances(accounts, token, registry, challenge = null, catEvent = null, aScal = null, dScal = null) {
-  const [_, applicant, challenger, voterFor, voterAgainst] = accounts
-  const applicantBalance = (await token.balanceOf.call(applicant)).toNumber()
-  const challengerBalance = (await token.balanceOf.call(challenger)).toNumber()
-  const voterForBalance = (await token.balanceOf.call(voterFor)).toNumber()
-  const voterAgainstBalance = (await token.balanceOf.call(voterAgainst)).toNumber()
-  const registryBalance = (await token.balanceOf.call(registry.address)).toNumber()
+async function logTCRBalances(accounts, token, registry, challenge = null, futarchyOracle = null, catEvent = null, aScal = null, dScal = null) {
+  const [_, applicant, challenger, voterFor, voterAgainst, buyer1, buyer2] = accounts
+  const applicantBalance = (await token.balanceOf.call(applicant)).toNumber()/10**18
+  const challengerBalance = (await token.balanceOf.call(challenger)).toNumber()/10**18
+  const voterForBalance = (await token.balanceOf.call(voterFor)).toNumber()/10**18
+  const voterAgainstBalance = (await token.balanceOf.call(voterAgainst)).toNumber()/10**18
+  const registryBalance = (await token.balanceOf.call(registry.address)).toNumber()/10**18
+  const buyer1Balance = (await token.balanceOf.call(buyer1)).toNumber()/10**18
+  const buyer2Balance = (await token.balanceOf.call(buyer2)).toNumber()/10**18
+  console.log('')
+  console.log('')
+  console.log('')
   console.log('balances:')
-  console.log(`  applicant: ${applicantBalance}`)
+  console.log(`  applicant:  ${applicantBalance}`)
   console.log(`  challenger: ${challengerBalance}`)
+  console.log(`  buyer1:     ${buyer1Balance}`)
+  console.log(`  buyer2:     ${buyer2Balance}`)
   console.log(`  Registry Contract: ${registryBalance}`)
   if(challenge) {
-    const challengeBalance = (await token.balanceOf.call(challenge.address)).toNumber()
+    const challengeBalance = (await token.balanceOf.call(challenge.address)).toNumber()/10**18
     console.log(`  Challenge Contract: ${challengeBalance}`)
   } else {
     console.log('  Challenge Contract: NULL')
   }
+  if(futarchyOracle) {
+    const futarchyBalance = (await token.balanceOf.call(futarchyOracle.address)).toNumber()/10**18
+    console.log(`  Futarchy Oracle Contract: ${futarchyBalance}`)
+  } else {
+    console.log('  Futarchy Oracle Contract: NULL')
+  }
   if(catEvent) {
-    const catEventBalance = (await token.balanceOf.call(catEvent.address)).toNumber()
+    const catEventBalance = (await token.balanceOf.call(catEvent.address)).toNumber()/10**18
     console.log(`  Categorical Event: ${catEventBalance}`)
   } else {
     console.log('   Categorical Event: NULL')
   }
   if(aScal) {
-    const aColToken = await OutcomeToken.at(await aScal.collateralToken())
-    const aScalBalance = (await aColToken.balanceOf.call(aScal.address)).toNumber()
+    const acceptedToken = await OutcomeToken.at(await aScal.collateralToken())
+    const aScalBalance = (await acceptedToken.balanceOf.call(aScal.address)).toNumber()/10**18
     console.log(`  Scalar Accepted Event: ${aScalBalance}`)
   } else {
     console.log('   Scalar Accepted Event: NULL')
   }
   if(dScal) {
-    const aColToken = await OutcomeToken.at(await dScal.collateralToken())
-    const dScalBalance = (await aColToken.balanceOf.call(dScal.address)).toNumber()
+    const acceptedToken = await OutcomeToken.at(await dScal.collateralToken())
+    const dScalBalance = (await acceptedToken.balanceOf.call(dScal.address)).toNumber()/10**18
     console.log(`  Denied Accepted Event: ${dScalBalance}`)
   } else {
     console.log('   Denied Accepted Event: NULL')

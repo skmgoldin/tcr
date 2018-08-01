@@ -138,6 +138,10 @@ contract  FutarchyChallenge is ChallengeInterface {
     return stakeAmount;
   }
 
+  function close() public {
+    futarchyOracle.close();
+  }
+
   //@dev TODO: Temporary function until we have legitimate oracle which doesn't require
   //           ownership rights to resolve oracle. For CentralizedTimedOracle, only
   //           owner (this contract) can call setOutcome.
