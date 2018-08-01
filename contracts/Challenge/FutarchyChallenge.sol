@@ -134,9 +134,8 @@ contract  FutarchyChallenge is ChallengeInterface {
     return futarchyOracle.getOutcome() == 1;
   }
 
-  /// @dev TODO: This is currently hardcoded and TBD
-  function tokenLockAmount() public view returns (uint) {
-    return 1;
+  function winnerRewardAmount() public view returns (uint256) {
+    return stakeAmount;
   }
 
   //@dev TODO: Temporary function until we have legitimate oracle which doesn't require

@@ -49,11 +49,12 @@ contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
       const dutchExchange         = await DutchExchange.deployed()
       const etherToken            = await EtherToken.deployed()
       const parameterizer         = await Parameterizer.deployed()
-      const eventFactory          = await EventFactory.new()
-      const marketFactory         = await StandardMarketWithPriceLoggerFactory.new()
+      const outcomeToken          = await OutcomeToken.deployed()
+      const eventFactory          = await EventFactory.deployed()
+      const marketFactory         = await StandardMarketWithPriceLoggerFactory.deployed()
       const centralizedTimedOracleFactory = await CentralizedTimedOracleFactory.new()
-      const standardMarketFactory = await StandardMarketFactory.new()
-      const futarchyOracleFactory = await FutarchyOracleFactory.new(eventFactory.address, marketFactory.address)
+      const standardMarketFactory = await StandardMarketFactory.deployed()
+      const futarchyOracleFactory = await FutarchyOracleFactory.deployed()
       const lmsrMarketMaker = await LMSRMarketMaker.new()
       const timeToPriceResolution = 60 * 60 * 24 * 7 // a week
       const upperBound = 200
@@ -141,15 +142,15 @@ contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
 
       const buyAmt = 3 * 10 ** 18
       console.log('----------------------- Buy ACCEPTED -----------------------')
-      await marketBuy(categoricalMarket, 0, buyAmt, buyer1)
+      await marketBuy(categoricalMarket, 0, [buyAmt, 0], buyer1)
       await logTCRBalances(accounts, token, registry, challenge, categoricalEvent, acceptedLongShortEvent, deniedLongShortEvent)
 
       console.log('----------------------- Buy LONG_ACCEPTED -----------------------')
       await logTCRBalances(accounts, token, registry, challenge, categoricalEvent, acceptedLongShortEvent, deniedLongShortEvent)
-      await marketBuy(marketForAccepted, 1, buyAmt, buyer1)
+      await marketBuy(marketForAccepted, 1, [0, buyAmt], buyer1)
 
       // console.log('  *** buy SHORT_ACCEPTED')
-      // await marketBuy(marketForAccepted, 0, buyAmt, buyer1)
+      // await marketBuy(marketForAccepted, 0, [buyAmt, 0], buyer1)
       console.log('')
 
       await logBalances()
@@ -193,19 +194,15 @@ contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
       console.log('Buyer1 Balance:')
       await logTokenBalance('AcceptedToken', acceptedToken, buyer1)
 
-      async function marketBuy (market, outcomeTokenIndex, buyAmount, from) {
+      async function marketBuy (market, outcomeTokenIndex, arrayGuy, from) {
         const evtContract = Event.at(await market.eventContract())
         const collateralToken = Token.at(await evtContract.collateralToken())
-        const cost = await getOutcomeTokenCost(
-          market.address,
-          outcomeTokenIndex,
-          buyAmount
-        )
+        const cost = await getOutcomeTokenCost(market.address, arrayGuy)
         const fee = await getMarketFee(market, cost)
         const maxCost = cost + fee + 1000
 
         await collateralToken.approve(market.address, maxCost, { from })
-        await market.buy(outcomeTokenIndex, buyAmt, maxCost, { from })
+        await market.trade(arrayGuy, maxCost, { from })
       }
 
       async function fundMarket (market, collateralToken, fundingAmount, from) {
@@ -290,12 +287,12 @@ contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
       }
 
       async function logOutcomeTokenCosts () {
-        const acceptedCost = await getOutcomeTokenCost(categoricalMarket.address, 0, 1e15)
-        const deniedCost = await getOutcomeTokenCost(categoricalMarket.address, 1, 1e15)
-        const longAcceptedCost = await getOutcomeTokenCost(marketForAccepted.address, 1, 1e15)
-        const shortAcceptedCost = await getOutcomeTokenCost(marketForAccepted.address, 0, 1e15)
-        const longDeniedCost = await getOutcomeTokenCost(marketForDenied.address, 1, 1e15)
-        const shortDeniedCost = await getOutcomeTokenCost(marketForDenied.address, 0, 1e15)
+        const acceptedCost = await getOutcomeTokenCost(categoricalMarket.address, [1e15, 0])
+        const deniedCost = await getOutcomeTokenCost(categoricalMarket.address, [0, 1e15])
+        const longAcceptedCost = await getOutcomeTokenCost(marketForAccepted.address, [0, 1e15])
+        const shortAcceptedCost = await getOutcomeTokenCost(marketForAccepted.address, [1e15, 0])
+        const longDeniedCost = await getOutcomeTokenCost(marketForDenied.address, [0, 1e15])
+        const shortDeniedCost = await getOutcomeTokenCost(marketForDenied.address, [1e15, 0])
         console.log('  Outcome Token Prices')
         console.log('  --------------------')
         console.log('  ACCEPTED:       ', acceptedCost / 10 ** 15)
@@ -307,8 +304,8 @@ contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
         console.log('')
       }
 
-      async function getOutcomeTokenCost (marketAddress, outcomeTokenIndex, tokenAmount) {
-        const cost = await lmsrMarketMaker.calcCost(marketAddress, outcomeTokenIndex, tokenAmount)
+      async function getOutcomeTokenCost (marketAddr, arrayGuy) {
+        const cost = await lmsrMarketMaker.calcNetCost(marketAddr, arrayGuy)
         return cost.toNumber()
       }
 
@@ -369,6 +366,6 @@ async function logRegistryStatus(registry) {
 }
 
 async function getFutarchyChallenge(challengeID, registry) {
-  const challenge = await registry.challenges(challengeID)
+  const challenge = (await registry.challenges(challengeID))[0]
   return FutarchyChallenge.at(challenge)
 }
