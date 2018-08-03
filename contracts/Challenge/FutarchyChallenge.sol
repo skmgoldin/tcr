@@ -19,8 +19,9 @@ contract  FutarchyChallenge is ChallengeInterface {
   address public challenger;         // the address of the challenger
   address public listingOwner;       // the address of the listingOwner
   bool public isStarted;             // true if challenger has executed start()
+  bool public marketsAreClosed;      // true if futarchy markets are closed
   uint public stakeAmount;           // number of tokens to stake for either party during challenge
-  uint public tradingPeriod;         // duration for open trading on scalar prediction markets
+  uint public tradingPeriod;         // duration for open trading before futarchy resolution
   uint public timeToPriceResolution; // Duration from start of prediction markets until date of final price resolution
   int public upperBound;
   int public lowerBound;
@@ -31,6 +32,7 @@ contract  FutarchyChallenge is ChallengeInterface {
   CentralizedTimedOracleFactory public centralizedTimedOracleFactory;  // Oracle to resolve scalar prediction markets
   LMSRMarketMaker public lmsrMarketMaker;                    // MarketMaker for scalar prediction markets
   Token public token;                                        // Address of the TCR's intrinsic ERC20 token
+  address public registry;                                  // Address of TCR
   uint public winningMarketIndex;                            // Index of scalar prediction market with greatest average price for long token
 
 
@@ -49,6 +51,7 @@ contract  FutarchyChallenge is ChallengeInterface {
   /// @param _lmsrMarketMaker           LMSR Market Maker for scalar prediction markets
   function FutarchyChallenge(
     address _tokenAddr,
+    address _registryAddr,
     address _challenger,
     address _listingOwner,
     uint _stakeAmount,
@@ -62,8 +65,8 @@ contract  FutarchyChallenge is ChallengeInterface {
   ) public {
     challenger = _challenger;
     listingOwner = _listingOwner;
-
     token = Token(_tokenAddr);
+    registry = _registryAddr;
     stakeAmount = _stakeAmount;
     tradingPeriod = _tradingPeriod;
     timeToPriceResolution = _timeToPriceResolution;
@@ -113,7 +116,6 @@ contract  FutarchyChallenge is ChallengeInterface {
     require(isStarted && !isFunded);
     require(token.transferFrom(msg.sender, this, stakeAmount));
     require(token.approve(futarchyOracle, stakeAmount));
-
     futarchyOracle.fund(stakeAmount);
     isFunded = true;
 
@@ -135,11 +137,13 @@ contract  FutarchyChallenge is ChallengeInterface {
   }
 
   function winnerRewardAmount() public view returns (uint256) {
-    return stakeAmount;
+    require(marketsAreClosed);
+    return token.balanceOf(this);
   }
 
   function close() public {
     futarchyOracle.close();
+    marketsAreClosed = true;
   }
 
   //@dev TODO: Temporary function until we have legitimate oracle which doesn't require

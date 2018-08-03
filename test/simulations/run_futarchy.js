@@ -195,7 +195,9 @@ contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
       const scalarOracleAddr = await scalarAcceptedEvent.oracle()
       const scalarOracle = await CentralizedTimedOracle.at(scalarOracleAddr)
 
-      const outcomePrice = upperBound - ((upperBound - lowerBound) * 0.75)
+      const outcomePrice = (lowerBound + (upperBound - lowerBound) * 0.75) * 10 ** 18
+
+      console.log("outcomePrice!! ", outcomePrice / 10 **18)
 
       await challenge.setScalarOutcome(scalarOracleAddr, outcomePrice)
       await scalarAcceptedEvent.setOutcome()
@@ -229,6 +231,7 @@ contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
       console.log('----------------------- Close Futarchy Markets -----------------------')
       await challenge.close()
       await logTCRBalances(accounts, token, registry, challenge, futarchyOracle, categoricalEvent, acceptedLongShortEvent, deniedLongShortEvent)
+      console.log("reward amount: ", await challenge.winnerRewardAmount())
 
 
 

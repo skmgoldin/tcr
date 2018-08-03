@@ -33,11 +33,11 @@ contract Registry {
         address owner;          // Owner of Listing
         uint unstakedDeposit;   // Number of tokens in the listing not locked in a challenge
         uint challengeID;       // Corresponds to challenge contract in the challenges mapping
-        address challenger;     // Address of the challenger
     }
 
     struct Challenge {
         ChallengeInterface challengeAddress;
+        address challenger;
         bool resolved;
     }
 
@@ -188,10 +188,10 @@ contract Registry {
         }
 
         challengeNonce = challengeNonce + 1;
-        ChallengeInterface challengeAddress = challengeFactory.createChallenge(msg.sender, listing.owner);
+        ChallengeInterface challengeAddress = challengeFactory.createChallenge(this, msg.sender, listing.owner);
         challenges[challengeNonce].challengeAddress = challengeAddress;
+        challenges[challengeNonce].challenger = msg.sender;
         listing.challengeID = challengeNonce;
-        listing.challenger = msg.sender;
 
         emit _Challenge(_listingHash, challengeNonce, challengeAddress, _data, msg.sender);
 
@@ -213,20 +213,31 @@ contract Registry {
       ChallengeInterface challenge = challengeAddr(_listingHash);
       uint challengeID             = listings[_listingHash].challengeID;
 
-      // get the winner's reward
-      uint reward = challenge.winnerRewardAmount();
-
       if (!challenge.passed()) {
           whitelistApplication(_listingHash);
-          listing.unstakedDeposit += reward;
           _ChallengeFailed(_listingHash, challengeID);
       } else {
-          // Transfer the reward to the challenger
-          require(token.transfer(listing.challenger, reward));
           resetListing(_listingHash);
           _ChallengeSucceeded(_listingHash, challengeID);
       }
       challenges[challengeID].resolved = true;
+    }
+
+    function allocateWinnerReward(bytes32 _listingHash, uint challengeID) public {
+        Challenge challengeStruct = challenges[challengeID];
+        require(challengeStruct.resolved);
+
+        Listing storage listing = listings[_listingHash];
+        ChallengeInterface challengeContract = challengeStruct.challengeAddress;
+        uint reward = challengeContract.winnerRewardAmount();
+
+        require(token.transferFrom(challengeContract, this, reward));
+
+        if (!challengeContract.passed()) {
+            listing.unstakedDeposit += reward;
+        } else {
+            require(token.transfer(challengeStruct.challenger, reward));
+        }
     }
 
     // --------
