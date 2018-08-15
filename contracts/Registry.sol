@@ -154,7 +154,7 @@ contract Registry {
         require(isWhitelisted(_listingHash));
 
         // Cannot exit during ongoing challenge
-        require(listing.challengeID == 0 || challengeAddr(_listingHash).ended());
+        require(listing.challengeID == 0 || challenges[listing.challengeID].resolved);
 
         // Remove listingHash & return tokens
         resetListing(_listingHash);
@@ -224,7 +224,7 @@ contract Registry {
     }
 
     function allocateWinnerReward(bytes32 _listingHash, uint challengeID) public {
-        Challenge challengeStruct = challenges[challengeID];
+        Challenge storage challengeStruct = challenges[challengeID];
         require(challengeStruct.resolved);
 
         Listing storage listing = listings[_listingHash];
@@ -233,7 +233,7 @@ contract Registry {
 
         require(token.transferFrom(challengeContract, this, reward));
 
-        if (!challengeContract.passed()) {
+       if (!challengeContract.passed()) {
             listing.unstakedDeposit += reward;
         } else {
             require(token.transfer(challengeStruct.challenger, reward));
@@ -329,6 +329,8 @@ contract Registry {
     */
     function resetListing(bytes32 _listingHash) private {
         Listing storage listing = listings[_listingHash];
+        Challenge storage challengeStruct = challenges[listing.challengeID];
+        address challenger = challengeStruct.challenger;
 
         // Emit events before deleting listing to check whether is whitelisted
         if (listing.whitelisted) {
@@ -339,11 +341,12 @@ contract Registry {
 
         // Deleting listing to prevent reentry
         address owner = listing.owner;
-        uint unstakedDeposit;
+        uint unstakedDeposit = listing.unstakedDeposit;
+
         if (listing.challengeID > 0 && challengeAddr(_listingHash).passed()) {
-            unstakedDeposit = listing.unstakedDeposit - challengeAddr(_listingHash).winnerRewardAmount();
-        } else {
-            unstakedDeposit = listing.unstakedDeposit;
+            uint challengerReward = parameterizer.get('minDeposit');
+            unstakedDeposit = unstakedDeposit - challengerReward;
+            require(token.transfer(challenger, challengerReward));
         }
         delete listings[_listingHash];
 

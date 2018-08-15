@@ -144,6 +144,7 @@ contract  FutarchyChallenge is ChallengeInterface {
   function close() public {
     futarchyOracle.close();
     marketsAreClosed = true;
+    require(token.approve(registry, token.balanceOf(this)));
   }
 
   //@dev TODO: Temporary function until we have legitimate oracle which doesn't require
