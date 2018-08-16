@@ -146,7 +146,7 @@ contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
 
 
 
-      console.log('----------------------- Buy LONG_ACCEPTED -----------------------')
+      console.log('----------------------- Buy LONG_ACCEPTED/SHORT_ACCEPTED -----------------------')
       await marketBuy(marketForAccepted, 0, [buyAmt1 * 1.5, 0], buyer1)
       await marketBuy(marketForAccepted, 1, [0, buyAmt2 * 1.5], buyer2)
       await logTokenBalance('Accepted Token', acceptedToken, [buyer1, buyer2])
@@ -183,6 +183,7 @@ contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
       await logTokenBalance('Accepted Long Token', acceptedLongToken, [buyer1, buyer2])
       console.log('  Listing isWhitelisted(): ', await registry.isWhitelisted(listingHash))
       console.log('')
+      await logTCRBalances(accounts, token, registry, challenge, futarchyOracle, categoricalEvent, acceptedLongShortEvent, deniedLongShortEvent)
 
 
 
@@ -249,11 +250,8 @@ contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
 
 
       console.log('----------------------- Redeem Winner Reward -----------------------')
-      await registry.allocateWinnerReward(listingHash, challengeID)
+      await registry.allocateWinnerReward(challengeID)
       await logTCRBalances(accounts, token, registry, challenge, futarchyOracle, categoricalEvent, acceptedLongShortEvent, deniedLongShortEvent)
-
-
-
 
 
 

@@ -21,7 +21,7 @@ contract  FutarchyChallenge is ChallengeInterface {
   bool public isStarted;             // true if challenger has executed start()
   bool public marketsAreClosed;      // true if futarchy markets are closed
   uint public stakeAmount;           // number of tokens to stake for either party during challenge
-  uint public tradingPeriod;         // duration for open trading before futarchy resolution
+  uint public tradingPeriod;         // duration for open trading before futarchy decision resolution
   uint public timeToPriceResolution; // Duration from start of prediction markets until date of final price resolution
   int public upperBound;
   int public lowerBound;

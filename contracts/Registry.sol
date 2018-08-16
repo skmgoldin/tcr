@@ -24,7 +24,6 @@ contract Registry {
     event _TouchAndRemoved(bytes32 indexed listingHash);
     event _ChallengeFailed(bytes32 indexed listingHash, uint indexed challengeID);
     event _ChallengeSucceeded(bytes32 indexed listingHash, uint indexed challengeID);
-
     using SafeMath for uint;
 
     struct Listing {
@@ -32,13 +31,15 @@ contract Registry {
         bool whitelisted;       // Indicates registry status
         address owner;          // Owner of Listing
         uint unstakedDeposit;   // Number of tokens in the listing not locked in a challenge
-        uint challengeID;       // Corresponds to challenge contract in the challenges mapping
+        uint challengeID;       // Corresponds to most current challenge in the challenges mapping
     }
 
     struct Challenge {
-        ChallengeInterface challengeAddress;
-        address challenger;
-        bool resolved;
+        ChallengeInterface challengeAddress; // Address of the Challenge contract
+        bytes32 listingHash;                 // listingHash of the associated listing
+        address challenger;                  // challenger address
+        uint deposit;                        // deposit amounts staked by challenge parties
+        bool resolved;                       // Indicates whether challenge has been resolved
     }
 
     // Maps challengeID to challenge struct
@@ -173,24 +174,27 @@ contract Registry {
     */
     function createChallenge(bytes32 _listingHash, string _data) external returns (uint challengeID) {
         Listing storage listing = listings[_listingHash];
-        uint deposit = parameterizer.get("minDeposit");
+        uint minDeposit = parameterizer.get("minDeposit");
 
         // Listing must be in apply stage or already on the whitelist
         require(appWasMade(_listingHash) || listing.whitelisted);
         // Prevent multiple challenges
         require(listing.challengeID == 0 || challengeAddr(_listingHash).ended());
 
-        if (listing.unstakedDeposit < deposit) {
+        if (listing.unstakedDeposit < minDeposit) {
             // Not enough tokens, listingHash auto-delisted
             resetListing(_listingHash);
             _TouchAndRemoved(_listingHash);
             return 0;
         }
 
+        listing.unstakedDeposit = listing.unstakedDeposit - minDeposit;
         challengeNonce = challengeNonce + 1;
         ChallengeInterface challengeAddress = challengeFactory.createChallenge(this, msg.sender, listing.owner);
         challenges[challengeNonce].challengeAddress = challengeAddress;
         challenges[challengeNonce].challenger = msg.sender;
+        challenges[challengeNonce].deposit = minDeposit;
+        challenges[challengeNonce].listingHash = _listingHash;
         listing.challengeID = challengeNonce;
 
         emit _Challenge(_listingHash, challengeNonce, challengeAddress, _data, msg.sender);
@@ -198,6 +202,11 @@ contract Registry {
         return challengeNonce;
     }
 
+    /**
+    @dev                Updates a listingHash's status from 'application' to 'listing' or resolves
+                        a challenge if one exists.
+    @param _listingHash The listingHash whose status is being updated
+    */
     function updateStatus(bytes32 _listingHash) public {
         if (canBeWhitelisted(_listingHash)) {
             whitelistApplication(_listingHash);
@@ -208,26 +217,40 @@ contract Registry {
         }
     }
 
+
+    /**
+    @dev                Determines the winner in a challenge. Rewards the winner tokens and
+                        either whitelists or de-whitelists the listingHash.
+    @param _listingHash A listingHash with a challenge that is to be resolved
+    */
     function resolveChallenge(bytes32 _listingHash) private {
       Listing storage listing      = listings[_listingHash];
       ChallengeInterface challenge = challengeAddr(_listingHash);
       uint challengeID             = listings[_listingHash].challengeID;
+      Challenge challengeStruct    = challenges[challengeID];
 
       if (!challenge.passed()) {
           whitelistApplication(_listingHash);
+          listing.unstakedDeposit += challengeStruct.deposit;
           _ChallengeFailed(_listingHash, challengeID);
       } else {
           resetListing(_listingHash);
+          require(token.transfer(challengeStruct.challenger, challengeStruct.deposit));
           _ChallengeSucceeded(_listingHash, challengeID);
       }
       challenges[challengeID].resolved = true;
     }
 
-    function allocateWinnerReward(bytes32 _listingHash, uint challengeID) public {
+    /**
+    @dev                Allocates reward from challenge deposit back to challenge
+                        winner. Will revert if Futarchy markets are still trading
+    @param challengeID  challengeID of the affiliated challenge
+    */
+    function allocateWinnerReward(uint challengeID) public {
         Challenge storage challengeStruct = challenges[challengeID];
         require(challengeStruct.resolved);
 
-        Listing storage listing = listings[_listingHash];
+        Listing storage listing = listings[challengeStruct.listingHash];
         ChallengeInterface challengeContract = challengeStruct.challengeAddress;
         uint reward = challengeContract.winnerRewardAmount();
 
@@ -342,12 +365,6 @@ contract Registry {
         // Deleting listing to prevent reentry
         address owner = listing.owner;
         uint unstakedDeposit = listing.unstakedDeposit;
-
-        if (listing.challengeID > 0 && challengeAddr(_listingHash).passed()) {
-            uint challengerReward = parameterizer.get('minDeposit');
-            unstakedDeposit = unstakedDeposit - challengerReward;
-            require(token.transfer(challenger, challengerReward));
-        }
         delete listings[_listingHash];
 
         // Transfers any remaining balance back to the owner
