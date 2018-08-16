@@ -29,10 +29,12 @@ module.exports = (deployer, network, accounts) => {
       tokenAddress = Token.address;
     }
 
+    let minDeposit = parameterizerConfig.minDeposit * 10 ** 18
+
     return deployer.deploy(
       Parameterizer,
       tokenAddress,
-      parameterizerConfig.minDeposit,
+      minDeposit,
       parameterizerConfig.pMinDeposit,
       parameterizerConfig.applyStageLength,
       parameterizerConfig.pApplyStageLength,
