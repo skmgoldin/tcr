@@ -1,7 +1,5 @@
 /* eslint-env mocha */
-/* global artifacts assert contract */
-const Parameterizer = artifacts.require('./Parameterizer.sol');
-
+/* global assert contract */
 const fs = require('fs');
 const utils = require('../utils');
 
@@ -12,15 +10,26 @@ contract('Parameterizer', (accounts) => {
   describe('Function: voterReward', () => {
     const [proposer, challenger, voterAlice] = accounts;
 
-    it('should return the correct number of tokens to voter on the winning side.', async () => {
-      const parameterizer = await Parameterizer.deployed();
-      const voting = await utils.getVoting();
+    let token;
+    let voting;
+    let parameterizer;
 
-      const propID = await utils.proposeReparamAndGetPropID('voteQuorum', '51', proposer);
-      const challengeID = await utils.challengeReparamAndGetChallengeID(propID, challenger);
+    before(async () => {
+      const { votingProxy, paramProxy, tokenInstance } = await utils.getProxies(token);
+      voting = votingProxy;
+      parameterizer = paramProxy;
+      token = tokenInstance;
+
+      await utils.approveProxies(accounts, token, voting, parameterizer, false);
+    });
+
+    it('should return the correct number of tokens to voter on the winning side.', async () => {
+      const propID = await utils.proposeReparamAndGetPropID('voteQuorum', '51', proposer, parameterizer);
+      const challengeID = await utils
+        .challengeReparamAndGetChallengeID(propID, challenger, parameterizer);
 
       // Alice commits a vote: FOR, 10 tokens, 420 salt
-      await utils.commitVote(challengeID, '1', '10', '420', voterAlice);
+      await utils.commitVote(challengeID, '1', '10', '420', voterAlice, voting);
       await utils.increaseTime(paramConfig.pCommitStageLength + 1);
 
       // Alice reveals her vote: FOR, 420 salt

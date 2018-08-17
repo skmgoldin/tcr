@@ -1,7 +1,5 @@
 /* eslint-env mocha */
-/* global assert contract artifacts */
-const Registry = artifacts.require('Registry.sol');
-
+/* global assert contract */
 const fs = require('fs');
 const BN = require('bignumber.js');
 
@@ -17,8 +15,20 @@ contract('Registry', (accounts) => {
     const [applicant, challenger, voter] = accounts;
     const minDeposit = bigTen(paramConfig.minDeposit);
 
+    let token;
+    let voting;
+    let registry;
+
+    before(async () => {
+      const { votingProxy, registryProxy, tokenInstance } = await utils.getProxies();
+      voting = votingProxy;
+      registry = registryProxy;
+      token = tokenInstance;
+
+      await utils.approveProxies(accounts, token, voting, false, registry);
+    });
+
     it('should apply, fail challenge, and reject listing', async () => {
-      const registry = await Registry.deployed();
       const listing = utils.getListingHash('failChallenge.net'); // listing to apply with
       await registry.apply(listing, paramConfig.minDeposit, '', { from: applicant });
       await registry.challenge(listing, '', { from: challenger });
@@ -32,14 +42,12 @@ contract('Registry', (accounts) => {
     });
 
     it('should apply, pass challenge, and whitelist listing', async () => {
-      const registry = await Registry.deployed();
-      const voting = await utils.getVoting();
       const listing = utils.getListingHash('passChallenge.net');
 
       await utils.as(applicant, registry.apply, listing, minDeposit, '');
 
       // Challenge and get back the pollID
-      const pollID = await utils.challengeAndGetPollID(listing, challenger);
+      const pollID = await utils.challengeAndGetPollID(listing, challenger, registry);
 
       // Make sure it's cool to commit
       const cpa = await voting.commitPeriodActive.call(pollID);
@@ -49,7 +57,7 @@ contract('Registry', (accounts) => {
       const tokensArg = 10;
       const salt = 420;
       const voteOption = 1;
-      await utils.commitVote(pollID, voteOption, tokensArg, salt, voter);
+      await utils.commitVote(pollID, voteOption, tokensArg, salt, voter, voting);
 
       const numTokens = await voting.getNumTokens.call(voter, pollID);
       assert.strictEqual(numTokens.toString(10), tokensArg.toString(10), 'Should have committed the correct number of tokens');

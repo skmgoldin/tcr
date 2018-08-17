@@ -1,7 +1,5 @@
 /* eslint-env mocha */
-/* global assert contract artifacts */
-const Registry = artifacts.require('Registry.sol');
-
+/* global assert contract */
 const fs = require('fs');
 const BN = require('bignumber.js');
 
@@ -16,8 +14,19 @@ contract('Registry', (accounts) => {
   describe('Function: appWasMade', () => {
     const [applicant] = accounts;
     const minDeposit = bigTen(paramConfig.minDeposit);
+
+    let token;
+    let registry;
+
+    before(async () => {
+      const { registryProxy, tokenInstance } = await utils.getProxies();
+      registry = registryProxy;
+      token = tokenInstance;
+
+      await utils.approveProxies(accounts, token, false, false, registry);
+    });
+
     it('should return true if applicationExpiry was previously initialized', async () => {
-      const registry = await Registry.deployed();
       const listing = utils.getListingHash('wasthismade.net');
 
       // Apply
@@ -45,7 +54,6 @@ contract('Registry', (accounts) => {
     });
 
     it('should return false if applicationExpiry was uninitialized', async () => {
-      const registry = await Registry.deployed();
       const listing = utils.getListingHash('falseapp.net');
 
       const result = await registry.appWasMade(listing);

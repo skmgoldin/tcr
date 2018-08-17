@@ -7,14 +7,17 @@ const EthRPC = require('ethjs-rpc');
 const abi = require('ethereumjs-abi');
 const fs = require('fs');
 
-const ethRPC = new EthRPC(new HttpProvider('http://localhost:8545'));
-const ethQuery = new Eth(new HttpProvider('http://localhost:8545'));
+const ethRPC = new EthRPC(new HttpProvider('http://localhost:7545'));
+const ethQuery = new Eth(new HttpProvider('http://localhost:7545'));
 
-// const PLCRVoting = artifacts.require('PLCRVoting.sol');
+const PLCRVoting = artifacts.require('PLCRVoting.sol');
 const PLCRVotingChallenge = artifacts.require('PLCRVotingChallenge.sol');
+const PLCRVotingChallengeFactory = artifacts.require('PLCRVotingChallengeFactory.sol');
 const Parameterizer = artifacts.require('Parameterizer.sol');
 const Registry = artifacts.require('Registry.sol');
 const Token = artifacts.require('EIP20.sol');
+
+const PLCRVotingRegistryFactory = artifacts.require('PLCRVotingRegistryFactory.sol');
 
 const config = JSON.parse(fs.readFileSync('./conf/config.json'));
 const paramConfig = config.paramDefaults;
@@ -22,9 +25,70 @@ const paramConfig = config.paramDefaults;
 const BN = small => new Eth.BN(small.toString(10), 10);
 
 const utils = {
+  getProxies: async () => {
+    const registryFactory = await PLCRVotingRegistryFactory.deployed();
+    const registryReceipt = await registryFactory.newRegistryWithToken(
+      config.token.supply,
+      config.token.name,
+      config.token.decimals,
+      config.token.symbol,
+      [
+        paramConfig.minDeposit,
+        paramConfig.pMinDeposit,
+        paramConfig.applyStageLength,
+        paramConfig.pApplyStageLength,
+        paramConfig.commitStageLength,
+        paramConfig.pCommitStageLength,
+        paramConfig.revealStageLength,
+        paramConfig.pRevealStageLength,
+        paramConfig.dispensationPct,
+        paramConfig.pDispensationPct,
+        paramConfig.voteQuorum,
+        paramConfig.pVoteQuorum,
+      ],
+      'The TestChain Registry',
+    );
+
+    const {
+      token,
+      parameterizer,
+      registry,
+    } = registryReceipt.logs[0].args;
+
+    const tokenInstance = Token.at(token);
+    const paramProxy = Parameterizer.at(parameterizer);
+    const registryProxy = Registry.at(registry);
+
+    const plcr = await paramProxy.voting.call();
+    const votingProxy = PLCRVoting.at(plcr);
+
+    const proxies = {
+      tokenInstance,
+      votingProxy,
+      paramProxy,
+      registryProxy,
+    };
+    return proxies;
+  },
+
+  approveProxies: async (accounts, token, plcr, parameterizer, registry) => (
+    Promise.all(accounts.map(async (user) => {
+      await token.transfer(user, 10000000000);
+      if (plcr) {
+        await token.approve(plcr.address, 10000000000, { from: user });
+      }
+      if (parameterizer) {
+        await token.approve(parameterizer.address, 10000000000, { from: user });
+      }
+      if (registry) {
+        await token.approve(registry.address, 10000000000, { from: user });
+      }
+    }))
+  ),
+
   getVoting: async () => {
-    const registry = await Registry.deployed();
-    const votingAddr = await registry.voting.call();
+    const plcrVotingChallengeFactory = await PLCRVotingChallengeFactory.deployed();
+    const votingAddr = await plcrVotingChallengeFactory.voting.call();
     return PLCRVoting.at(votingAddr);
   },
 
@@ -59,8 +123,7 @@ const utils = {
     await token.approve(plcrAddr, adtAmount, { from: address });
   },
 
-  addToWhitelist: async (domain, deposit, actor) => {
-    const registry = await Registry.deployed();
+  addToWhitelist: async (domain, deposit, actor, registry) => {
     await utils.as(actor, registry.apply, domain, deposit, '');
     await utils.increaseTime(paramConfig.applyStageLength + 1);
     await utils.as(actor, registry.updateStatus, domain);
@@ -99,8 +162,7 @@ const utils = {
     .then(num => ethQuery.getBlockByNumber(num, true))
     .then(block => block.timestamp.toString(10)),
 
-  getUnstakedDeposit: async (domain) => {
-    const registry = await Registry.deployed();
+  getUnstakedDeposit: async (domain, registry) => {
     // get the struct in the mapping
     const listing = await registry.listings.call(domain);
     // get the unstaked deposit amount from the listing struct
@@ -108,37 +170,41 @@ const utils = {
     return unstakedDeposit.toString();
   },
 
-  challengeAndGetPollID: async (domain, actor) => {
-    const registry = await Registry.deployed();
+  challengeAndGetPollID: async (domain, actor, registry) => {
     const receipt = await utils.as(actor, registry.challenge, domain, '');
     return receipt.logs[0].args.challengeID;
   },
 
-  getPLCRChallenge: async (challengeID) => {
-    const registry = await Registry.deployed();
-    const plcrChallengeAddress = await registry.challenges(challengeID)
-    return PLCRVotingChallenge.at(plcrChallengeAddress)
+  getChallengeID: async (domain, registry) => {
+    const listing = await registry.listings.call(domain);
+    const challengeID = listing[4];
+    return challengeID;
   },
 
-  commitVote: async (challengeID, voteOption, numTokens, salt, voter) => {
-    const token = await Token.deployed();
-    const plcrChallenge = await utils.getPLCRChallenge(challengeID)
-    await utils.as(voter, token.approve, plcrChallenge.address, numTokens)
-    const hash = utils.getVoteSaltHash(voteOption, salt)
-    await utils.as(voter, plcrChallenge.requestVotingRights, numTokens)
-    await utils.as(voter, plcrChallenge.commitVote, hash, numTokens)
+  getPLCRVotingChallenge: async (domain, registry) => {
+    const listing = await registry.listings.call(domain);
+    const challengeID = listing[4];
+    const challengeInfo = await registry.challenges(challengeID);
+    const challengeAddress = challengeInfo[0];
+    return PLCRVotingChallenge.at(challengeAddress);
+  },
+
+  commitVote: async (pollID, voteOption, tokensArg, salt, voter, voting) => {
+    const hash = utils.getVoteSaltHash(voteOption, salt);
+    await utils.as(voter, voting.requestVotingRights, tokensArg);
+
+    const prevPollID = await voting.getInsertPointForNumTokens.call(voter, tokensArg, pollID);
+    await utils.as(voter, voting.commitVote, pollID, hash, tokensArg, prevPollID);
   },
 
   getReceiptValue: (receipt, arg) => receipt.logs[0].args[arg],
 
-  proposeReparamAndGetPropID: async (reParam, value, actor) => {
-    const parameterizer = await Parameterizer.deployed();
+  proposeReparamAndGetPropID: async (reParam, value, actor, parameterizer) => {
     const receipt = await utils.as(actor, parameterizer.proposeReparameterization, reParam, value);
     return receipt.logs[0].args.propID;
   },
 
-  challengeReparamAndGetChallengeID: async (propID, actor) => {
-    const parameterizer = await Parameterizer.deployed();
+  challengeReparamAndGetChallengeID: async (propID, actor, parameterizer) => {
     const receipt = await utils.as(actor, parameterizer.challengeReparameterization, propID);
     return receipt.logs[0].args.challengeID;
   },

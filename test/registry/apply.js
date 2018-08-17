@@ -1,9 +1,5 @@
 /* eslint-env mocha */
-/* global assert contract artifacts */
-const Parameterizer = artifacts.require('./Parameterizer.sol');
-const Registry = artifacts.require('Registry.sol');
-const Token = artifacts.require('EIP20.sol');
-
+/* global assert contract */
 const fs = require('fs');
 const BN = require('bignumber.js');
 
@@ -15,9 +11,20 @@ const utils = require('../utils.js');
 contract('Registry', (accounts) => {
   describe('Function: apply', () => {
     const [applicant, proposer] = accounts;
+    let token;
+    let parameterizer;
+    let registry;
+
+    before(async () => {
+      const { paramProxy, registryProxy, tokenInstance } = await utils.getProxies();
+      parameterizer = paramProxy;
+      registry = registryProxy;
+      token = tokenInstance;
+
+      await utils.approveProxies(accounts, token, false, parameterizer, registry);
+    });
 
     it('should allow a new listing to apply', async () => {
-      const registry = await Registry.deployed();
       const listing = utils.getListingHash('nochallenge.net');
 
       await utils.as(applicant, registry.apply, listing, paramConfig.minDeposit, '');
@@ -36,7 +43,6 @@ contract('Registry', (accounts) => {
     });
 
     it('should not allow a listing to apply which has a pending application', async () => {
-      const registry = await Registry.deployed();
       const listing = utils.getListingHash('nochallenge.net');
 
       // Verify that the application exists.
@@ -55,7 +61,6 @@ contract('Registry', (accounts) => {
     it(
       'should add a listing to the whitelist which went unchallenged in its application period',
       async () => {
-        const registry = await Registry.deployed();
         const listing = utils.getListingHash('nochallenge.net');
         await utils.increaseTime(paramConfig.applyStageLength + 1);
         await registry.updateStatus(listing);
@@ -65,7 +70,6 @@ contract('Registry', (accounts) => {
     );
 
     it('should not allow a listing to apply which is already listed', async () => {
-      const registry = await Registry.deployed();
       const listing = utils.getListingHash('nochallenge.net');
 
       // Verify that the listing is whitelisted.
@@ -84,9 +88,6 @@ contract('Registry', (accounts) => {
     });
 
     describe('token transfer', async () => {
-      const registry = await Registry.deployed();
-      const token = Token.at(await registry.token.call());
-
       it('should revert if token transfer from user fails', async () => {
         const listing = utils.getListingHash('toFewTokens.net');
 
@@ -109,9 +110,6 @@ contract('Registry', (accounts) => {
     });
 
     it('should revert if the listing\'s applicationExpiry would overflow', async () => {
-      const parameterizer = await Parameterizer.deployed();
-      const registry = await Registry.deployed();
-
       // calculate an applyStageLen which when added to the current block time will be greater
       // than 2^256 - 1
       const blockTimestamp = await utils.getBlockTimestamp();
@@ -134,15 +132,13 @@ contract('Registry', (accounts) => {
       try {
         await utils.as(applicant, registry.apply, listing, paramConfig.minDeposit, '');
       } catch (err) {
-        assert(err.toString().includes('invalid opcode'), err.toString());
+        assert(utils.isEVMException(err), err.toString());
         return;
       }
       assert(false, 'app expiry was allowed to overflow!');
     });
 
     it('should revert if the deposit amount is less than the minDeposit', async () => {
-      const parameterizer = await Parameterizer.deployed();
-      const registry = await Registry.deployed();
       const listing = utils.getListingHash('smallDeposit.net');
 
       const minDeposit = await parameterizer.get.call('minDeposit');
