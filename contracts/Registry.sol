@@ -61,20 +61,16 @@ contract Registry {
     // ------------
 
     /**
-    @dev Contructor                 Sets the addresses for token, voting, and parameterizer
-    @param _tokenAddr               Address of the TCR's intrinsic ERC20 token
-    @param _challengeFactoryAddr    Address of a contract that will create challenges
-    @param _paramsAddr              Address of a Parameterizer contract
+    @dev Initializer. Can only be called once.
+    @param _token The address where the ERC20 token contract is deployed
     */
-    function Registry(
-        address _tokenAddr,
-        address _challengeFactoryAddr,
-        address _paramsAddr,
-        string _name
-    ) public {
-        token = EIP20Interface(_tokenAddr);
-        challengeFactory = ChallengeFactoryInterface(_challengeFactoryAddr);
-        parameterizer = Parameterizer(_paramsAddr);
+    function init(address _token, address _parameterizer, address _challengeFactory, string _name) public {
+        require(_token != 0 && address(token) == 0);
+        require(_parameterizer != 0 && address(parameterizer) == 0);
+
+        token = EIP20Interface(_token);
+        parameterizer = Parameterizer(_parameterizer);
+        challengeFactory = ChallengeFactoryInterface(_challengeFactory);
         name = _name;
         challengeNonce = INITIAL_CHALLENGE_NONCE;
     }
