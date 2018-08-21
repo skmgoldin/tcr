@@ -37,14 +37,17 @@
     "ethjs-query": "0.3.2",
     "ethjs-rpc": "0.1.8",
     "ethjs-util": "0.1.4",
+    "fcr-js": "git://git@github.com:levelkdev/fcr-js#eb3275f501dbca0c6b913b21febdb778203389c1",
     "lk-test-helpers": "0.1.3",
     "truffle": "4.1.13",
-    "truffle-hdwallet-provider": "0.0.3"
+    "truffle-hdwallet-provider": "0.0.3",
+    "web3": "^1.0.0-beta.26"
   },
   "devDependencies": {
     "eslint": "4.15.0",
     "eslint-config-airbnb-base": "12.1.0",
     "eslint-plugin-import": "2.8.0",
+    "lodash": "^4.17.10",
     "run-with-testrpc": "^0.3.0",
     "solidity-coverage": "^0.4.15"
   }
