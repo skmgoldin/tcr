@@ -1,0 +1,12 @@
+{
+  "local": {
+    "tokenAddress": "",
+    "registryAddress": "",
+    "LMSRMarketMakerAddress": "",
+    "web3Url": "http://localhost:8545",
+    "socketWeb3Url": "ws://localhost:8545",
+    "defaultOptions": {
+      "gas": 6930000
+    }
+  }
+}

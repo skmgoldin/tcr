@@ -1,4 +1,6 @@
+import _ from 'lodash'
 import lkTestHelpers from 'lk-test-helpers'
+import fcrjs from 'fcr-js'
 
 const Parameterizer = artifacts.require('./Parameterizer.sol')
 const Registry = artifacts.require('Registry.sol')
@@ -24,13 +26,17 @@ const DutchExchange = artifacts.require('DutchExchangeMock')
 
 const fs = require('fs')
 const BN = require('bignumber.js')
+const Web3_beta = require('web3')
 
 const config = JSON.parse(fs.readFileSync('./conf/config.json'))
+const fcrJsConfig = JSON.parse(fs.readFileSync('./test/fcrJsConfig.json'))
 const paramConfig = config.paramDefaults
 
 const { increaseTime } = lkTestHelpers(web3)
 
 const utils = require('../utils.js')
+
+const web3_beta = new Web3_beta(new Web3_beta.providers.HttpProvider(fcrJsConfig.local.web3Url))
 
 contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
 
@@ -75,17 +81,18 @@ contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
       console.log('----------------------- CREATING REGISTRY -----------------------')
       const registry = await Registry.new(token.address, futarchyChallengeFactory.address, parameterizer.address, 'best registry' )
       await logTCRBalances(accounts, token, registry)
-
-
-
+ 
+      const fcr = fcrjs(web3_beta, _.merge(fcrJsConfig.local, {
+        registryAddress: registry.address,
+        tokenAddress: token.address,
+        LMSRMarketMakerAddress: lmsrMarketMaker.address
+      }))
 
 
       console.log('----------------------- SUBMITTING APPLICATION -----------------------')
       await token.approve(registry.address, approvalAmount, {from: applicant})
-      const listingHash = utils.getListingHash('nochallenge.net')
-      await utils.as(applicant, registry.apply, listingHash, futarchyFundingAmount, '')
+      await fcr.registry.apply(applicant, 'nochallenge.net', futarchyFundingAmount, '')
       await logTCRBalances(accounts, token, registry)
-      const listingResult = await registry.listings.call(listingHash)
 
 
 
@@ -93,6 +100,7 @@ contract('simulate TCR apply/futarchyChallenge/resolve', (accounts) => {
 
 
       console.log('----------------------- SUBMITTING CHALLENGE -----------------------')
+      const listingHash = web3_beta.utils.fromAscii('nochallenge.net')
       const receipt = await utils.as(challenger, registry.createChallenge, listingHash, '')
       const { challengeID } = receipt.logs[0].args
       const challenge = await getFutarchyChallenge(challengeID, registry)
