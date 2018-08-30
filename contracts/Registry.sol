@@ -284,7 +284,7 @@ contract Registry {
         require(challenge.resolved == true);
 
         uint voterTokens = voting.getNumPassingTokens(msg.sender, _challengeID);
-        uint reward = (voterTokens * challenge.rewardPool) / challenge.totalTokens;
+        uint reward = voterTokens.mul(challenge.rewardPool).div(challenge.totalTokens);
 
         // Subtracts the voter's information to preserve the participation ratios
         // of other voters compared to the remaining pool of rewards
@@ -326,7 +326,7 @@ contract Registry {
         uint totalTokens = challenges[_challengeID].totalTokens;
         uint rewardPool = challenges[_challengeID].rewardPool;
         uint voterTokens = voting.getNumPassingTokens(_voter, _challengeID);
-        return (voterTokens * rewardPool) / totalTokens;
+        return voterTokens.mul(rewardPool).div(totalTokens);
     }
 
     /**
