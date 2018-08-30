@@ -1,4 +1,4 @@
-/* global artifacts network */
+/* global artifacts web3 */
 const fs = require('fs');
 
 const RegistryFactory = artifacts.require('RegistryFactory.sol');
@@ -8,15 +8,20 @@ const paramConfig = config.paramDefaults;
 
 module.exports = (done) => {
   async function deployProxies(networkID) {
-    const registryFactoryAddress = (
-      networkID === '1' ? '0xcc0df91b86795f21c3d43dbeb3ede0dfcf8dccaf' // mainnet
-      : networkID === '4' ? '0x822415a1e4d0d7f99425d794a817d9b823bdcd0c' // rinkeby
-      : RegistryFactory.address // development
-    );
+    let registryFactoryAddress;
+    if (networkID === '1') {
+      registryFactoryAddress = '0xcc0df91b86795f21c3d43dbeb3ede0dfcf8dccaf'; // mainnet
+    } else if (networkID === '4') {
+      registryFactoryAddress = '0x822415a1e4d0d7f99425d794a817d9b823bdcd0c'; // rinkeby
+    } else {
+      registryFactoryAddress = RegistryFactory.address; // development
+    }
 
+    /* eslint-disable no-console */
     console.log(`RegistryFactory:   ${registryFactoryAddress}`);
     console.log('');
     console.log('Deploying proxy contracts...');
+    /* eslint-enable no-console */
 
     const registryFactory = await RegistryFactory.at(registryFactoryAddress);
     const registryReceipt = await registryFactory.newRegistryWithToken(
@@ -48,14 +53,16 @@ module.exports = (done) => {
       registry,
     } = registryReceipt.logs[0].args;
 
+    /* eslint-disable no-console */
     console.log('');
-    console.log(`Proxy contracts successfully migrated to network_id: ${networkID}`)
+    console.log(`Proxy contracts successfully migrated to network_id: ${networkID}`);
     console.log('');
     console.log(`${config.token.name}:          ${token}`);
     console.log(`PLCRVoting:        ${plcr}`);
     console.log(`Parameterizer:     ${parameterizer}`);
     console.log(`Registry:          ${registry}`);
     console.log('');
+    /* eslint-enable no-console */
 
     return true;
   }
@@ -67,4 +74,4 @@ module.exports = (done) => {
     }
     return deployProxies(network).then(() => done());
   });
-}
+};
