@@ -233,9 +233,7 @@ contract Registry {
         // Takes tokens from challenger
         require(token.transferFrom(msg.sender, this, minDeposit));
 
-	uint commitEndDate;
-	uint revealEndDate;
-        (commitEndDate, revealEndDate,) = voting.pollMap(pollID);
+        (uint commitEndDate, uint revealEndDate,,,) = voting.pollMap(pollID);
 
         emit _Challenge(_listingHash, pollID, _data, commitEndDate, revealEndDate, msg.sender);
         return pollID;
@@ -278,21 +276,23 @@ contract Registry {
     @param _challengeID The PLCR pollID of the challenge a reward is being claimed for
     */
     function claimReward(uint _challengeID) public {
-        Challenge storage challenge = challenges[_challengeID];
-        // Ensures the voter has not already claimed tokens and challenge results have been processed
-        require(challenge.tokenClaims[msg.sender] == false);
-        require(challenge.resolved == true);
+        Challenge storage challengeInstance = challenges[_challengeID];
+        // Ensures the voter has not already claimed tokens and challengeInstance results have
+        // been processed
+        require(challengeInstance.tokenClaims[msg.sender] == false);
+        require(challengeInstance.resolved == true);
 
         uint voterTokens = voting.getNumPassingTokens(msg.sender, _challengeID);
-        uint reward = voterTokens.mul(challenge.rewardPool).div(challenge.totalTokens);
+        uint reward = voterTokens.mul(challengeInstance.rewardPool)
+                      .div(challengeInstance.totalTokens);
 
         // Subtracts the voter's information to preserve the participation ratios
         // of other voters compared to the remaining pool of rewards
-        challenge.totalTokens -= voterTokens;
-        challenge.rewardPool -= reward;
+        challengeInstance.totalTokens -= voterTokens;
+        challengeInstance.rewardPool -= reward;
 
         // Ensures a voter cannot claim tokens again
-        challenge.tokenClaims[msg.sender] = true;
+        challengeInstance.tokenClaims[msg.sender] = true;
 
         require(token.transfer(msg.sender, reward));
 
