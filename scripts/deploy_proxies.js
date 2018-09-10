@@ -1,7 +1,10 @@
 /* global artifacts web3 */
 const fs = require('fs');
+const BN = require('bignumber.js');
 
 const RegistryFactory = artifacts.require('RegistryFactory.sol');
+const Registry = artifacts.require('Registry.sol');
+const Token = artifacts.require('EIP20.sol');
 
 const config = JSON.parse(fs.readFileSync('../conf/config.json'));
 const paramConfig = config.paramDefaults;
@@ -18,9 +21,11 @@ module.exports = (done) => {
     }
 
     /* eslint-disable no-console */
-    console.log(`RegistryFactory:   ${registryFactoryAddress}`);
+    console.log('Using RegistryFactory at:');
+    console.log(`     ${registryFactoryAddress}`);
     console.log('');
     console.log('Deploying proxy contracts...');
+    console.log('...');
     /* eslint-enable no-console */
 
     const registryFactory = await RegistryFactory.at(registryFactoryAddress);
@@ -53,15 +58,32 @@ module.exports = (done) => {
       registry,
     } = registryReceipt.logs[0].args;
 
+    const registryProxy = await Registry.at(registry);
+    const tokenProxy = await Token.at(token);
+    const registryName = await registryProxy.name.call();
+
     /* eslint-disable no-console */
-    console.log('');
     console.log(`Proxy contracts successfully migrated to network_id: ${networkID}`);
     console.log('');
-    console.log(`${config.token.name}:          ${token}`);
-    console.log(`PLCRVoting:        ${plcr}`);
-    console.log(`Parameterizer:     ${parameterizer}`);
-    console.log(`Registry:          ${registry}`);
+    console.log(`${config.token.name} (EIP20):`);
+    console.log(`     ${token}`);
+    console.log('PLCRVoting:');
+    console.log(`     ${plcr}`);
+    console.log('Parameterizer:');
+    console.log(`     ${parameterizer}`);
+    console.log(`${registryName} (Registry):`);
+    console.log(`     ${registry}`);
     console.log('');
+
+    const evenTokenDispensation =
+      new BN(config.token.supply).div(config.token.tokenHolders.length).toString();
+    console.log(`Dispensing ${config.token.supply} tokens evenly to ${config.token.tokenHolders.length} addresses:`);
+    console.log('');
+
+    await Promise.all(config.token.tokenHolders.map(async (account) => {
+      console.log(`Transferring tokens to address: ${account}`);
+      return tokenProxy.transfer(account, evenTokenDispensation);
+    }));
     /* eslint-enable no-console */
 
     return true;

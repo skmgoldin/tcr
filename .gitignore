@@ -1,5 +1,6 @@
 node_modules/*
 build/*
+builds/*
 truffle.js
 secrets.json
 *.swp
