@@ -17,21 +17,20 @@
 	},
   "name": "The TestChain Registry",
   "token": {
-    "address": "0x337cDDa6D41A327c5ad456166CCB781a9722AFf9",
-    "deployToken": true,
-    "decimals": "18",
-    "name": "TestCoin",
-    "symbol": "TEST",
     "supply": "1000000000000000000000000000",
+    "name": "TestCoin",
+    "decimals": "18",
+    "symbol": "TEST",
     "tokenHolders": [
-      { "address": "0x627306090abaB3A6e1400e9345bC60c78a8BEf57",
-        "amount": "250000000000000000000000000" },
-      { "address": "0xf17f52151EbEF6C7334FAD080c5704D77216b732",
-        "amount": "250000000000000000000000000" },
-      { "address": "0xC5fdf4076b8F3A5357c5E395ab970B5B54098Fef",
-        "amount": "250000000000000000000000000" },
-      { "address": "0x821aEa9a577a9b44299B9c15c88cf3087F3b5544",
-        "amount": "250000000000000000000000000" }
+      "0xd09cc3bc67e4294c4a446d8e4a2934a921410ed7",
+      "0x8FEa967fF3E8B14498BC17D8d43E8cdd614613c7",
+      "0x874Fec5f1D5045B85f46fBD2Be6264867c3D7cE5",
+      "0xf978cC95Eba88cC8869e580d282620e3b4382016",
+      "0x4fB9dEA18CDf6f737afDfc3f680Fb5500F8F893A",
+      "0xf17f52151EbEF6C7334FAD080c5704D77216b732",
+      "0xC5fdf4076b8F3A5357c5E395ab970B5B54098Fef",
+      "0x821aEa9a577a9b44299B9c15c88cf3087F3b5544",
+      "0x627306090abaB3A6e1400e9345bC60c78a8BEf57"
     ]
   }
 }

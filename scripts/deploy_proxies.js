@@ -15,7 +15,7 @@ module.exports = (done) => {
     if (networkID === '1') {
       registryFactoryAddress = '0xcc0df91b86795f21c3d43dbeb3ede0dfcf8dccaf'; // mainnet
     } else if (networkID === '4') {
-      registryFactoryAddress = '0x822415a1e4d0d7f99425d794a817d9b823bdcd0c'; // rinkeby
+      registryFactoryAddress = '0x2bddfc0c506a00ea3a6ccea5fbbda8843377dcb1'; // rinkeby
     } else {
       registryFactoryAddress = RegistryFactory.address; // development
     }
@@ -47,6 +47,8 @@ module.exports = (done) => {
         paramConfig.pDispensationPct,
         paramConfig.voteQuorum,
         paramConfig.pVoteQuorum,
+        paramConfig.exitTimeDelay,
+        paramConfig.exitPeriodLen,
       ],
       config.name,
     );
