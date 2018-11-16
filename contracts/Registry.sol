@@ -113,8 +113,8 @@ contract Registry {
 
         require(listing.owner == msg.sender);
 
-        listing.unstakedDeposit += _amount;
         require(token.transferFrom(msg.sender, this, _amount));
+	listing.unstakedDeposit += _amount;
 
         emit _Deposit(_listingHash, _amount, listing.unstakedDeposit, msg.sender);
     }
