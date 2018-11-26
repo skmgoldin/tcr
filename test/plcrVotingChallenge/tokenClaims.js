@@ -48,7 +48,7 @@ contract('PLCRVotingChallenge', (accounts) => {
       assert.strictEqual(initialHasClaimed, false, 'The voter is purported to have claimed ' +
         'their reward, when in fact they have not');
 
-      await utils.as(voter, plcrVotingChallenge.claimVoterReward, '420');
+      await utils.as(voter, plcrVotingChallenge.claimVoterReward);
 
       const finalHasClaimed = await plcrVotingChallenge.tokenClaims.call(voter);
       assert.strictEqual(finalHasClaimed, true, 'The voter is purported to not have claimed ' +
@@ -56,4 +56,3 @@ contract('PLCRVotingChallenge', (accounts) => {
     });
   });
 });
-

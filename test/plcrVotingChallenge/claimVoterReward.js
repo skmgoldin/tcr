@@ -51,8 +51,8 @@ contract('PLCRVotingChallenge', (accounts) => {
       await utils.as(applicant, registry.updateStatus, listing);
 
       // Alice claims reward
-      const aliceVoterReward = await plcrVotingChallenge.voterReward(voterAlice, '420');
-      await utils.as(voterAlice, plcrVotingChallenge.claimVoterReward, '420');
+      const aliceVoterReward = await plcrVotingChallenge.voterReward(voterAlice);
+      await utils.as(voterAlice, plcrVotingChallenge.claimVoterReward);
 
       // Alice withdraws her voting rights
       await utils.as(voterAlice, voting.withdrawVotingRights, '500');
@@ -64,48 +64,6 @@ contract('PLCRVotingChallenge', (accounts) => {
         aliceFinalBalance.toString(10), aliceExpected.toString(10),
         'alice should have the same balance as she started',
       );
-    });
-
-    it('should revert if provided salt is incorrect', async () => {
-      const listing = utils.getListingHash('sugar.net');
-
-      const applicantStartingBalance = await token.balanceOf.call(applicant);
-      const aliceStartBal = await token.balanceOf.call(voterAlice);
-      await utils.addToWhitelist(listing, minDeposit, applicant, registry);
-
-      const pollID = await utils.challengeAndGetPollID(listing, challenger, registry);
-      const plcrVotingChallenge = await utils.getPLCRVotingChallenge(listing, registry);
-
-      // Alice is so committed
-      await utils.commitVote(pollID, '0', 500, '420', voterAlice, voting);
-      await utils.increaseTime(paramConfig.commitStageLength + 1);
-
-      // Alice is so revealing
-      await utils.as(voterAlice, voting.revealVote, pollID, '0', '420');
-      await utils.increaseTime(paramConfig.revealStageLength + 1);
-
-      const applicantFinalBalance = await token.balanceOf.call(applicant);
-      const aliceFinalBalance = await token.balanceOf.call(voterAlice);
-      const expectedBalance = applicantStartingBalance.sub(minDeposit);
-
-      assert.strictEqual(
-        applicantFinalBalance.toString(10), expectedBalance.toString(10),
-        'applicants final balance should be what they started with minus the minDeposit',
-      );
-      assert.strictEqual(
-        aliceFinalBalance.toString(10), (aliceStartBal.sub(bigTen(500))).toString(10),
-        'alices final balance should be exactly the same as her starting balance',
-      );
-
-      // Update status
-      await utils.as(applicant, registry.updateStatus, listing);
-
-      try {
-        await utils.as(voterAlice, plcrVotingChallenge.claimVoterReward, '421');
-        assert(false, 'should not have been able to claimVoterReward with the wrong salt');
-      } catch (err) {
-        assert(utils.isEVMException(err), err.toString());
-      }
     });
 
     it('should not transfer tokens if msg.sender has already claimed tokens for a challenge', async () => {
@@ -132,10 +90,10 @@ contract('PLCRVotingChallenge', (accounts) => {
       await utils.as(applicant, registry.updateStatus, listing);
 
       // Claim reward
-      await utils.as(voterAlice, plcrVotingChallenge.claimVoterReward, '420');
+      await utils.as(voterAlice, plcrVotingChallenge.claimVoterReward);
 
       try {
-        await utils.as(voterAlice, plcrVotingChallenge.claimVoterReward, '420');
+        await utils.as(voterAlice, plcrVotingChallenge.claimVoterReward);
         assert(false, 'should not have been able to call claimVoterReward twice');
       } catch (err) {
         assert(utils.isEVMException(err), err.toString());
@@ -177,7 +135,7 @@ contract('PLCRVotingChallenge', (accounts) => {
       await utils.as(voterAlice, voting.revealVote, pollID, '0', '420');
 
       try {
-        await utils.as(voterAlice, plcrVotingChallenge.claimVoterReward, '420');
+        await utils.as(voterAlice, plcrVotingChallenge.claimVoterReward);
         assert(false, 'should not have been able to claimVoterReward for unresolved challenge');
       } catch (err) {
         assert(utils.isEVMException(err), err.toString());
@@ -200,4 +158,3 @@ contract('PLCRVotingChallenge', (accounts) => {
     });
   });
 });
-

@@ -40,7 +40,6 @@ contract PLCRVotingChallenge is ChallengeInterface {
     Registry public registry;
     PLCRVoting public voting;      /// address of PLCRVoting Contract
     uint public pollID;            /// pollID of PLCRVoting
-    bool challengeResolved;        /// true is challenge has officially been resolved to passed or failed
     uint public commitEndDate;     /// expiration date of commit period for poll
     uint public revealEndDate;     /// expiration date of reveal period for poll
     uint public voteQuorum;	    /// number of votes required for a proposal to pass
@@ -101,15 +100,14 @@ contract PLCRVotingChallenge is ChallengeInterface {
 
     /**
     @dev                Called by a voter to claim their reward for each completed vote
-    @param _salt        The salt of a voter's commit hash
     */
-    function claimVoterReward(uint _salt) public {
+    function claimVoterReward() public {
         // Ensures the voter has not already claimed tokens
         require(tokenClaims[msg.sender] == false);
         require(ended());
 
-        uint voterTokens = voting.getNumPassingTokens(msg.sender, pollID, _salt);
-        uint reward = voterReward(msg.sender, _salt);
+        uint voterTokens = voting.getNumPassingTokens(msg.sender, pollID);
+        uint reward = voterReward(msg.sender);
 
         voterTokensClaimed += voterTokens;
         voterRewardsClaimed += reward;
@@ -126,12 +124,11 @@ contract PLCRVotingChallenge is ChallengeInterface {
     /**
     @dev                Calculates the provided voter's token reward.
     @param _voter       The address of the voter whose reward balance is to be returned
-    @param _salt        The salt of the voter's commit hash in the given poll
     @return             The uint indicating the voter's reward
     */
-    function voterReward(address _voter, uint _salt)
+    function voterReward(address _voter)
     public view returns (uint) {
-        uint voterTokens = voting.getNumPassingTokens(_voter, pollID, _salt);
+        uint voterTokens = voting.getNumPassingTokens(_voter, pollID);
         uint remainingRewardPool = rewardPool - voterRewardsClaimed;
         uint remainingTotalTokens = voting.getTotalNumberOfTokensForWinningOption(pollID) - voterTokensClaimed;
         return (voterTokens * remainingRewardPool) / remainingTotalTokens;
@@ -170,7 +167,7 @@ contract PLCRVotingChallenge is ChallengeInterface {
     @return Returns tokens required by challenge contract
     */
     function requiredTokenDeposit() public view returns(uint) {
-      return challengerStake;
+      return rewardPool;
     }
 
     /**
@@ -191,14 +188,5 @@ contract PLCRVotingChallenge is ChallengeInterface {
 
         // if votes do not vote in favor of listing, challenge passes
         return !voting.isPassed(pollID);
-    }
-
-    /**
-    @notice Checks if a challenge is resolved
-    @dev Checks whether challenge outome has been resolved to either passed or failed
-    @return Boolean indication if challenge is resolved
-    */
-    function resolved() view public returns (bool) {
-      return challengeResolved;
     }
 }

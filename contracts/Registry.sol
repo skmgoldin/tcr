@@ -22,8 +22,8 @@ contract Registry {
     event _ListingRemoved(bytes32 indexed listingHash);
     event _ListingWithdrawn(bytes32 indexed listingHash, address indexed owner);
     event _TouchAndRemoved(bytes32 indexed listingHash);
-    event _ChallengeFailed(bytes32 indexed listingHash, uint indexed challengeID, uint rewardPool, uint totalTokens);
-    event _ChallengeSucceeded(bytes32 indexed listingHash, uint indexed challengeID, uint rewardPool, uint totalTokens);
+    event _ChallengeFailed(bytes32 indexed listingHash, uint indexed challengeID);
+    event _ChallengeSucceeded(bytes32 indexed listingHash, uint indexed challengeID);
     event _RewardClaimed(uint indexed challengeID, uint reward, address indexed voter);
     event _ExitInitialized(bytes32 indexed listingHash, uint exitTime, uint exitDelayEndDate, address indexed owner);
 
@@ -171,8 +171,7 @@ contract Registry {
         require(msg.sender == listing.owner);
         require(isWhitelisted(_listingHash));
         // Cannot exit during ongoing challenge
-        ChallengeInterface challenge = challengeForListingHash(_listingHash);
-        require(listing.challengeID == 0 || challenge.ended());
+        require(listing.challengeID == 0 || challenges[listing.challengeID].resolved);
 
         // Make sure the exit was initialized
         require(listing.exitTime > 0);
@@ -251,51 +250,6 @@ contract Registry {
         }
     }
 
-<<<<<<< HEAD
-    // ----------------
-    // TOKEN FUNCTIONS:
-    // ----------------
-
-    /**
-    @dev                Called by a voter to claim their reward for each completed vote. Someone
-                        must call updateStatus() before this can be called.
-    @param _challengeID The PLCR pollID of the challenge a reward is being claimed for
-    */
-    function claimReward(uint _challengeID) public {
-        Challenge storage challengeInstance = challenges[_challengeID];
-        // Ensures the voter has not already claimed tokens and challengeInstance results have
-        // been processed
-        require(challengeInstance.tokenClaims[msg.sender] == false);
-        require(challengeInstance.resolved == true);
-
-        uint voterTokens = voting.getNumPassingTokens(msg.sender, _challengeID);
-        uint reward = voterTokens.mul(challengeInstance.rewardPool)
-                      .div(challengeInstance.totalTokens);
-
-        // Subtracts the voter's information to preserve the participation ratios
-        // of other voters compared to the remaining pool of rewards
-        challengeInstance.totalTokens -= voterTokens;
-        challengeInstance.rewardPool -= reward;
-
-        // Ensures a voter cannot claim tokens again
-        challengeInstance.tokenClaims[msg.sender] = true;
-
-        require(token.transfer(msg.sender, reward));
-
-        emit _RewardClaimed(_challengeID, reward, msg.sender);
-    }
-
-    /**
-    @dev                 Called by a voter to claim their rewards for each completed vote. Someone
-                         must call updateStatus() before this can be called.
-    @param _challengeIDs The PLCR pollIDs of the challenges rewards are being claimed for
-    */
-    function claimRewards(uint[] _challengeIDs) public {
-        // loop through arrays, claiming each individual vote reward
-        for (uint i = 0; i < _challengeIDs.length; i++) {
-            claimReward(_challengeIDs[i]);
-        }
-=======
     function resolveChallenge(bytes32 _listingHash) private {
       Listing storage listing      = listings[_listingHash];
       ChallengeInterface challenge = challengeForListingHash(_listingHash);
@@ -315,7 +269,6 @@ contract Registry {
           _ChallengeSucceeded(_listingHash, challengeID);
       }
       challenges[challengeID].resolved = true;
->>>>>>> Refactor Registry to use Abstracted Challenge Contracts
     }
 
     // --------
@@ -323,23 +276,6 @@ contract Registry {
     // --------
 
     /**
-<<<<<<< HEAD
-    @dev                Calculates the provided voter's token reward for the given poll.
-    @param _voter       The address of the voter whose reward balance is to be returned
-    @param _challengeID The pollID of the challenge a reward balance is being queried for
-    @return             The uint indicating the voter's reward
-    */
-    function voterReward(address _voter, uint _challengeID)
-    public view returns (uint) {
-        uint totalTokens = challenges[_challengeID].totalTokens;
-        uint rewardPool = challenges[_challengeID].rewardPool;
-        uint voterTokens = voting.getNumPassingTokens(_voter, _challengeID);
-        return voterTokens.mul(rewardPool).div(totalTokens);
-    }
-
-    /**
-=======
->>>>>>> Refactor Registry to use Abstracted Challenge Contracts
     @dev                Determines whether the given listingHash be whitelisted.
     @param _listingHash The listingHash whose status is to be examined
     */
