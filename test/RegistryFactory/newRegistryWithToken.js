@@ -2,7 +2,7 @@
 /* global contract assert artifacts */
 
 const EIP20 = artifacts.require('tokens/eip20/EIP20.sol');
-const RegistryFactory = artifacts.require('./RegistryFactory.sol');
+const RegistryFactory = artifacts.require('./PLCRVotingRegistryFactory.sol');
 const Registry = artifacts.require('./Registry.sol');
 const fs = require('fs');
 

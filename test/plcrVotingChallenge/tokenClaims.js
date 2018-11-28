@@ -10,7 +10,7 @@ const utils = require('../utils.js');
 
 const bigTen = number => new BN(number.toString(10), 10);
 
-contract('Registry', (accounts) => {
+contract('PLCRVotingChallenge', (accounts) => {
   describe('Function: tokenClaims', () => {
     const minDeposit = bigTen(paramConfig.minDeposit);
     const [applicant, challenger, voter] = accounts;
@@ -19,7 +19,7 @@ contract('Registry', (accounts) => {
     let voting;
     let registry;
 
-    beforeEach(async () => {
+    before(async () => {
       const { votingProxy, registryProxy, tokenInstance } = await utils.getProxies();
       voting = votingProxy;
       registry = registryProxy;
@@ -34,6 +34,7 @@ contract('Registry', (accounts) => {
       await utils.addToWhitelist(listing, minDeposit, applicant, registry);
 
       const pollID = await utils.challengeAndGetPollID(listing, challenger, registry);
+      const plcrVotingChallenge = await utils.getPLCRVotingChallenge(listing, registry);
 
       await utils.commitVote(pollID, '0', '10', '420', voter, voting);
       await utils.increaseTime(paramConfig.commitStageLength + 1);
@@ -43,16 +44,15 @@ contract('Registry', (accounts) => {
 
       await utils.as(challenger, registry.updateStatus, listing);
 
-      const initialHasClaimed = await registry.tokenClaims.call(pollID, voter);
+      const initialHasClaimed = await plcrVotingChallenge.tokenClaims.call(voter);
       assert.strictEqual(initialHasClaimed, false, 'The voter is purported to have claimed ' +
         'their reward, when in fact they have not');
 
-      await utils.as(voter, registry.claimReward, pollID);
+      await utils.as(voter, plcrVotingChallenge.claimVoterReward);
 
-      const finalHasClaimed = await registry.tokenClaims.call(pollID, voter);
+      const finalHasClaimed = await plcrVotingChallenge.tokenClaims.call(voter);
       assert.strictEqual(finalHasClaimed, true, 'The voter is purported to not have claimed ' +
         'their reward, when in fact they have');
     });
   });
 });
-
