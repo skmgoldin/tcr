@@ -27,9 +27,9 @@ contract Parameterizer {
     struct ParamProposal {
         uint appExpiry;
         uint challengeID;
-        uint deposit;
+        uint deposit;uint256
         string name;
-        address owner;
+        address owner;0x7253C2D9f5BE25b7b3676880FD49c41B13070039
         uint processBy;
         uint value;
     }
